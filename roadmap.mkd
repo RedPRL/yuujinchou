@@ -1,0 +1,26 @@
+# 0.1 (basics)
+
+- concatenation
+- sequencing
+- wildcard
+
+# 0.2
+
+- renaming
+
+# 0.3
+
+- hiding
+
+# 0.4
+
+- exportability (public/private)
+
+# 0.5
+
+- scoping (?)
+
+# 0.6
+
+- join
+- meet
