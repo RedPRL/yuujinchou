@@ -33,10 +33,11 @@ let rec run action path =
       | Some remaining -> Matched (replacement @ remaining)
     end
   | ActSeq (act1, act2), path ->
-    let path =
-        match run act1 path with
-        | NoMatch -> path
-        | Matched replacement -> replacement
-    in
-    run act2 path
-
+    begin
+      match run act1 path with
+      | NoMatch -> run act2 path
+      | Matched replacement1 ->
+        match run act2 replacement1 with
+        | NoMatch -> Matched replacement1
+        | Matched replacement2 -> Matched replacement2
+    end
