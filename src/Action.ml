@@ -1,7 +1,7 @@
 type action =
   | ActWildcard
-  | ActId of string list
-  | ActScope of string list * action
+  | ActId of string list * string list
+  | ActScope of string list * string list * action
   | ActSeq of action * action (* will be n-ary later *)
 
 type result = NoMatch | Matched of string list
@@ -17,26 +17,26 @@ let rec run action path =
   match action, path with
   | ActWildcard, [] -> NoMatch
   | ActWildcard, (_ :: _) -> Matched path
-  | ActScope (prefix, action), path ->
+  | ActScope (prefix, replacement, action), path ->
     begin
       match check_prefix prefix path with
       | None -> NoMatch
       | Some remaining ->
         match run action remaining with
         | NoMatch -> NoMatch
-        | Matched remaining -> Matched (prefix @ remaining)
+        | Matched remaining_replacement -> Matched (replacement @ remaining_replacement)
     end
-  | ActId prefix, path ->
+  | ActId (prefix, replacement), path ->
     begin
       match check_prefix prefix path with
       | None -> NoMatch
-      | Some _ -> Matched path
+      | Some remaining -> Matched (replacement @ remaining)
     end
   | ActSeq (act1, act2), path ->
     let path =
         match run act1 path with
         | NoMatch -> path
-        | Matched path -> path
+        | Matched replacement -> replacement
     in
     run act2 path
 

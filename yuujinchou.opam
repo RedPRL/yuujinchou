@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "yuujinchou"
-version: "0.1"
+version: "0.2"
 synopsis: "Name modifiers"
 maintainer: "favonia <favonia@gmail.com>"
 authors: "favonia <favonia@gmail.com>"
