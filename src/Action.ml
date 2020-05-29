@@ -13,12 +13,12 @@ type action =
 
 type result = NoMatch | Matched of string list
 
-let rec check_prefix prefix path =
+let rec trim_prefix prefix path =
   match prefix, path with
   | [], _ -> Some path
   | _, [] -> None
   | (id :: prefix), (id' :: path) ->
-    if id = id' then Option.map (fun l -> id :: l) (check_prefix prefix path) else None
+    if id = id' then Option.map (fun l -> id :: l) (trim_prefix prefix path) else None
 
 let rec run ~inversion action path =
   match inversion, action, path with
@@ -28,7 +28,7 @@ let rec run ~inversion action path =
   | `Negated, ActWildcard, (_ :: _) -> NoMatch
   | _, ActScope (prefix, replacement, action), path ->
     begin
-      match check_prefix prefix path with
+      match trim_prefix prefix path with
       | None ->
         begin
           match inversion with
@@ -44,7 +44,7 @@ let rec run ~inversion action path =
     end
   | _, ActId (prefix, replacement), path ->
     begin
-      match check_prefix prefix path with
+      match trim_prefix prefix path with
       | None ->
         begin
           match inversion with
