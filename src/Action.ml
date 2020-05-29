@@ -1,8 +1,15 @@
+type inversion = [`Normal | `Negated]
+let flip_inversion =
+  function
+  | `Normal -> `Negated
+  | `Negated -> `Normal
+
 type action =
   | ActWildcard
   | ActId of string list * string list
   | ActScope of string list * string list * action
   | ActSeq of action * action (* will be n-ary later *)
+  | ActNeg of action
 
 type result = NoMatch | Matched of string list
 
@@ -13,31 +20,61 @@ let rec check_prefix prefix path =
   | (id :: prefix), (id' :: path) ->
     if id = id' then Option.map (fun l -> id :: l) (check_prefix prefix path) else None
 
-let rec run action path =
-  match action, path with
-  | ActWildcard, [] -> NoMatch
-  | ActWildcard, (_ :: _) -> Matched path
-  | ActScope (prefix, replacement, action), path ->
+let rec run ~inversion action path =
+  match inversion, action, path with
+  | `Normal, ActWildcard, [] -> NoMatch
+  | `Negated, ActWildcard, [] -> Matched []
+  | `Normal, ActWildcard, (_ :: _) -> Matched path
+  | `Negated, ActWildcard, (_ :: _) -> NoMatch
+  | _, ActScope (prefix, replacement, action), path ->
     begin
       match check_prefix prefix path with
-      | None -> NoMatch
+      | None ->
+        begin
+          match inversion with
+          | `Normal -> NoMatch
+          | `Negated -> Matched path
+        end
       | Some remaining ->
-        match run action remaining with
-        | NoMatch -> NoMatch
-        | Matched remaining_replacement -> Matched (replacement @ remaining_replacement)
+        begin
+          match run ~inversion action remaining with
+          | NoMatch -> NoMatch
+          | Matched remaining_replacement -> Matched (replacement @ remaining_replacement)
+        end
     end
-  | ActId (prefix, replacement), path ->
+  | _, ActId (prefix, replacement), path ->
     begin
       match check_prefix prefix path with
-      | None -> NoMatch
-      | Some remaining -> Matched (replacement @ remaining)
+      | None ->
+        begin
+          match inversion with
+          | `Normal -> NoMatch
+          | `Negated -> Matched path
+        end
+      | Some remaining ->
+        begin
+          match inversion with
+          | `Normal -> Matched (replacement @ remaining)
+          | `Negated -> NoMatch (* should warn the user that the replacement not used *)
+        end
     end
-  | ActSeq (act1, act2), path ->
+  | _, ActSeq (act1, act2), path ->
     begin
-      match run act1 path with
-      | NoMatch -> run act2 path
+      match run ~inversion act1 path with
+      | NoMatch ->
+        begin
+          match inversion with
+          | `Normal -> run ~inversion act2 path
+          | `Negated -> NoMatch
+        end
       | Matched replacement1 ->
-        match run act2 replacement1 with
-        | NoMatch -> Matched replacement1
+        match run ~inversion act2 replacement1 with
+        | NoMatch ->
+          begin
+            match inversion with
+            | `Normal -> Matched replacement1
+            | `Negated -> NoMatch
+          end
         | Matched replacement2 -> Matched replacement2
     end
+  | _, ActNeg act, path -> run ~inversion:(flip_inversion inversion) act path
