@@ -42,21 +42,18 @@ let rec run ~inversion action path =
           | Matched remaining_replacement -> Matched (replacement @ remaining_replacement)
         end
     end
-  | _, ActId (prefix, replacement), path ->
+  | `Normal, ActId (prefix, replacement), path ->
     begin
       match trim_prefix prefix path with
-      | None ->
-        begin
-          match inversion with
-          | `Normal -> NoMatch
-          | `Negated -> Matched path
-        end
-      | Some remaining ->
-        begin
-          match inversion with
-          | `Normal -> Matched (replacement @ remaining)
-          | `Negated -> NoMatch (* should warn the user that the replacement not used *)
-        end
+      | None -> NoMatch
+      | Some remaining -> Matched (replacement @ remaining)
+    end
+  | `Negated, ActId (prefix, _), path ->
+    (* TODO should warn user if replacement != prefix *)
+    begin
+      match trim_prefix prefix path with
+      | None -> Matched path
+      | Some _ -> NoMatch
     end
   | `Normal, ActSeq (act1, act2), path ->
     begin
