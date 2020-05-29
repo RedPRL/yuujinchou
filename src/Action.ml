@@ -58,23 +58,22 @@ let rec run ~inversion action path =
           | `Negated -> NoMatch (* should warn the user that the replacement not used *)
         end
     end
-  | _, ActSeq (act1, act2), path ->
+  | `Normal, ActSeq (act1, act2), path ->
     begin
       match run ~inversion act1 path with
-      | NoMatch ->
-        begin
-          match inversion with
-          | `Normal -> run ~inversion act2 path
-          | `Negated -> NoMatch
-        end
+      | NoMatch -> run ~inversion act2 path
       | Matched replacement1 ->
         match run ~inversion act2 replacement1 with
-        | NoMatch ->
-          begin
-            match inversion with
-            | `Normal -> Matched replacement1
-            | `Negated -> NoMatch
-          end
+        | NoMatch -> Matched replacement1
+        | Matched replacement2 -> Matched replacement2
+    end
+  | `Negated, ActSeq (act1, act2), path ->
+    begin
+      match run ~inversion act1 path with
+      | NoMatch -> NoMatch
+      | Matched replacement1 ->
+        match run ~inversion act2 replacement1 with
+        | NoMatch -> NoMatch
         | Matched replacement2 -> Matched replacement2
     end
   | _, ActNeg act, path -> run ~inversion:(flip_inversion inversion) act path
