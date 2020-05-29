@@ -57,27 +57,21 @@ let rec run ~inversion ~export pattern path =
       | None -> Ok (Matched (export, path))
       | Some _ -> Ok NoMatch
     end
-  | `Normal, PatSeq (act1, act2), path ->
-    begin
-      Result.bind (run ~inversion ~export act1 path) @@
+  | `Normal, PatSeq acts, path ->
+    let f r act = Result.bind r @@
       function
-      | NoMatch -> run ~inversion ~export act2 path
-      | Matched (export, replacement1) ->
-        Result.bind (run ~inversion ~export act2 replacement1) @@
-        function
-        | NoMatch -> Ok (Matched (export, replacement1))
-        | Matched (export, replacement2) -> Ok (Matched (export, replacement2))
-    end
-  | `Negated, PatSeq (act1, act2), path ->
-    begin
-      Result.bind (run ~inversion ~export act1 path) @@
+      | NoMatch -> run ~inversion ~export act path
+      | Matched (export, replacement) ->
+        run ~inversion ~export act replacement
+    in
+    List.fold_left f (Ok NoMatch) acts
+  | `Negated, PatSeq acts, path ->
+    let f r act = Result.bind r @@
       function
       | NoMatch -> Ok NoMatch
-      | Matched (export, replacement1) ->
-        Result.bind (run ~inversion ~export act2 replacement1) @@
-        function
-        | NoMatch -> Ok NoMatch
-        | Matched (export, replacement2) -> Ok (Matched (export, replacement2))
-    end
+      | Matched (export, replacement) ->
+        run ~inversion ~export act replacement
+    in
+    List.fold_left f (Ok (Matched (export, path))) acts
   | _, PatNeg act, path -> run ~inversion:(flip_inversion inversion) ~export act path
   | _, PatExport (export, act), path -> run ~inversion ~export act path
