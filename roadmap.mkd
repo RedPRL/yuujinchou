@@ -22,5 +22,6 @@
 
 # 0.6
 
+- n-ary output
 - join
 - meet
