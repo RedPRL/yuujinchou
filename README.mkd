@@ -1,0 +1,33 @@
+# Powerful and compositional name manipulation combinators
+
+---
+
+# Progress
+
+## 0.1 (basics)
+
+- [x] concatenation
+- [x] sequencing
+- [x] wildcard
+
+## 0.2
+
+- [x] renaming
+
+## 0.3
+
+- [x] hiding
+
+## 0.4
+
+- [x] exportability (public/private)
+
+## 0.5
+
+- [x] n-ary sequencing
+
+## 0.6
+
+- [x] n-ary output
+- [ ] join
+- [ ] meet
