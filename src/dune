@@ -1,2 +1,5 @@
 (library
- (name yujincho))
+ (name yuujinchou)
+ (preprocess
+  (pps ppx_deriving.std))
+ (public_name yuujinchou))

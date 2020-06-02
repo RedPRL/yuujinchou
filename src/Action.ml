@@ -2,48 +2,47 @@ open Pattern
 
 type error =
   | ReplacementNotUsed of path * path
-  | EmptyMeet of pattern
+  | EmptyMeetOrNegatedJoin of pattern
 
 exception EmptyMeet
 
 module M = Map.Make (struct type t = path let compare = compare end)
 
-type result = NoMatch | Matched of exportability M.t
 
-let singleton path export = Matched (M.singleton path export)
+let singleton path export = `Matched (M.singleton path export)
 
 let join2 r1 r2 =
   match r1, r2 with
-  | _, NoMatch -> r1
-  | NoMatch, _ -> r2
-  | Matched m1, Matched m2 ->
+  | _, `NoMatch -> r1
+  | `NoMatch, _ -> r2
+  | `Matched m1, `Matched m2 ->
     let merger _ e1 e2 =
       match e1, e2 with
       | `Public, _ | _, `Public -> Some `Public
       | `Private, `Private -> Some `Private
-    in Matched (M.union merger m1 m2)
+    in `Matched (M.union merger m1 m2)
 
-let join rs = List.fold_left join2 NoMatch rs
+let join rs = List.fold_left join2 `NoMatch rs
 
 let meet2 r1 r2 =
   match r1, r2 with
-  | _, NoMatch | NoMatch, _ -> NoMatch
-  | Matched m1, Matched m2 ->
+  | _, `NoMatch | `NoMatch, _ -> `NoMatch
+  | `Matched m1, `Matched m2 ->
     let merger _ e1 e2 =
       match e1, e2 with
       | None, _ | _, None -> None
       | Some `Private, _ | _, Some `Private -> Some `Private
       | Some `Public, Some `Public -> Some `Public
-    in Matched (M.merge merger m1 m2)
+    in `Matched (M.merge merger m1 m2)
 
 let meet =
   function
   | [] -> raise EmptyMeet
   | r :: rs -> List.fold_left meet2 r rs
 
-type inversion = [`Normal | `Negated]
+type mode = [`Normal | `Negated]
 
-let flip_inversion =
+let flip_mode : mode -> mode =
   function
   | `Normal -> `Negated
   | `Negated -> `Normal
@@ -55,12 +54,14 @@ let rec trim_prefix prefix path =
   | (id :: prefix), (id' :: path) ->
     if id = id' then Option.map (fun l -> id :: l) (trim_prefix prefix path) else None
 
-let rec run ~inversion ~export pattern path =
-  match inversion, pattern, path with
-  | `Normal, PatWildcard, [] -> Ok NoMatch
+type modal_result = [ `NoMatch | `Matched of exportability M.t ]
+
+let rec modal_run ~mode ~export pattern path : (modal_result, error) Result.t =
+  match mode, pattern, path with
+  | `Normal, PatWildcard, [] -> Ok `NoMatch
   | `Negated, PatWildcard, [] -> Ok (singleton [] export)
   | `Normal, PatWildcard, (_ :: _) -> Ok (singleton path export)
-  | `Negated, PatWildcard, (_ :: _) -> Ok NoMatch
+  | `Negated, PatWildcard, (_ :: _) -> Ok `NoMatch
   | `Negated, PatScope (prefix, Some prefix_replacement, _), _ ->
     Error (ReplacementNotUsed (prefix, prefix_replacement))
   | _, PatScope (prefix, prefix_replacement, pattern), _ ->
@@ -68,24 +69,24 @@ let rec run ~inversion ~export pattern path =
       match trim_prefix prefix path with
       | None ->
         begin
-          match inversion with
-          | `Normal -> Ok NoMatch
+          match mode with
+          | `Normal -> Ok `NoMatch
           | `Negated -> Ok (singleton path export)
         end
       | Some remaining ->
         let prefix_replacement = Option.value prefix_replacement ~default:prefix in
-        run ~inversion ~export pattern remaining |> Result.map begin
+        modal_run ~mode ~export pattern remaining |> Result.map begin
           function
-          | NoMatch -> NoMatch
-          | Matched m ->
-            Matched (m |> M.to_seq |> Seq.map (fun (r, export) -> prefix_replacement @ r, export) |> M.of_seq)
+          | `NoMatch -> `NoMatch
+          | `Matched m ->
+            `Matched (m |> M.to_seq |> Seq.map (fun (r, export) -> prefix_replacement @ r, export) |> M.of_seq)
         end
     end
   | `Normal, PatId (prefix, prefix_replacement), _ ->
     let prefix_replacement = Option.value prefix_replacement ~default:prefix in
     begin
       match trim_prefix prefix path with
-      | None -> Ok NoMatch
+      | None -> Ok `NoMatch
       | Some remaining -> Ok (singleton (prefix_replacement @ remaining) export)
     end
   | `Negated, PatId (prefix, Some prefix_replacement), _ ->
@@ -94,37 +95,47 @@ let rec run ~inversion ~export pattern path =
     begin
       match trim_prefix prefix path with
       | None -> Ok (singleton path export)
-      | Some _ -> Ok NoMatch
+      | Some _ -> Ok `NoMatch
     end
   | `Normal, PatSeq pats, _ ->
     let f r pat = Result.bind r @@
       function
-      | NoMatch -> run ~inversion ~export pat path
-      | Matched m ->
+      | `NoMatch -> modal_run ~mode ~export pat path
+      | `Matched m ->
         Result.map join begin
           M.bindings m |> ResultMonad.map @@ fun (path, export) ->
-          run ~inversion ~export pat path
+          modal_run ~mode ~export pat path
         end
     in
-    List.fold_left f (Ok NoMatch) pats
+    List.fold_left f (Ok `NoMatch) pats
   | `Negated, PatSeq pats, _ ->
     let f r pat = Result.bind r @@
       function
-      | NoMatch -> Ok NoMatch
-      | Matched m ->
+      | `NoMatch -> Ok `NoMatch
+      | `Matched m ->
         Result.map join begin
           M.bindings m |> ResultMonad.map @@ fun (path, export) ->
-          run ~inversion ~export pat path
+          modal_run ~mode ~export pat path
         end
     in
     List.fold_left f (Ok (singleton path export)) pats
-  | _, PatNeg pat, _ -> run ~inversion:(flip_inversion inversion) ~export pat path
-  | _, PatExport (export, pat), _ -> run ~inversion ~export pat path
-  | _, PatJoin pats, _ ->
+  | _, PatNeg pat, _ -> modal_run ~mode:(flip_mode mode) ~export pat path
+  | _, PatExport (export, pat), _ -> modal_run ~mode ~export pat path
+  | `Normal, PatJoin pats, _ | `Negated, PatMeet pats, _ ->
     Result.map join begin
-      pats |> ResultMonad.map @@ fun pat -> run ~inversion ~export pat path
+      pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
     end
-  | _, PatMeet pats, _ ->
-    Result.map meet begin
-      pats |> ResultMonad.map @@ fun pat -> run ~inversion ~export pat path
-    end
+  | `Normal, PatMeet pats, _ | `Negated, PatJoin pats, _ ->
+    try
+      Result.map meet begin
+        pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
+      end
+    with EmptyMeet -> Error (EmptyMeetOrNegatedJoin pattern)
+
+type result = [ `NoMatch | `Matched of (path * exportability) list ]
+
+let run ~export pattern path : (result, error) Result.t =
+  modal_run ~mode:`Normal ~export pattern path |> Result.map @@
+  function
+  | `NoMatch -> `NoMatch
+  | `Matched m -> `Matched (M.bindings m)
