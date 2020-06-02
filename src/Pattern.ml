@@ -9,6 +9,8 @@ type pattern =
   | PatSeq of pattern list
   | PatNeg of pattern
   | PatExport of exportability * pattern
+  | PatJoin of pattern list
+  | PatMeet of pattern list
 
 let wildcard = PatWildcard
 let root = PatNeg PatWildcard
@@ -22,3 +24,5 @@ let seq acts = PatSeq acts
 let neg a = PatNeg a
 let public a = PatExport (`Public, a)
 let private_ a = PatExport (`Private, a)
+let join l = PatJoin l
+let meet l = PatMeet l

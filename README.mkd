@@ -27,5 +27,5 @@
 ### 0.6
 
 - [x] n-ary output
-- [ ] join
-- [ ] meet
+- [x] join
+- [x] meet
