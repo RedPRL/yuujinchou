@@ -47,7 +47,7 @@ There are two modes of the pattern matching engine: the _normal_ mode and the _i
 
 ### Exportability
 
-Exportability is either ``` `Public``` (meaning the name should be re-exported) or ``` `Private``` (meaning the name should not be re-exported). The programmer needs to supply the default exportability when running the engine for patterns that inherit the default values, and the output of the engine will tag each new name with calculated exportability.
+Exportability is either ``` `Public``` (meaning the name should be re-exported) or ``` `Private``` (meaning the name should not be re-exported). The programmer needs to supply the default exportability when running the engine, and the output of the engine will tag each new name with computed exportability as shown above.
 
 ## Wildcard Pattern (`PatWildcard`)
 
