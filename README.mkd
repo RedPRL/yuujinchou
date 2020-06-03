@@ -7,14 +7,14 @@ open import M
 ```python
 import foo
 ```
-The ability to import content from other files is a prerequisite of a good organization of a large-scale software. However, it also brings in new design problems: how could programmers avoid imported content from colliding or shadowing the content in the current environment? For example, maybe in the current file we have defined a function called `test` and do not want to import another function called `test`. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+The ability to import content from other files is a prerequisite of good organization of large-scale software. However, it also brings in new design problems: how could programmers avoid imported content from colliding or shadowing the content in the current scope? For example, maybe in the current scope we have defined a function called `test`, and do not want to import another function also called `test`. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
 ```agda
 open import M renaming (a to b) public -- renaming a to b, and then re-exporting the content
 ```
 ```python
 import foo as bar # putting content of foo under the prefix bar
 ```
-We can treat the hiding or renaming as a partial function from names to names. This library is the engine of a concise yet powerful renaming and hiding combinator language.
+We can treat the hiding or renaming as a partial function from names to names. One can take this aspect seriously and vastly generalize it into a combinator library. This library is the result of such thinking---a concise yet powerful (perhaps overkilling) combinator language for manipulating names in programming languages.
 
 ## Technical Overview
 
