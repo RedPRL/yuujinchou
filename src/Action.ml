@@ -2,7 +2,7 @@ open Pattern
 
 type error =
   | ReplacementNotUsed of pattern
-  | EmptyMeetOrNegatedJoin of pattern
+  | EmptyMeetOrInverseJoin of pattern
 [@@deriving show]
 
 exception EmptyMeet
@@ -40,12 +40,12 @@ let meet =
   | [] -> raise EmptyMeet
   | r :: rs -> List.fold_left meet2 r rs
 
-type mode = [`Normal | `Negated]
+type mode = [`Normal | `Inverse]
 
 let flip_mode : mode -> mode =
   function
-  | `Normal -> `Negated
-  | `Negated -> `Normal
+  | `Normal -> `Inverse
+  | `Inverse -> `Normal
 
 let rec trim_prefix prefix path =
   match prefix, path with
@@ -59,10 +59,10 @@ type modal_result = [ `NoMatch | `Matched of exportability M.t ]
 let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
   match mode, pattern, path with
   | `Normal, PatWildcard, [] -> Ok `NoMatch
-  | `Negated, PatWildcard, [] -> Ok (singleton [] export)
+  | `Inverse, PatWildcard, [] -> Ok (singleton [] export)
   | `Normal, PatWildcard, (_ :: _) -> Ok (singleton path export)
-  | `Negated, PatWildcard, (_ :: _) -> Ok `NoMatch
-  | `Negated, PatScope (_, Some _, _), _ ->
+  | `Inverse, PatWildcard, (_ :: _) -> Ok `NoMatch
+  | `Inverse, PatScope (_, Some _, _), _ ->
     Error (ReplacementNotUsed pattern)
   | _, PatScope (prefix, prefix_replacement, pattern), _ ->
     begin
@@ -71,7 +71,7 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
         begin
           match mode with
           | `Normal -> Ok `NoMatch
-          | `Negated -> Ok (singleton path export)
+          | `Inverse -> Ok (singleton path export)
         end
       | Some remaining ->
         let prefix_replacement = Option.value prefix_replacement ~default:prefix in
@@ -89,9 +89,9 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
       | None -> Ok `NoMatch
       | Some remaining -> Ok (singleton (prefix_replacement @ remaining) export)
     end
-  | `Negated, PatId (_, Some _), _ ->
+  | `Inverse, PatId (_, Some _), _ ->
     Error (ReplacementNotUsed pattern)
-  | `Negated, PatId (prefix, None), _ ->
+  | `Inverse, PatId (prefix, None), _ ->
     begin
       match trim_prefix prefix path with
       | None -> Ok (singleton path export)
@@ -108,7 +108,7 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
         end
     in
     List.fold_left f (Ok `NoMatch) pats
-  | `Negated, PatSeq pats, _ ->
+  | `Inverse, PatSeq pats, _ ->
     let f r pat = Result.bind r @@
       function
       | `NoMatch -> Ok `NoMatch
@@ -119,15 +119,15 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
         end
     in
     List.fold_left f (Ok (singleton path export)) pats
-  | _, PatNeg pat, _ -> modal_run ~mode:(flip_mode mode) ~export pat path
+  | _, PatInv pat, _ -> modal_run ~mode:(flip_mode mode) ~export pat path
   | _, PatExport (export, pat), _ -> modal_run ~mode ~export pat path
-  | `Normal, PatJoin pats, _ | `Negated, PatMeet pats, _ ->
+  | `Normal, PatJoin pats, _ | `Inverse, PatMeet pats, _ ->
     Result.map join begin
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
     end
-  | `Normal, PatMeet [], _ | `Negated, PatJoin [], _ ->
-    Error (EmptyMeetOrNegatedJoin pattern)
-  | `Normal, PatMeet pats, _ | `Negated, PatJoin pats, _ ->
+  | `Normal, PatMeet [], _ | `Inverse, PatJoin [], _ ->
+    Error (EmptyMeetOrInverseJoin pattern)
+  | `Normal, PatMeet pats, _ | `Inverse, PatJoin pats, _ ->
     Result.map meet begin
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
     end
@@ -146,15 +146,15 @@ let run export pattern path : (result_, error) result =
 let rec modal_check ~mode pattern : (unit, error) result =
   match mode, pattern with
   | _, PatWildcard -> Ok ()
-  | `Negated, PatId (_, Some _) -> Error (ReplacementNotUsed pattern)
+  | `Inverse, PatId (_, Some _) -> Error (ReplacementNotUsed pattern)
   | _, PatId _ -> Ok ()
-  | `Negated, PatScope (_, Some _, _) -> Error (ReplacementNotUsed pattern)
+  | `Inverse, PatScope (_, Some _, _) -> Error (ReplacementNotUsed pattern)
   | _, PatScope (_, _, pattern) -> modal_check ~mode pattern
   | _, PatSeq pats -> ResultMonad.iter (modal_check ~mode) pats
-  | _, PatNeg pattern -> modal_check ~mode:(flip_mode mode) pattern
+  | _, PatInv pattern -> modal_check ~mode:(flip_mode mode) pattern
   | _, PatExport (_, pattern) -> modal_check ~mode pattern
-  | `Normal, PatMeet [] | `Negated, PatJoin [] ->
-    Error (EmptyMeetOrNegatedJoin pattern)
+  | `Normal, PatMeet [] | `Inverse, PatJoin [] ->
+    Error (EmptyMeetOrInverseJoin pattern)
   | _, PatJoin pats | _, PatMeet pats ->
     ResultMonad.iter (modal_check ~mode) pats
 
