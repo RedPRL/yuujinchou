@@ -3,11 +3,11 @@ open Pattern
 type error =
   | ReplacementNotUsed of path * path
   | EmptyMeetOrNegatedJoin of pattern
+[@@deriving show]
 
 exception EmptyMeet
 
 module M = Map.Make (struct type t = path let compare = compare end)
-
 
 let singleton path export = `Matched (M.singleton path export)
 
@@ -132,9 +132,12 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) Result.t =
       end
     with EmptyMeet -> Error (EmptyMeetOrNegatedJoin pattern)
 
-type result = [ `NoMatch | `Matched of (path * exportability) list ]
+type result_ = [ `NoMatch | `Matched of (path * exportability) list ]
+[@@deriving show]
 
-let run ~export pattern path : (result, error) Result.t =
+let pp_result = Format.pp_print_result ~ok:pp_result_ ~error:pp_error
+
+let run export pattern path : (result_, error) result =
   modal_run ~mode:`Normal ~export pattern path |> Result.map @@
   function
   | `NoMatch -> `NoMatch

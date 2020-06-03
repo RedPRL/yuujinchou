@@ -1,6 +1,8 @@
 type exportability = [`Public | `Private]
+[@@deriving show]
 
 type path = string list
+[@@deriving show]
 
 type pattern =
   | PatWildcard
@@ -11,6 +13,7 @@ type pattern =
   | PatExport of exportability * pattern
   | PatJoin of pattern list
   | PatMeet of pattern list
+[@@deriving show]
 
 let wildcard = PatWildcard
 let root = PatNeg PatWildcard
