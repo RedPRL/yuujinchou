@@ -1,7 +1,7 @@
 open Pattern
 
 type error =
-  | ReplacementNotUsed of path * path
+  | ReplacementNotUsed of pattern
   | EmptyMeetOrNegatedJoin of pattern
 [@@deriving show]
 
@@ -56,14 +56,14 @@ let rec trim_prefix prefix path =
 
 type modal_result = [ `NoMatch | `Matched of exportability M.t ]
 
-let rec modal_run ~mode ~export pattern path : (modal_result, error) Result.t =
+let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
   match mode, pattern, path with
   | `Normal, PatWildcard, [] -> Ok `NoMatch
   | `Negated, PatWildcard, [] -> Ok (singleton [] export)
   | `Normal, PatWildcard, (_ :: _) -> Ok (singleton path export)
   | `Negated, PatWildcard, (_ :: _) -> Ok `NoMatch
-  | `Negated, PatScope (prefix, Some prefix_replacement, _), _ ->
-    Error (ReplacementNotUsed (prefix, prefix_replacement))
+  | `Negated, PatScope (_, Some _, _), _ ->
+    Error (ReplacementNotUsed pattern)
   | _, PatScope (prefix, prefix_replacement, pattern), _ ->
     begin
       match trim_prefix prefix path with
@@ -89,8 +89,8 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) Result.t =
       | None -> Ok `NoMatch
       | Some remaining -> Ok (singleton (prefix_replacement @ remaining) export)
     end
-  | `Negated, PatId (prefix, Some prefix_replacement), _ ->
-    Error (ReplacementNotUsed (prefix, prefix_replacement))
+  | `Negated, PatId (_, Some _), _ ->
+    Error (ReplacementNotUsed pattern)
   | `Negated, PatId (prefix, None), _ ->
     begin
       match trim_prefix prefix path with
@@ -125,12 +125,12 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) Result.t =
     Result.map join begin
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
     end
+  | `Normal, PatMeet [], _ | `Negated, PatJoin [], _ ->
+    Error (EmptyMeetOrNegatedJoin pattern)
   | `Normal, PatMeet pats, _ | `Negated, PatJoin pats, _ ->
-    try
-      Result.map meet begin
-        pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
-      end
-    with EmptyMeet -> Error (EmptyMeetOrNegatedJoin pattern)
+    Result.map meet begin
+      pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
+    end
 
 type result_ = [ `NoMatch | `Matched of (path * exportability) list ]
 [@@deriving show]
@@ -142,3 +142,23 @@ let run export pattern path : (result_, error) result =
   function
   | `NoMatch -> `NoMatch
   | `Matched m -> `Matched (M.bindings m)
+
+let rec modal_check ~mode pattern : (unit, error) result =
+  match mode, pattern with
+  | _, PatWildcard -> Ok ()
+  | `Negated, PatId (_, Some _) -> Error (ReplacementNotUsed pattern)
+  | _, PatId _ -> Ok ()
+  | `Negated, PatScope (_, Some _, _) -> Error (ReplacementNotUsed pattern)
+  | _, PatScope (_, _, pattern) -> modal_check ~mode pattern
+  | _, PatSeq pats -> ResultMonad.iter (modal_check ~mode) pats
+  | _, PatNeg pattern -> modal_check ~mode:(flip_mode mode) pattern
+  | _, PatExport (_, pattern) -> modal_check ~mode pattern
+  | `Normal, PatMeet [] | `Negated, PatJoin [] ->
+    Error (EmptyMeetOrNegatedJoin pattern)
+  | _, PatJoin pats | _, PatMeet pats ->
+    ResultMonad.iter (modal_check ~mode) pats
+
+let check pattern : (unit, error) result =
+  modal_check ~mode:`Normal pattern
+
+let pp_check_result = Format.pp_print_result ~ok:(fun fmt () -> Format.pp_print_string fmt "()") ~error:pp_error
