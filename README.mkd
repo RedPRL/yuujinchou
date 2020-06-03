@@ -1,20 +1,20 @@
 # Yuujinchou: Name Manipulation Combinators
 
-_Yuujinchou_ is a tiny OCaml combinator library for name manipulation. It was motivated by the practical need in implementing the `import` or `include` statements that are present in almost all programming languages. Here are some examples of such statements:
+_Yuujinchou_ is a tiny OCaml combinator library for manipulating name. It was motivated by the practical need in implementing the `import` or `include` statements that are present in almost all programming languages. Here are some examples of such statements:
 ```agda
-open import M
+open import M -- Agda
 ```
 ```python
-import foo
+import foo # Python
 ```
-The ability to import content from other files is a prerequisite of good organization of large-scale software. However, it also brings in new design problems: how could programmers avoid imported content from colliding or shadowing the content in the current scope? For example, maybe in the current scope we have defined a function called `test`, and do not want to import another function also called `test`. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+The ability to import content from other files is a prerequisite of organizing large-scale software. However, it also brings up new design issues: how could programmers avoid imported content from colliding or shadowing the content in the current scope? For example, maybe in the current scope we have defined a function called `test`, and do not want to import another function also called `test`. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
 ```agda
 open import M renaming (a to b) public -- renaming a to b, and then re-exporting the content
 ```
 ```python
 import foo as bar # putting content of foo under the prefix bar
 ```
-We can treat the hiding or renaming as a partial function from names to names. One can take this aspect seriously and vastly generalize it into a combinator library. This library is the result of such thinking---a concise yet powerful (perhaps overkilling) combinator language for manipulating names in programming languages.
+We can treat the hiding or renaming as a partial function from names to names. One can take this aspect seriously and vastly generalize the mechanism into a fully-fledged combinator library. This library is the result of such thinking---a concise yet powerful (perhaps overkilling) combinator language for manipulating names in programming languages.
 
 ## Technical Overview
 
@@ -22,7 +22,7 @@ We assume names are hierarchical and can be encoded as lists of strings. For exa
 The result of pattern matching is one of the following:
 
 1. ```Ok `NoMatch```: the pattern runs successfully but does not match the name.
-2. ```Ok `Match [name1, `Public; name2, `Private; ...]```: the pattern matches the name but it was renamed into other names, with tags showing either a particular name should be re-exported (````Public```) or not (````Private```). It is possible that the set of new names is empty because we support the intersection operator.
+2. ```Ok `Match [name1, `Public; name2, `Private; ...]```: the pattern matches the name but it was renamed into other names, with tags showing either a particular name should be re-exported (``` `Public```) or not (``` `Private```). It is possible that the set of new names is empty because we support the intersection operator.
 3. ```Error error```: the pattern is ill-formed.
 
 Here is the type of the pattern:
@@ -47,7 +47,7 @@ There are two modes of the pattern matching engine: the _normal_ mode and the _i
 
 ### Exportability
 
-Exportability is either ````Public``` (meaning the name should be re-exported) or ````Private``` (meaning the name should not be re-exported). The programmer needs to supply the default exportability when running the engine for patterns that inherit the default values, and the output of the engine will tag each new name with calculated exportability.
+Exportability is either ``` `Public``` (meaning the name should be re-exported) or ``` `Private``` (meaning the name should not be re-exported). The programmer needs to supply the default exportability when running the engine for patterns that inherit the default values, and the output of the engine will tag each new name with calculated exportability.
 
 ## Wildcard Pattern (`PatWildcard`)
 
