@@ -1,6 +1,6 @@
 # Yuujinchou: Name Manipulation Combinators
 
-_Yuujinchou_ is a tiny OCaml combinator library for manipulating name. It was motivated by the practical need in implementing the `import` or `include` statements that are present in almost all programming languages. Here are some examples of such statements:
+_Yuujinchou_ is a tiny OCaml combinator library for manipulating names. It was motivated by the practical need in implementing the `import` or `include` statements that are present in almost all programming languages. Here are some examples of such statements:
 ```agda
 open import M -- Agda
 ```
