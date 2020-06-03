@@ -1,31 +1,70 @@
-# Powerful and compositional name manipulation combinators
+# Yuujinchou: Name Manipulation Combinators
 
-## Progress
+_Yuujinchou_ is a tiny OCaml combinator library for name manipulation. It was motivated by the practical need in implementing the `import` or `include` statements that are present in almost all programming languages. Here are some examples of such statements:
+```agda
+open import M
+```
+```python
+import foo
+```
+The ability to import content from other files is a prerequisite of a good organization of a large-scale software. However, it also brings in new design problems: how could programmers avoid imported content from colliding or shadowing the content in the current environment? For example, maybe in the current file we have defined a function called `test` and do not want to import another function called `test`. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+```agda
+open import M renaming (a to b) public -- renaming a to b, and then re-exporting the content
+```
+```python
+import foo as bar # putting content of foo under the prefix bar
+```
+We can treat the hiding or renaming as a partial function from names to names. This library is the engine of a concise yet powerful renaming and hiding combinator language.
 
-### 0.1 (basics)
+## Technical Overview
 
-- [x] concatenation
-- [x] sequencing
-- [x] wildcard
+We assume names are hierarchical and can be encoded as lists of strings. For example, the name `a.b` is represented as an OCaml list `["a"; "b"]`.
+The result of pattern matching is one of the following:
 
-### 0.2
+1. ```Ok `NoMatch```: the pattern runs successfully but does not match the name.
+2. ```Ok `Match [name1, `Public; name2, `Private; ...]```: the pattern matches the name but it was renamed into other names, with tags showing either a particular name should be re-exported (````Public```) or not (````Private```). It is possible that the set of new names is empty because we support the intersection operator.
+3. ```Error error```: the pattern is ill-formed.
 
-- [x] renaming
+Here is the type of the pattern:
+```ocaml
+type exportability = [`Public | `Private]
+type path = string list
+type pattern =
+  | PatWildcard
+  | PatId of path * path option
+  | PatScope of path * path option * pattern
+  | PatSeq of pattern list
+  | PatInv of pattern
+  | PatExport of exportability * pattern
+  | PatJoin of pattern list
+  | PatMeet of pattern list
+```
+We will explain each combinator, one by one. Before moving on, you will need to understand the concept "mode" when running the engine:
 
-### 0.3
+### Modes
 
-- [x] hiding
+There are two modes of the pattern matching engine: the _normal_ mode and the _inverse_ mode. When the engine is in the inverse mode, patterns are interpreted in their "dual" meaning---those that are usually matched are no longer matched, and vice versa. The details of the inverse mode of each combinator are explained below. It is recommended to understand how the pattern operates under the normal mode first.
 
-### 0.4
+### Exportability
 
-- [x] exportability (public/private)
+Exportability is either ````Public``` (meaning the name should be re-exported) or ````Private``` (meaning the name should not be re-exported). The programmer needs to supply the default exportability when running the engine for patterns that inherit the default values, and the output of the engine will tag each new name with calculated exportability.
 
-### 0.5
+## Wildcard Pattern (`PatWildcard`)
 
-- [x] n-ary sequencing
+A wildcard pattern under the normal mode will match every name except for the empty list (the root). A wildcard pattern under the inverse mode will match nothing but the empty list (the root). In either case, if a name `p` is matched, then the output is `Ok (Match [p, e])` where `e` is the inherited default exportability.
 
-### 0.6
+## Renaming Pattern (`PatId`)
 
-- [x] n-ary output
-- [x] join
-- [x] meet
+## Scoping Combinator (`PatScope`)
+
+## Sequencing Combinator (`PatSeq`)
+
+## Inversion Combinator (`PatInv`)
+
+## Exportability Assignment Combinator (`PatExport`)
+
+## Join Combinator (`PatJoin`)
+
+## Meet Combinator (`PatMeet`)
+
+## Examples
