@@ -43,7 +43,7 @@ We will explain each combinator, one by one. Before moving on, you will need to 
 
 ### Modes
 
-There are two modes of the pattern matching engine: the _normal_ mode and the _inverse_ mode. The motivation to have two modes is to implement the hiding. The pattern `a.b` can select the name `a.b` from the imported content, while its dual meaning---selecting everything other than the name `a.b`---is exactly the hiding operatore. The inverse mode has been extended to all combinators. The details of the inverse mode of each combinator are explained below. It is recommended to study how the combinators operate under the normal mode first.
+There are two modes of the pattern matching engine: the _normal_ mode and the _inverse_ mode. The motivation to have the inverse mode is to hide names from being imported. Think about the pattern `a.b`, which would normally select the name `a.b` from the imported content. Its dual meaning---selecting everything _other than_ the name `a.b`---is exactly the hiding operator we are looking for. The inverse mode has been extended to all combinators and the details are explained below. It is recommended to study how the combinators operate under the normal mode first.
 
 ### Exportability
 
