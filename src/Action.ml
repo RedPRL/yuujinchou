@@ -52,7 +52,7 @@ let rec trim_prefix prefix path =
   | [], _ -> Some path
   | _, [] -> None
   | (id :: prefix), (id' :: path) ->
-    if id = id' then Option.map (fun l -> id :: l) (trim_prefix prefix path) else None
+    if id = id' then trim_prefix prefix path else None
 
 type modal_result = [ `NoMatch | `Matched of exportability M.t ]
 
