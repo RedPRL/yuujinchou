@@ -22,7 +22,7 @@ We assume names are hierarchical and can be encoded as lists of strings. For exa
 The result of pattern matching is one of the following:
 
 1. ```Ok `NoMatch```: the pattern runs successfully but does not match the name.
-2. ```Ok `Match [name1, `Public; name2, `Private; ...]```: the pattern matches the name but it was renamed into other names, with tags showing either a particular name should be re-exported (``` `Public```) or not (``` `Private```). It is possible that the set of new names is empty because we support the intersection operator.
+2. ```Ok `Match [name1, `Public; name2, `Private; ...]```: the pattern matches the name but it was renamed into other names, with tags showing whether a particular new name should be re-exported (``` `Public```) or not (``` `Private```). It is possible that the set of new names is empty despite the old name being matched because we support the intersection (meet) operator.
 3. ```Error error```: the pattern is ill-formed.
 
 Here is the type of the pattern:
