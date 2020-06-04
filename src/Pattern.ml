@@ -12,20 +12,19 @@ type pattern =
   | PatInv of pattern
   | PatExport of exportability * pattern
   | PatJoin of pattern list
-  | PatMeet of pattern list
 [@@deriving show]
 
-let wildcard = PatWildcard
-let root = PatInv PatWildcard
-let id p = PatScope (p, None, PatAny)
-let renaming p r = PatScope (p, Some r, PatAny)
+let inv p = PatInv p
 let any = PatAny
-let none = PatInv PatAny
-let scope p a = PatScope (p, None, a)
-let renaming_scope p r a = PatScope (p, Some r, a)
+let wildcard = PatWildcard
+let root = inv wildcard
+let scope s p = PatScope (s, None, p)
+let renaming_scope s s' p = PatScope (s, Some s', p)
+let id x = scope x any
+let renaming x x' = renaming_scope x x' any
+let none = inv any
 let seq acts = PatSeq acts
-let inv a = PatInv a
 let public a = PatExport (`Public, a)
 let private_ a = PatExport (`Private, a)
 let join l = PatJoin l
-let meet l = PatMeet l
+let meet l = inv @@ join @@ List.map join l

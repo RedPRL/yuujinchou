@@ -2,7 +2,7 @@ open Pattern
 
 type error =
   | ReplacementNotUsed of pattern
-  | EmptyMeetOrInverseJoin of pattern
+  | EmptyInverseJoin of pattern
 
 type result_ = [ `NoMatch | `Matched of (path * exportability) list ]
 

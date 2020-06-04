@@ -2,10 +2,8 @@ open Pattern
 
 type error =
   | ReplacementNotUsed of pattern
-  | EmptyMeetOrInverseJoin of pattern
+  | EmptyInverseJoin of pattern
 [@@deriving show]
-
-exception EmptyMeet
 
 module M = Map.Make (struct type t = path let compare = compare end)
 
@@ -37,7 +35,7 @@ let meet2 r1 r2 =
 
 let meet =
   function
-  | [] -> raise EmptyMeet
+  | [] -> invalid_arg "meet: empty list"
   | r :: rs -> List.fold_left meet2 r rs
 
 type mode = [`Normal | `Inverse]
@@ -58,14 +56,10 @@ type modal_result = [ `NoMatch | `Matched of exportability M.t ]
 
 let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
   match mode, pattern, path with
-  | `Normal, PatAny, path ->
+  | `Normal, PatAny, _ | `Normal, PatWildcard, (_ :: _) | `Inverse, PatWildcard, [] ->
     Ok (singleton path export)
-  | `Inverse, PatAny, _ ->
+  | `Inverse, PatAny, _ | `Inverse, PatWildcard, (_ :: _) | `Normal, PatWildcard, [] ->
     Ok `NoMatch
-  | `Normal, PatWildcard, [] -> Ok `NoMatch
-  | `Inverse, PatWildcard, [] -> Ok (singleton [] export)
-  | `Normal, PatWildcard, (_ :: _) -> Ok (singleton path export)
-  | `Inverse, PatWildcard, (_ :: _) -> Ok `NoMatch
   | `Inverse, PatScope (_, Some _, _), _ ->
     Error (ReplacementNotUsed pattern)
   | _, PatScope (prefix, prefix_replacement, pattern), _ ->
@@ -110,13 +104,13 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
     List.fold_left f (Ok (singleton path export)) pats
   | _, PatInv pat, _ -> modal_run ~mode:(flip_mode mode) ~export pat path
   | _, PatExport (export, pat), _ -> modal_run ~mode ~export pat path
-  | `Normal, PatJoin pats, _ | `Inverse, PatMeet pats, _ ->
+  | `Normal, PatJoin pats, _ ->
     Result.map join begin
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
     end
-  | `Normal, PatMeet [], _ | `Inverse, PatJoin [], _ ->
-    Error (EmptyMeetOrInverseJoin pattern)
-  | `Normal, PatMeet pats, _ | `Inverse, PatJoin pats, _ ->
+  | `Inverse, PatJoin [], _ ->
+    Error (EmptyInverseJoin pattern)
+  | `Inverse, PatJoin pats, _ ->
     Result.map meet begin
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~export pat path
     end
@@ -141,9 +135,9 @@ let rec modal_check ~mode pattern : (unit, error) result =
   | _, PatSeq pats -> ResultMonad.iter (modal_check ~mode) pats
   | _, PatInv pattern -> modal_check ~mode:(flip_mode mode) pattern
   | _, PatExport (_, pattern) -> modal_check ~mode pattern
-  | `Normal, PatMeet [] | `Inverse, PatJoin [] ->
-    Error (EmptyMeetOrInverseJoin pattern)
-  | _, PatJoin pats | _, PatMeet pats ->
+  | `Inverse, PatJoin [] ->
+    Error (EmptyInverseJoin pattern)
+  | _, PatJoin pats ->
     ResultMonad.iter (modal_check ~mode) pats
 
 let check pattern : (unit, error) result =
