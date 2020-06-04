@@ -5,8 +5,8 @@ type path = string list
 [@@deriving show]
 
 type pattern =
+  | PatAny
   | PatWildcard
-  | PatId of path * path option
   | PatScope of path * path option * pattern
   | PatSeq of pattern list
   | PatInv of pattern
@@ -17,10 +17,10 @@ type pattern =
 
 let wildcard = PatWildcard
 let root = PatInv PatWildcard
-let id p = PatId (p, None)
-let renaming p r = PatId (p, Some r)
-let all = PatId ([], None)
-let none = PatInv (PatId ([], None))
+let id p = PatScope (p, None, PatAny)
+let renaming p r = PatScope (p, Some r, PatAny)
+let any = PatAny
+let none = PatInv PatAny
 let scope p a = PatScope (p, None, a)
 let renaming_scope p r a = PatScope (p, Some r, a)
 let seq acts = PatSeq acts

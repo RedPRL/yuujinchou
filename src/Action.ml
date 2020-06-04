@@ -58,6 +58,10 @@ type modal_result = [ `NoMatch | `Matched of exportability M.t ]
 
 let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
   match mode, pattern, path with
+  | `Normal, PatAny, path ->
+    Ok (singleton path export)
+  | `Inverse, PatAny, _ ->
+    Ok `NoMatch
   | `Normal, PatWildcard, [] -> Ok `NoMatch
   | `Inverse, PatWildcard, [] -> Ok (singleton [] export)
   | `Normal, PatWildcard, (_ :: _) -> Ok (singleton path export)
@@ -81,21 +85,6 @@ let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
           | `Matched m ->
             `Matched (m |> M.to_seq |> Seq.map (fun (r, export) -> prefix_replacement @ r, export) |> M.of_seq)
         end
-    end
-  | `Normal, PatId (prefix, prefix_replacement), _ ->
-    let prefix_replacement = Option.value prefix_replacement ~default:prefix in
-    begin
-      match trim_prefix prefix path with
-      | None -> Ok `NoMatch
-      | Some remaining -> Ok (singleton (prefix_replacement @ remaining) export)
-    end
-  | `Inverse, PatId (_, Some _), _ ->
-    Error (ReplacementNotUsed pattern)
-  | `Inverse, PatId (prefix, None), _ ->
-    begin
-      match trim_prefix prefix path with
-      | None -> Ok (singleton path export)
-      | Some _ -> Ok `NoMatch
     end
   | `Normal, PatSeq pats, _ ->
     let f r pat = Result.bind r @@
@@ -145,9 +134,8 @@ let run export pattern path : (result_, error) result =
 
 let rec modal_check ~mode pattern : (unit, error) result =
   match mode, pattern with
+  | _, PatAny -> Ok ()
   | _, PatWildcard -> Ok ()
-  | `Inverse, PatId (_, Some _) -> Error (ReplacementNotUsed pattern)
-  | _, PatId _ -> Ok ()
   | `Inverse, PatScope (_, Some _, _) -> Error (ReplacementNotUsed pattern)
   | _, PatScope (_, _, pattern) -> modal_check ~mode pattern
   | _, PatSeq pats -> ResultMonad.iter (modal_check ~mode) pats
