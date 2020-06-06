@@ -56,9 +56,9 @@ type modal_result = [ `NoMatch | `Matched of exportability M.t ]
 
 let rec modal_run ~mode ~export pattern path : (modal_result, error) result =
   match mode, pattern, path with
-  | `Normal, PatAny, _ | `Normal, PatWildcard, (_ :: _) | `Inverse, PatWildcard, [] ->
+  | `Normal, PatWildcard, (_ :: _) | `Inverse, PatWildcard, [] ->
     Ok (singleton path export)
-  | `Inverse, PatAny, _ | `Inverse, PatWildcard, (_ :: _) | `Normal, PatWildcard, [] ->
+  | `Inverse, PatWildcard, (_ :: _) | `Normal, PatWildcard, [] ->
     Ok `NoMatch
   | `Inverse, PatScope (_, Some _, _), _ ->
     Error (ReplacementNotUsed pattern)
@@ -128,7 +128,6 @@ let run export pattern path : (result_, error) result =
 
 let rec modal_check ~mode pattern : (unit, error) result =
   match mode, pattern with
-  | _, PatAny -> Ok ()
   | _, PatWildcard -> Ok ()
   | `Inverse, PatScope (_, Some _, _) -> Error (ReplacementNotUsed pattern)
   | _, PatScope (_, _, pattern) -> modal_check ~mode pattern
