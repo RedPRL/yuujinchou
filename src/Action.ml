@@ -73,7 +73,7 @@ let rec modal_run ~mode ~default ~join ~meet pattern path : ('a modal_result, 'a
           function
           | `NoMatch -> `NoMatch
           | `Matched m ->
-            `Matched (m |> M.to_seq |> Seq.map (fun (r, export) -> prefix_replacement @ r, export) |> M.of_seq)
+            `Matched (m |> M.to_seq |> Seq.map (fun (r, attr) -> prefix_replacement @ r, attr) |> M.of_seq)
         end
     end
   | `Normal, PatSeq pats, _ ->
