@@ -1,14 +1,14 @@
 open Pattern
 
-type error =
-  | ReplacementNotUsed of pattern
-  | EmptyInverseJoin of pattern
+type 'a error =
+  | ReplacementNotUsed of 'a pattern
+  | EmptyInverseJoin of 'a pattern
 
-type result_ = [ `NoMatch | `Matched of (path * exportability) list ]
+type 'a result_ = [ `NoMatch | `Matched of (path * 'a) list ]
 
-val check : pattern -> (unit, error) result
-val run : exportability -> pattern -> path -> (result_, error) result
+val check : 'a pattern -> (unit, 'a error) result
+val run : default:'a -> join:('a->'a->'a) -> meet:('a->'a->'a) -> 'a pattern -> path -> ('a result_, 'a error) result
 
-val pp_result_ : Format.formatter -> result_ -> unit
-val pp_result : Format.formatter -> (result_, error) result -> unit
-val pp_check_result : Format.formatter -> (unit, error) result -> unit
+val pp_result_ : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a result_ -> unit
+val pp_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> ('a result_, 'a error) result -> unit
+val pp_check_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> (unit, 'a error) result -> unit
