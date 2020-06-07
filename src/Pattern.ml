@@ -1,16 +1,13 @@
-type exportability = [`Public | `Private]
-[@@deriving show]
-
 type path = string list
 [@@deriving show]
 
-type pattern =
+type 'a pattern =
   | PatWildcard
-  | PatScope of path * path option * pattern
-  | PatSeq of pattern list
-  | PatInv of pattern
-  | PatExport of exportability * pattern
-  | PatJoin of pattern list
+  | PatScope of path * path option * 'a pattern
+  | PatSeq of 'a pattern list
+  | PatInv of 'a pattern
+  | PatJoin of 'a pattern list
+  | PatAttrib of 'a * 'a pattern
 [@@deriving show]
 
 let inv p = PatInv p
@@ -23,7 +20,6 @@ let none = seq []
 let any = inv none
 let id x = scope x any
 let renaming x x' = renaming_scope x x' any
-let public a = PatExport (`Public, a)
-let private_ a = PatExport (`Private, a)
+let attrib a p = PatAttrib (a, p)
 let join l = PatJoin l
-let meet l = inv @@ join @@ List.map join l
+let meet l = inv @@ join @@ List.map inv l
