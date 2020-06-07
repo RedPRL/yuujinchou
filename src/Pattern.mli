@@ -5,7 +5,7 @@ type 'a pattern =
   | PatSeq of 'a pattern list
   | PatInv of 'a pattern
   | PatJoin of 'a pattern list
-  | PatAttrib of 'a * 'a pattern
+  | PatAttr of 'a * 'a pattern
 
 val inv : 'a pattern -> 'a pattern
 val wildcard : 'a pattern
@@ -17,7 +17,7 @@ val none : 'a pattern
 val any : 'a pattern
 val id : path -> 'a pattern
 val renaming : path -> path -> 'a pattern
-val attrib : 'a -> 'a pattern -> 'a pattern
+val attr : 'a -> 'a pattern -> 'a pattern
 val join : 'a pattern list -> 'a pattern
 val meet : 'a pattern list -> 'a pattern
 
