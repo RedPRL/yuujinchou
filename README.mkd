@@ -113,7 +113,8 @@ There is one trick case about the meet operation: Assume we have two different n
 
 ## Namespace Support
 
-This library treats a namespace merely as the prefix of a group of names.
+This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace `a`, but a group of unrelated names that happen to have the prefix `a`. That said, one can easily use `PatScope` and `PatWildcard` to select all the names with some prefix.
 
+Note that namespaces (name prefixes of unrelated declarations) are different from modules (groups of declarations that are bound together). This library does not have explicit support of modules yet.
 
 ## Examples
