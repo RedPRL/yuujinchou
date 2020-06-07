@@ -7,7 +7,7 @@ type 'a pattern =
   | PatSeq of 'a pattern list
   | PatInv of 'a pattern
   | PatJoin of 'a pattern list
-  | PatAttrib of 'a * 'a pattern
+  | PatAttr of 'a * 'a pattern
 [@@deriving show]
 
 let inv p = PatInv p
@@ -20,6 +20,6 @@ let none = seq []
 let any = inv none
 let id x = scope x any
 let renaming x x' = renaming_scope x x' any
-let attrib a p = PatAttrib (a, p)
+let attr a p = PatAttr (a, p)
 let join l = PatJoin l
 let meet l = inv @@ join @@ List.map inv l

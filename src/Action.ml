@@ -7,7 +7,7 @@ type 'a error =
 
 module M = Map.Make (struct type t = path let compare = compare end)
 
-let singleton path attrib = `Matched (M.singleton path attrib)
+let singleton path attr = `Matched (M.singleton path attr)
 
 let join2_result ~join r1 r2 =
   match r1, r2 with
@@ -99,7 +99,7 @@ let rec modal_run ~mode ~default ~join ~meet pattern path : ('a modal_result, 'a
     in
     List.fold_left f (Ok (singleton path default)) pats
   | _, PatInv pat, _ -> modal_run ~mode:(flip_mode mode) ~default ~join ~meet pat path
-  | _, PatAttrib (default, pat), _ -> modal_run ~mode ~default ~join ~meet pat path
+  | _, PatAttr (default, pat), _ -> modal_run ~mode ~default ~join ~meet pat path
   | `Normal, PatJoin pats, _ ->
     Result.map (join_result ~join) begin
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~default ~join ~meet pat path
@@ -129,7 +129,7 @@ let rec modal_check ~mode pattern : (unit, 'a error) result =
   | _, PatScope (_, _, pattern) -> modal_check ~mode pattern
   | _, PatSeq pats -> ResultMonad.iter (modal_check ~mode) pats
   | _, PatInv pattern -> modal_check ~mode:(flip_mode mode) pattern
-  | _, PatAttrib (_, pattern) -> modal_check ~mode pattern
+  | _, PatAttr (_, pattern) -> modal_check ~mode pattern
   | `Inverse, PatJoin [] ->
     Error (EmptyInverseJoin pattern)
   | _, PatJoin pats ->
