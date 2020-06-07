@@ -48,45 +48,68 @@ There are two modes of the pattern matching engine: the _normal_ mode and the _i
 
 ### Attributes
 
-Attributes are custom tags attached to matched names. For example, you could attach ``` `Public``` or ``` `Private``` to names when implementing the import statement. You needs to supply a lattice structure for your attribute type `t` via the following three values:
+Attributes are custom tags attached to matched names. For example, you could attach `Public` or `Private` to names when implementing the import statement. You need to supply a lattice structure for your attribute type `t` via the following three values:
 
-1. A default value of type `t`: this is the default attribute that the engine should assign to each matched name (until it is changed by the `PatAttr` pattern).
-2. A join operator of type `t -> t -> t`: this is to resolve the conflicting attributes by taking their "union". The exact meaning of "union" depends on the lattice structure. This is used in the sequencing combinator (`PatSeq`) and the join combinator (`PatJoin`).
-3. A meet operator of type `t -> t -> t`: this is to resolve the conflicting attributes by taking their "intersection". The exact meaning of "intersection" depends on the lattice structure. This is used in the join combinator (`PatJoin`) under the inverse mode.
+1. A default value of type `t`.
 
-The engine will attach the computed attributes to the new names.
+> The default attribute attached to the new names until the engine encounters the `PatAttr` pattern that explicitly sets the new default attribute.
+
+2. A join operator of type `t -> t -> t`.
+
+> An operator to resolve the conflicting attributes by taking their "union". The exact meaning of "union" depends on the lattice structure. This is used in the sequencing combinator (`PatSeq`) and the join combinator (`PatJoin`).
+
+3. A meet operator of type `t -> t -> t`:
+
+> An operator to resolve the conflicting attributes by taking their "intersection". The exact meaning of "intersection" depends on the lattice structure. This is used in the join combinator (`PatJoin`) under the inverse mode.
+
+For example, when implementing the traditional import statement, the attribute type can be
+```ocaml
+type attr = Public | Private
+```
+You can then implement the meet and join operators by making `Pubilc` the top element and `Private` the bottom element in a lattice. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it _will_ be re-exported. This suggests that the join operator should outputs `Public` whenever one of the inputs is `Public`. It seems natural to make the meet operator the dual of the join operator.
+```
+let join_attr a1 a2 =
+  match a1, a2 with
+  | Public, _ | _, Public -> Public
+  | Private, Private -> Private
+
+let meet_attr a1 a2 =
+  match a1, a2 with
+  | Private, _ | _, Private -> Private
+  | Public, Public -> Public
+```
 
 ## Combinators
 
-### Wildcard Pattern (`PatWildcard`)
+### Wildcard (`PatWildcard`)
 
 The wildcard pattern `PatWildcard` under the normal mode matches every name except for the root (the empty list `[]`). The same pattern under the inverse mode matches nothing but the root (the empty list `[]`). In either case, if a name `p` is matched, then the output is `Ok (Match [p, attr])` where `attr` is the inherited default attribute.
 
-### Scope Renaming Combinator (`PatScope`)
+### Scope Renaming (`PatScope`)
 
-The pattern `PatScope (p, None, pattern)` under the normal mode matches any name with the prefix `p` and then runs `pattern` against the residual part of the name. For example, `Pat (["a"; "b"], PatWildcard)` will match the name `a.b.c` (represented by `["a"; "b"; "c"]`) because it will first match the prefix `["a"; "b"]` and then the pattern `PatWildcard` will match the remaining part `c`. The same pattern under the inverse mode will match any name whose prefix is not `p` or any name that fails to match `pattern` after removing the prefix `p`. If particular, `PatScope ([], None, PatWildcard)` will match all names, including the root (the empty list `[]`), which is different from `PatWildcard` which will exclude the root (the empty list `[]`).
+The pattern `PatScope (p, None, pattern)` under the normal mode identifies any name with the prefix `p` and then runs `pattern` against the residual part of the name. For example, `Pat (["a"; "b"], PatWildcard)` will first identify the name `a.b.c` (represented by `["a"; "b"; "c"]`) because it has the prefix `["a"; "b"]`, and then the pattern `PatWildcard` will match the remaining part `c`. The same pattern under the inverse mode will match any name whose prefix is _not_ `p`, and any name that has the prefix `p` but fails to match `pattern` after removing the prefix `p`.
 
 The pattern `PatScope (p, Some r, pattern)` is the same as `PatScope (p, None, pattern)` expect that the prefix `p`, if matched, will be replaced by `r`. The same pattern under the inverse mode will result into an error because the replacement `r` would not be used.
 
-### Sequencing Combinator (`PatSeq`)
+### Sequencing (`PatSeq`)
 
-The pattern `PatSeq [pattern_1; pattern_2; ...; pattern_n]` under the normal mode runs the patterns `pattern_1`, `pattern_2`, ..., `pattern_n` in order. New names generated by previous patterns (through the scope renaming operator `PatScope`) are used in later patterns. A name is matched if it is matched by any pattern in the sequence. It is possible that a name is renamed into multiple names during the process, and these renamings are merged by taking the union of all possible renamings, where conflicting attributes are resolved by the join operation for the attributes. As a special case, `PatSeq []` under the normal mode matches nothing.
+The pattern `PatSeq [pattern_1; pattern_2; ...; pattern_n]` under the normal mode runs the patterns `pattern_1`, `pattern_2`, ..., `pattern_n` in order. New names generated by previous patterns (possibly through the scope renaming operator `PatScope`) are used in later patterns. A name is matched if it is matched by any pattern in the sequence. It is possible that a name is renamed into multiple names during the process, and these renamings are merged by taking the union of all possible renamings, where conflicting attributes are resolved by the join operation of the attribute lattice. As a special case, `PatSeq []` under the normal mode matches nothing.
 
 The pattern `PatSeq [pattern_1; pattern_2; ...; pattern_n]` under the inverse mode also runs the patterns `pattern_1`, `pattern_2`, ..., `pattern_n` in order, but with a twist: a name is matched only if it is matched by all patterns in the sequence. Overlapping renamings and conflicting attributes are resolved by the unions and joins as well. As a special case, `PatSeq []` under the inverse mode matches any name, including the root (represented by `[]`), which is different from the wildcard pattern (`PatWildcard`).
 
-### Inversion Combinator (`PatInv`)
+### Mode Inversion (`PatInv`)
 
 The pattern `PatInv pat` flips the current mode of the engine (from the normal mode to the inverse mode or vice versa) and proceed with the pattern `pat`.
 
 ### Attribute Assignment (`PatAttr`)
 
-The pattern `PatAttr (attr, pat)` changes the default attribute to `attr` before running the pattern `pat`.
+The pattern `PatAttr (attr, pat)` sets the default attribute to `attr` before running the pattern `pat`.
 
-## Join/Meet Combinator (`PatJoin`)
+### Join and Meet (`PatJoin`)
 
-`PatJoin [pattern_1; pattern_2; ...; pattern_n]` under the normal mode runs the subpatterns independently and takes the join of the renaming relations. The same pattern under the inverse mode takes the meet of the renaming relations instead.
+`PatJoin [pattern_1; pattern_2; ...; pattern_n]` under the normal mode runs the subpatterns independently and takes the join of the renaming relations. The same pattern under the inverse mode takes the meet of the renaming relations instead. However, the pattern `PatJoin []` under the inverse mode will result into an error because there is not an unit of the meet of patterns.
 
-There is one trick case about the meet operation: Assume we have two different names `x` and `y`. The meet of ``` `Matched [x, `Public]``` and ``` `Matched [y, `Public]``` is ``` `Matched []```, not ``` `NoMatch```. It means the name is matched but there are no new names for it.
+There is one trick case about the meet operation: Assume we have two different names `x` and `y`. The meet of ``` `Matched [x, Public]``` and ``` `Matched [y, Public]``` is ``` `Matched []```, not ``` `NoMatch```. It means the name is matched but there are no new names for it.
 
 ## Namespace Support
 
