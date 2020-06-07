@@ -122,6 +122,9 @@ let run ~default ~join ~meet pattern path : ('a result_, 'a error) result =
   | `NoMatch -> `NoMatch
   | `Matched m -> `Matched (M.bindings m)
 
+let run_ pattern : path -> (unit result_, unit error) result =
+  run ~default:() ~join:(fun _ _ -> ()) ~meet:(fun _ _ -> ()) pattern
+
 let rec modal_check ~mode pattern : (unit, 'a error) result =
   match mode, pattern with
   | _, PatWildcard -> Ok ()
