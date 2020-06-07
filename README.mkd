@@ -51,7 +51,7 @@ Exportability is either ``` `Public``` (meaning the name should be re-exported) 
 
 The wildcard pattern `PatWildcard` under the normal mode matches every name except for the root (the empty list `[]`). The same pattern under the inverse mode matches nothing but the root (the empty list `[]`). In either case, if a name `p` is matched, then the output is `Ok (Match [p, e])` where `e` is the inherited default exportability.
 
-## Scope Renaming Pattern (`PatScope`)
+## Scope Renaming Combinator (`PatScope`)
 
 The pattern `PatScope (p, None, pattern)` under the normal mode matches any name with the prefix `p` and then runs `pattern` against the residual part of the name. For example, `Pat (["a"; "b"], PatWildcard)` will match the name `a.b.c` (represented by `["a"; "b"; "c"]`) because it will first match the prefix `["a"; "b"]` and then the pattern `PatWildcard` will match the remaining part `c`. The same pattern under the inverse mode will match any name whose prefix is not `p` or any name that fails to match `pattern` after removing the prefix `p`. If particular, `PatScope ([], None, PatWildcard)` will match all names, including the root (the empty list `[]`), which is different from `PatWildcard` which will exclude the root (the empty list `[]`).
 
