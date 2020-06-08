@@ -8,4 +8,8 @@ license: "Apache 2.0"
 homepage: "https://github.com/favonia/yuujinchou"
 bug-reports: "https://github.com/favonia/yuujinchou/issues"
 dev-repo: "git+https://github.com/favonia/yuujinchou.git"
+depends: [
+  "dune"  {build}
+  "ppx_deriving" {>= "4.5" & < "4.6"}
+]
 build: ["dune" "build" "-p" name "-j" jobs]
