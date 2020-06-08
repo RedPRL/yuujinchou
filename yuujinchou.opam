@@ -12,4 +12,7 @@ depends: [
   "dune"  {build}
   "ppx_deriving" {>= "4.5" & < "4.6"}
 ]
-build: ["dune" "build" "-p" name "-j" jobs]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest"]
+]
