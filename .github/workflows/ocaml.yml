@@ -14,4 +14,4 @@ jobs:
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
     - run: opam install dune
-    - run: opam pin add -y cooltt .
+    - run: opam pin . -y
