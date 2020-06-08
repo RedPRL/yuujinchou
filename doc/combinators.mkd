@@ -34,13 +34,12 @@ The pattern `PatSeq [pattern_1; pattern_2; ...; pattern_n]` under the inverse mo
 
 The pattern `PatInv pat` flips the current mode of the engine (from the normal mode to the inverse mode or vice versa) and proceed with the pattern `pat`.
 
-## Attribute Assignment (`PatAttr`)
-
-The pattern `PatAttr (attr, pat)` sets the default attribute to `attr` before running the pattern `pat`.
-
 ## Join and Meet (`PatJoin`)
 
 `PatJoin [pattern_1; pattern_2; ...; pattern_n]` under the normal mode runs the subpatterns independently and takes the join of the renaming relations. The same pattern under the inverse mode takes the meet of the renaming relations instead. However, the pattern `PatJoin []` under the inverse mode will result into an error because there is not an unit of the meet of patterns.
 
 There is one trick case about the meet operation: Assume we have two different names `x` and `y`. The meet of ``` `Matched [x, Public]``` and ``` `Matched [y, Public]``` is ``` `Matched []```, not ``` `NoMatch```. It means the name is matched but there are no new names for it.
 
+## Attribute Assignment (`PatAttr`)
+
+The pattern `PatAttr (attr, pat)` sets the default attribute to `attr` before running the pattern `pat`.
