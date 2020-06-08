@@ -49,10 +49,10 @@ val renaming_prefix : path -> path -> 'a pattern
 (** The pattern that assigns the default attribute. *)
 val attr : 'a -> 'a pattern -> 'a pattern
 
-(** Join of a list of elements. *)
+(** Join of a list of patterns. *)
 val join : 'a pattern list -> 'a pattern
 
-(** Meet of a list of elements. *)
+(** Meet of a list of patterns. *)
 val meet : 'a pattern list -> 'a pattern
 
 (** The pattern that skips the specified name. *)

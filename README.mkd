@@ -129,7 +129,7 @@ The `Pattern` module provides a few pattern builders. Please check the documenta
 import Mod -- x is available an both x and Mod.x
 ```
 ```ocaml
-join [any; renaming [] ["Mod"]]
+join [any; renaming_prefix [] ["Mod"]]
 ```
 
 ---
@@ -147,7 +147,7 @@ join [id ["x"]; id ["y"]]
 import qualified Mod
 ```
 ```ocaml
-join [renaming [] ["Mod"]]
+join [renaming_prefix [] ["Mod"]]
 ```
 
 ---
