@@ -7,9 +7,5 @@ authors: "favonia <favonia@gmail.com>"
 license: "Apache 2.0"
 homepage: "https://github.com/favonia/yuujinchou"
 bug-reports: "https://github.com/favonia/yuujinchou/issues"
-install: [make "install"]
-dev-repo: "git+https://github.com/favonia/yuujinchou"
-url {
-  src: "https://github.com/favonia/yuujinchou"
-}
+dev-repo: "git+https://github.com/favonia/yuujinchou.git"
 build: ["dune" "build" "-p" name "-j" jobs]

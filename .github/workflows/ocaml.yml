@@ -14,5 +14,5 @@ jobs:
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
     - run: opam install dune
-    - run: dune build
-    - run: dune runtest
+    - run: opam exec -- dune build
+    - run: opam exec -- dune runtest
