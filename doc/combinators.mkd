@@ -1,6 +1,6 @@
 # Combinators
 
-Here is the internal type of the pattern:
+Here is the internal type of patterns:
 ```ocaml
 type path = string list
 type 'a pattern =

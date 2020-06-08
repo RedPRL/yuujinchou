@@ -40,11 +40,11 @@ The pattern matching engine is the `run` function in the `Action` module, again 
 
 It is crucial to understand the concept "mode" and "attribute" before running it:
 
-### Modes
+#### Modes
 
-There are two modes of the pattern matching engine: the _normal_ mode and the _inverse_ mode. The motivation to have the inverse mode is to hide names from being imported. Think about the pattern `a.b`, which would normally select the name `a.b` from the imported content. Its dual meaning---selecting everything _other than_ the name `a.b`---is exactly the hiding operator we are looking for. The inverse mode has been extended to all combinators and the details are explained below. It is recommended to study how the combinators operate under the normal mode first.
+There are two modes of the pattern matching engine: the _normal_ mode and the _inverse_ mode. The motivation to have the inverse mode is to hide names from being imported. Think about the pattern `a.b`, which would normally select the name `a.b` from the imported content. Its dual meaning---selecting everything _other than_ the name `a.b`---is exactly the hiding operator we are looking for. The inverse mode has been extended to the entire core language and the [details are explained in another document](doc/combinators.mkd). It is recommended to study how the core language works under the normal mode first.
 
-### Attributes
+#### Attributes
 
 Attributes are custom tags attached to matched names. For example, you could attach `Public` or `Private` to names when implementing the import statement. You need to supply a lattice structure for your attribute type `t` via the following three values:
 
