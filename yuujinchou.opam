@@ -1,14 +1,15 @@
 opam-version: "2.0"
 name: "yuujinchou"
-version: "0.7"
-synopsis: "Name modifiers"
+version: "0.8"
+synopsis: "Generic name manipulation combinators"
 maintainer: "favonia <favonia@gmail.com>"
 authors: "favonia <favonia@gmail.com>"
 license: "Apache 2.0"
 homepage: "https://github.com/favonia/yuujinchou"
-bug-reports: "https://github.com/favonia/yuujinchou"
+bug-reports: "https://github.com/favonia/yuujinchou/issues"
 install: [make "install"]
 dev-repo: "git+https://github.com/favonia/yuujinchou"
 url {
   src: "https://github.com/favonia/yuujinchou"
 }
+build: ["dune" "build" "-p" name "-j" jobs]
