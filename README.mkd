@@ -56,7 +56,7 @@ Attributes are custom tags attached to matched names. For example, you could att
 
 > An operator to resolve the conflicting attributes by taking their "union". The exact meaning of "union" depends on the lattice structure. This is used in the sequencing combinator and the join combinator.
 
-3. A meet operator of type `t -> t -> t`:
+3. A meet operator of type `t -> t -> t`.
 
 > An operator to resolve the conflicting attributes by taking their "intersection". The exact meaning of "intersection" depends on the lattice structure. This is used in the meet combinator.
 
