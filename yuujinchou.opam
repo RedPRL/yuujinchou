@@ -13,6 +13,7 @@ bug-reports: "https://github.com/favonia/yuujinchou/issues"
 dev-repo: "git+https://github.com/favonia/yuujinchou.git"
 depends: [
   "dune" {build}
+  "ocaml" {>= "4.08.0"}
   "ppx_deriving" {>= "4.5" & < "4.6"}
 ]
 build: [
