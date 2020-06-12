@@ -1,0 +1,16 @@
+name: GitHub Pages by odoc
+on: [push]
+jobs:
+  odoc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: avsm/setup-ocaml@v1
+      with:
+        ocaml-version: '4.10.0'
+    - run: opam install dune odoc -y
+    - run: opam exec -- dune build @doc
+    - uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUBTOKEN }}
+        publish_dir: ./_build/default/_doc/_html/
