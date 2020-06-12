@@ -22,6 +22,8 @@ This library was motivated by the import mechanism in most programming languages
 
 ## Technical Overview
 
+Here is the (OCaml documentation)[https://favonia.org/yuujinchou/index.html]. The rest of this README file will be integrated into the documentation soon.
+
 ### Hierarchical Names
 
 We assume names are hierarchical and can be encoded as lists of strings. For example, the name `a.b` is represented as an OCaml list `["a"; "b"]`.
