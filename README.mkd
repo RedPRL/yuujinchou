@@ -28,11 +28,11 @@ We assume names are hierarchical and can be encoded as lists of strings. For exa
 
 ### Core Language and Pattern Builders
 
-See [combinators](doc/combinators.mkd) for a detailed explanation of the core language. The core language is not directly accissible. Instead, you should build a pattern by the pattern builders in the `Pattern` module, which are documented in [the library wrapper file](src/yuujinchou.mli).
+See [combinators](doc/combinators.mkd) for a detailed explanation of the core language. The core language is not directly accissible. Instead, you should build a pattern using the pattern builders in the [`Pattern` module](https://favonia.org/yuujinchou/yuujinchou/Yuujinchou/Pattern/index.html).
 
 ### Running Patterns
 
-The pattern matching engine is the `run` function in the `Action` module, again documented in [the library wrapper file](src/yuujinchou.mli). The result of pattern matching is one of the following:
+The pattern matching engine is the [`run` function](https://favonia.org/yuujinchou/yuujinchou/Yuujinchou/Action/index.html#val-run) in the [`Action` module](https://favonia.org/yuujinchou/yuujinchou/Yuujinchou/Action/index.html). The result of pattern matching is one of the following:
 
 1. ```Ok `NoMatch```: the pattern runs successfully but does not match the name.
 2. ```Ok `Matched [(name1, attr1); (name2, attr2); ...]```: the pattern matches the name but it was renamed into other names, tagged with attributes. It is possible that the set of new names is empty despite the old name being matched because we support the intersection (meet) operator.
