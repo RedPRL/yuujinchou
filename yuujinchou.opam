@@ -3,7 +3,7 @@ name: "yuujinchou"
 version: "0.9"
 synopsis: "Generic name manipulation combinators"
 description: """
-This library implements a pattern language for selecting names. It intends to facilitate the implementation of the "import" statement or any feature that allows users to select a group of names by patterns.
+This package implements a pattern language for selecting names. It intends to facilitate the implementation of the "import" statement or any feature that allows users to select a group of names by patterns.
 """
 maintainer: "favonia <favonia@gmail.com>"
 authors: "favonia <favonia@gmail.com>"
