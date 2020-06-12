@@ -9,6 +9,7 @@ jobs:
       with:
         ocaml-version: '4.10.0'
     - run: opam install dune odoc -y
+    - run: opam pin . --with-test -y
     - run: opam exec -- dune build @doc
     - uses: peaceiris/actions-gh-pages@v3
       with:
