@@ -2,7 +2,7 @@ open Pattern
 
 type 'a error =
   | ReplacementNotUsed of 'a pattern
-  | EmptyInverseJoin of 'a pattern
+  | EmptyMeet of 'a pattern
 
 type 'a result_ = [
   | `NoMatch
