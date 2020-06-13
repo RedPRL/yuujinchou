@@ -2,7 +2,8 @@ name: GitHub Pages by odoc
 on:
   push:
     branches:
-      master
+      - master
+      - doc*
 jobs:
   odoc:
     runs-on: ubuntu-latest
@@ -11,8 +12,8 @@ jobs:
     - uses: avsm/setup-ocaml@v1
       with:
         ocaml-version: '4.10.0'
-    - run: opam install dune odoc -y
-    - run: opam pin . --with-test -y
+    - run: opam install odoc -y
+    - run: opam pin . -y
     - run: opam exec -- dune build @doc
     - uses: peaceiris/actions-gh-pages@v3
       with:

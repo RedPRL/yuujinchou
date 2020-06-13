@@ -39,9 +39,17 @@ let _ =
   Ok (`Matched [["x"], true])
 
 let _ =
-  test true (renaming_scope [] ["M"] @@ meet [skip ["x"]; skip ["y"]]) ["y"] @@
+  test true (renaming_scope [] ["M"] @@ meet [hide ["x"]; hide ["y"]]) ["y"] @@
   Ok `NoMatch
 
 let _ =
-  test true (renaming_scope [] ["M"] @@ meet [skip ["x"]; skip ["y"]]) ["z"] @@
+  test true (renaming_scope [] ["M"] @@ meet [hide ["x"]; hide ["y"]]) ["z"] @@
   Ok (`Matched [["M"; "z"], true])
+
+let _ =
+  test true (seq [renaming ["x"] ["y"]; renaming ["y"] ["z"]]) ["x"] @@
+  Ok (`Matched [["z"], true])
+
+let _ =
+  test true (seq [renaming ["x"] ["y"]; renaming ["z"] ["w"]]) ["x"] @@
+  Ok (`Matched [["y"], true])

@@ -2,7 +2,7 @@ open Pattern
 
 type 'a error =
   | ReplacementNotUsed of 'a pattern
-  | EmptyInverseJoin of 'a pattern
+  | EmptyMeet of 'a pattern
 [@@deriving show]
 
 module M = Map.Make (struct type t = path let compare = compare end)
@@ -83,7 +83,11 @@ let rec modal_run ~mode ~default ~join ~meet pattern path : ('a modal_result, 'a
       | `Matched m ->
         Result.map (join_result ~join) begin
           M.bindings m |> ResultMonad.map @@ fun (path, default) ->
-          modal_run ~mode ~default ~join ~meet pat path
+          modal_run ~mode ~default ~join ~meet pat path |>
+          Result.map @@
+          function
+          | `NoMatch -> singleton path default
+          | `Matched m -> `Matched m
         end
     in
     List.fold_left f (Ok `NoMatch) pats
@@ -105,7 +109,7 @@ let rec modal_run ~mode ~default ~join ~meet pattern path : ('a modal_result, 'a
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~default ~join ~meet pat path
     end
   | `Inverse, PatJoin [], _ ->
-    Error (EmptyInverseJoin pattern)
+    Error (EmptyMeet pattern)
   | `Inverse, PatJoin pats, _ ->
     Result.map (meet_result ~meet) begin
       pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~default ~join ~meet pat path
@@ -134,7 +138,7 @@ let rec modal_check ~mode pattern : (unit, 'a error) result =
   | _, PatInv pattern -> modal_check ~mode:(flip_mode mode) pattern
   | _, PatAttr (_, pattern) -> modal_check ~mode pattern
   | `Inverse, PatJoin [] ->
-    Error (EmptyInverseJoin pattern)
+    Error (EmptyMeet pattern)
   | _, PatJoin pats ->
     ResultMonad.iter (modal_check ~mode) pats
 
