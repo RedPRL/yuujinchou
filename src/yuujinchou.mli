@@ -29,41 +29,50 @@ sig
   (** [any] matches any name. *)
   val any : 'a pattern
 
-  (** [none] matches no names. *)
-  val none : 'a pattern
-
   (** [id x] matches the name [x] and nothing else. *)
   val id : path -> 'a pattern
 
-  (** [wildcard] matches everything {e except} the empty name (the empty list [[]]). *)
-  val wildcard : 'a pattern
-
-  (** [root] matches only the empty name (the empty list [[]]). *)
+  (** [root] matches only the empty name (the empty list [[]]). It is equivalent to [id []]. *)
   val root : 'a pattern
 
-  (** Scoping a pattern with a prefix. For example, [scope p (id x)] is equivalent to [id (p @ x)] *)
-  val scope : path -> 'a pattern -> 'a pattern
+  (** [wildcard] matches everything {e except} the empty name (the empty list [[]]). It is the opposite of [root]. *)
+  val wildcard : 'a pattern
 
   (** [prefix p] matches any name with the given prefix [p] and is equivalent to [scope p any]. *)
   val prefix : path -> 'a pattern
 
+  (** [scope p pat] picks out names with the prefix [p] and runs the pattern [pat] on the remaining part of them.
+      For example, [scope ["a"; "b"] pat] on the name [a.b.c.d] will factor out the prefix [a.b]
+      and continue running the pattern [pat] on the remaining part [c.d].
+
+      {!val:scope} is more general than {!val:id} and {!val:prefix}: [id x] is equivalent to [scope x root]
+      and [prefix p] is equivalent to [scope p any].
+  *)
+  val scope : path -> 'a pattern -> 'a pattern
+
   (** {2 Negation} *)
 
-  (** [hide x] matches any name that is different from [x]. *)
+  (** [none] matches no names. It is the opposite of {!val:any}. *)
+  val none : 'a pattern
+
+  (** [hide x] matches any name {e except} [x]. It is the opposite of {!val:id}. *)
   val hide : path -> 'a pattern
 
-  (** [hide_prefix p] matches any name that does not have the prefix [p]. *)
+  (** [hide_prefix p] matches any name that does not have the prefix [p]. It is the opposite of {!val:prefix}. *)
   val hide_prefix : path -> 'a pattern
 
   (** {2 Renaming} *)
 
-  (** [renaming x x'] matches the name [x] and replaces it with [x']. *)
+  (** [renaming x x'] matches the name [x] and replaces it with [x']. See {!val:id}. *)
   val renaming : path -> path -> 'a pattern
 
-  (** [renaming_prefix p p'] matches any name with the prefix [p] and replaces the prefix with [p']. *)
+  (** [renaming_prefix p p'] matches any name with the prefix [p] and replaces the prefix with [p']. See {!val:prefix}. *)
   val renaming_prefix : path -> path -> 'a pattern
 
-  (** [renaming_scope p p' pat] is the same as [scope p pat] except that the prefix will be replaced by [p']. [renaming x x'] is the same as [renaming_scope x x' root] and [renaming_prefix p p'] is the same as [renaming_scope p p' any]. See {!val:scope}. *)
+  (** [renaming_scope p p' pat] is the same as [scope p pat] except that the prefix will be replaced by [p']. See {!val:scope}.
+
+      {!val:renaming_scope} is more general than {!val:renaming} and {!val:renaming_prefix}: [renaming x x'] is equivalent to [renaming_scope x x' root] and [renaming_prefix p p'] is equivalent to [renaming_scope p p' any].
+  *)
   val renaming_scope : path -> path -> 'a pattern -> 'a pattern
 
   (** {2:attributes Attributes} *)
@@ -119,29 +128,29 @@ sig
 
   (** [seq [p0; p1; p2; ...; pn]] runs the patterns [p0], [p1], [p2], ..., [pn] in order.
 
-      If [pi] triggers the renaming, then the new names are used in the subsequent patterns. A name is considered matched if it is matched by any pattern during the process. Inconsistent attributes on the same name are resolved by the provided [join] operator. See {!attributes}. *)
+      If a pattern triggers renaming, then the new names are used in the subsequent patterns. A name is considered matched if it is matched by any pattern during the process. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
   val seq : 'a pattern list -> 'a pattern
 
-  (** [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes on the same name are resolved by the provided [join] operator. See {!attributes}. *)
+  (** [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
   val seq_filter : 'a pattern list -> 'a pattern
 
   (** {2 Logical Connectives} *)
 
-  (** [join [p0; p1; p2; ...; pn]] is the join of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes assigned by the subpatterns are resolved by the provided [join] operator on attributes. See {!attributes}. *)
+  (** [join [p0; p1; p2; ...; pn]] calculates the "union" of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes are resolved by the provided [join] operator on attributes. See {!attributes}. *)
   val join : 'a pattern list -> 'a pattern
 
-  (** [meet [p0; p1; p2; ...; pn]] is the meet of a non-empty list of patterns [p0], [p1], [p2], ..., [pn]. If the list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched in all subpatterns, but the intersection of the new names is empty, then the name is still considered matched, with an empty set of new names. Inconsistent attributes assigned by the subpatterns are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
+  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched in all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
   val meet : 'a pattern list -> 'a pattern
 
   (** {2 Unsafe Builders} *)
 
-  (** [unsafe_meet l] is the same as [meet l] except that it does not check whether the list is empty. This might be useful to build subpatterns that would temporarily violate the invariant. See {!invariants}. *)
+  (** [unsafe_meet l] is the same as [meet l] except that it does not check whether the list is empty. This might be useful for writing a parser for user-defined patterns. {!Action.check} can check whether a complete pattern satisfies the invariants. See also {!invariants}. *)
   val unsafe_meet : 'a pattern list -> 'a pattern
 
-  (** [unsafe_inv p] negates the meaning of pattern [p]. This might be useful to build more efficient patterns by temporarily violating the invariants. Please read {!core} for more the detail. See also {!invariants}. *)
+  (** [unsafe_inv p] negates the meaning of pattern [p], which might be useful for writing a parser or building more efficient patterns by temporarily violating the invariants. Please read {!core} for more information on "negation". {!Action.check} can check whether a complete pattern satisfies the invariants. See also {!invariants}. *)
   val unsafe_inv : 'a pattern -> 'a pattern
 
-  (** {1 Pretty printers } *)
+  (** {1 Pretty Printers } *)
 
   (** Pretty printer for {!type:path}. *)
   val pp_path : Format.formatter -> path -> unit
@@ -162,23 +171,23 @@ sig
           | PatAttr of 'a * 'a pattern
       ]}
 
-      We will explain each combinator, one by one. However, it is essential to know the possible results of pattern matching and {e modes} first.
+      We will explain each combinator, one by one. However, it is essential to know the outcomes of pattern matching and {e modes} first.
 
-      {2 Results}
+      {2 Outcomes}
 
       The result of pattern matching is one of the following:
 
         {ol
         {li [Ok `NoMatch]: the pattern runs without errors but does not match the name.}
-        {li [Ok `Matched [(name_1, attr_1); (name_2, attr_2); ...]]: the pattern matches the name and outputs its new names tagged with attributes. (See {!attributes}) It is possible that the set of new names is empty despite the old name being matched because we support the intersection operator {!val:meet}.}
+        {li [Ok `Matched [(name_1, attr_1); (name_2, attr_2); ...]]: the pattern matches the name and outputs its new names tagged with attributes. (See {!attributes}.) It is possible that the set of new names is empty despite the old name being matched because we support the intersection operator {!val:meet}.}
         {li [Error err]: the pattern is ill-formed, violating the invariants described in {!invariants}.}
         }
 
       See {!type:Action.result_}, {!type:Action.error} and {!val:Action.run}.
 
-      {2 Modes}
+      {2:modes Modes}
 
-      There are two modes of the pattern matching engine: the {e normal} mode and the {e inverse} mode. The motivation to have the inverse mode is to implement the patterns that hide names from being imported. Think about the pattern [id ["a"; "b"]], which would normally select the name [a.b] from the imported content. Its dual meaning---selecting everything {e other than} the name [a.b]---is exactly the hiding operator we are looking for. The inverse mode has been extended to the entire core language and significantly reduce the number of combinators. It is recommended to study how the core language works under the normal mode first.
+      There are two modes of the pattern matching engine: the {e normal} mode and the {e inverse} mode. The motivation to have the inverse mode is to implement the patterns that hide names from being imported. Think about the pattern [id ["a"; "b"]], which would normally select the name [a.b] from the imported content. Its dual meaning---selecting everything {e other than} the name [a.b]---is exactly the hiding operator we are looking for. The inverse mode has been extended to the entire core language and significantly reduced the number of combinators. It is recommended to study how the core language works under the normal mode first.
 
       {2 Combinators}
 
@@ -215,7 +224,7 @@ sig
 
       {2:invariants Invariants}
 
-      Patterns involving renaming (e.g., [PatScope (p, Some r, pattern)]) and the empty join pattern [PatJoin []] should not be run under the inverse mode.
+      Patterns involving renaming (e.g., [PatScope (p, Some r, pattern)]) and the empty join pattern [PatJoin []] should not be run under the inverse mode. {!Action.check} can check whether a pattern run under the normal mode (see {!modes}) will violate these invariants.
   *)
 end
 
@@ -232,7 +241,7 @@ sig
     | `Matched of (path * 'a) list (** The pattern matches the name, with a list of tagged new names. *)
   ]
 
-  (** The type of error messages describing the violated invariants. See {!invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
+  (** The type of errors due to the violation of some invariant. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
 
       The pattern embedded in the error message is the fragment that violates the invariant. The pattern [pat] in [EmptyMeet pat] is not useful on its own---we all know it must be [PatJoin []]---but it facilitates using or-patterns in error handling. *)
   type 'a error =
@@ -252,10 +261,10 @@ sig
   (** The engine specialized to [unit pattern] where the attribute type is [unit]. *)
   val run_ : unit pattern -> path -> (unit result_, unit error) result
 
-  (** Check whether any invariant is violated. See {!Pattern.invariants}. *)
+  (** Check whether a pattern violates any invariant. See {!Pattern.invariants}. *)
   val check : 'a pattern -> (unit, 'a error) result
 
-  (** {1 Pretty printers} *)
+  (** {1 Pretty Printers} *)
 
   (** Pretty printer for {!type:result_}. *)
   val pp_result_ : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a result_ -> unit
@@ -270,13 +279,13 @@ end
 (**
    {1 Introduction}
 
-   {b Yuujinchou} is an OCaml combinator library for manipulating names. It was motivated by the `import` or `include` statements present in almost all programming languages. Here are some examples of such statements:
+   {b Yuujinchou} is an OCaml combinator library for manipulating names. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
 
    {v open import M -- Agda v}
 
    {v import foo # Python v}
 
-   The ability to import content from other files helps organize code. However, it also brings up new design issues: how could programmers prevent imported content from colliding or shadowing the existing content in the current scope? For example, maybe in the current scope, we have defined a function called [test], and do not want to import another function also called [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing content in the current scope? For example, if we have defined a function [test] in the current scope, maybe we do not import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
 
    {v
 open import M renaming (a to b) public
@@ -288,11 +297,11 @@ import foo as bar
 # putting content of foo under the prefix bar
    v}
 
-   We can treat hiding or renaming as a partial function from names to names. I took this aspect seriously and designed this combinator library---a concise yet powerful (perhaps overkilling) language for manipulating names in programming languages.
+   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!core}.
 
-   {1 Applications}
+   {1 Applicability}
 
-   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. This library gives you a powerful language to support fancy name selection.
+   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. You can support fancy selection and renaming mechanism without crafting your own.
 
    {1 Organization}
 
@@ -302,7 +311,7 @@ import foo as bar
 
    This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
 
-   Note that namespaces (name prefixes of unrelated declarations) are different from modules (groups of declarations that are bound together). This library does not provide special support for modules (yet).
+   Note that namespaces (name prefixes of unrelated items) are different from modules (groups of items that are bound together). This library does not provide special support for modules (yet).
 
    {1 Examples}
 
@@ -340,7 +349,7 @@ import qualified Mod hiding (x,y)
 
    {1 What is "Yuujinchou"?}
 
-   "Yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". The book is a powerful booklet that collects {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters) in the manga and anime Natsume Yuujinchou (夏目友人帳). These real names can be used to control youkais, but the protagonist decided to return the names to youkais. The plot is about meeting different youkais during the journey.
+   "Yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". The book is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
 
    This library is also about using names to summon monsters.
 

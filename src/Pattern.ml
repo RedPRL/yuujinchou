@@ -16,19 +16,19 @@ let inv =
   | p -> PatInv p
 let wildcard = PatWildcard
 let root = inv wildcard
-let scope =
+let rec scope =
   function
   | [] -> fun p -> p
   | s ->
     function
-    | PatScope (s2, None, p) -> PatScope (s @ s2, None, p)
+    | PatScope (s2, None, p) -> scope (s @ s2) p
     | p -> PatScope (s, None, p)
-let renaming_scope s s' =
+let rec renaming_scope s s' =
   if s = [] && s' = [] then
     fun p -> p
   else
     function
-    | PatScope (s2, Some s'2, p) -> PatScope (s @ s2, Some (s' @ s'2), p)
+    | PatScope (s2, Some s'2, p) -> renaming_scope (s @ s2) (s' @ s'2) p
     | p -> PatScope (s, Some s', p)
 let seq acts = PatSeq acts
 let seq_filter acts = inv @@ seq @@ List.map inv acts
