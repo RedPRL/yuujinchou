@@ -45,3 +45,11 @@ let _ =
 let _ =
   test true (renaming_scope [] ["M"] @@ meet [skip ["x"]; skip ["y"]]) ["z"] @@
   Ok (`Matched [["M"; "z"], true])
+
+let _ =
+  test true (seq [renaming ["x"] ["y"]; renaming ["y"] ["z"]]) ["x"] @@
+  Ok (`Matched [["z"], true])
+
+let _ =
+  test true (seq [renaming ["x"] ["y"]; renaming ["z"] ["w"]]) ["x"] @@
+  Ok (`Matched [["y"], true])
