@@ -26,44 +26,44 @@ sig
 
   (** {2 Basics} *)
 
-  (** The pattern that matches any name. *)
+  (** [any] matches any name. *)
   val any : 'a pattern
 
-  (** The pattern that matches no names. *)
+  (** [none] matches no names. *)
   val none : 'a pattern
 
-  (** The pattern [id x] that matches the name [x] and nothing else. *)
+  (** [id x] matches the name [x] and nothing else. *)
   val id : path -> 'a pattern
 
-  (** The wildcard pattern that matches everything except for the empty name (the empty list [[]]). *)
+  (** [wildcard] matches everything {e except} the empty name (the empty list [[]]). *)
   val wildcard : 'a pattern
 
-  (** The pattern that only matches the empty name (the empty list [[]]). *)
+  (** [root] matches only the empty name (the empty list [[]]). *)
   val root : 'a pattern
 
   (** Scoping a pattern with a prefix. For example, [scope p (id x)] is equivalent to [id (p @ x)] *)
   val scope : path -> 'a pattern -> 'a pattern
 
-  (** The pattern that matches any name with the given prefix. The pattern [prefix p] is equivalent to [scope p any]. *)
+  (** [prefix p] matches any name with the given prefix [p] and is equivalent to [scope p any]. *)
   val prefix : path -> 'a pattern
 
   (** {2 Negation} *)
 
-  (** The pattern that skips the specified name. *)
-  val skip : path -> 'a pattern
+  (** [hide x] matches any name that is different from [x]. *)
+  val hide : path -> 'a pattern
 
-  (** The pattern that skips any name with the specified prefix. *)
-  val skip_prefix : path -> 'a pattern
+  (** [hide_prefix p] matches any name that does not have the prefix [p]. *)
+  val hide_prefix : path -> 'a pattern
 
   (** {2 Renaming} *)
 
-  (** The pattern that matches only the specified name and replaces it. *)
+  (** [renaming x x'] matches the name [x] and replaces it with [x']. *)
   val renaming : path -> path -> 'a pattern
 
-  (** The pattern that matches any name with the given prefix and replaces the prefix. *)
+  (** [renaming_prefix p p'] matches any name with the prefix [p] and replaces the prefix with [p']. *)
   val renaming_prefix : path -> path -> 'a pattern
 
-  (** Scoping a pattern and rename the prefix. *)
+  (** [renaming_scope p p' pat] is the same as [scope p pat] except that the prefix will be replaced by [p']. [renaming x x'] is the same as [renaming_scope x x' root] and [renaming_prefix p p'] is the same as [renaming_scope p p' any]. See {!val:scope}. *)
   val renaming_scope : path -> path -> 'a pattern -> 'a pattern
 
   (** {2:attributes Attributes} *)
@@ -112,17 +112,17 @@ sig
      The following pattern changes the default attribute before running the subpattern:
   *)
 
-  (** The pattern [attr a p] will assigns the default attribute to [a] and then runs the pattern [p]. *)
+  (** [attr a p] assigns the default attribute to [a] and then runs the pattern [p]. *)
   val attr : 'a -> 'a pattern -> 'a pattern
 
   (** {2 Sequencing} *)
 
-  (** The pattern [seq [p0; p1; p2; ...; pn]] runs the patterns [p0], [p1], [p2], ..., [pn] in order.
+  (** [seq [p0; p1; p2; ...; pn]] runs the patterns [p0], [p1], [p2], ..., [pn] in order.
 
       If [pi] triggers the renaming, then the new names are used in the subsequent patterns. A name is considered matched if it is matched by any pattern during the process. Inconsistent attributes on the same name are resolved by the provided [join] operator. See {!attributes}. *)
   val seq : 'a pattern list -> 'a pattern
 
-  (** The pattern [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes on the same name are resolved by the provided [join] operator. See {!attributes}. *)
+  (** [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes on the same name are resolved by the provided [join] operator. See {!attributes}. *)
   val seq_filter : 'a pattern list -> 'a pattern
 
   (** {2 Logical Connectives} *)
@@ -335,7 +335,7 @@ import qualified Mod
 import qualified Mod hiding (x,y)
    v}
    {[
-     renaming_scope [] ["Mod"] @@ meet [skip ["x"]; skip ["y"]]
+     renaming_scope [] ["Mod"] @@ meet [hide ["x"]; hide ["y"]]
    ]}
 
    {1 What is "Yuujinchou"?}
