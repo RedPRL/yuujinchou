@@ -12,5 +12,4 @@ jobs:
     - uses: avsm/setup-ocaml@v1
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
-    - run: opam install dune -y
     - run: opam pin . --with-test -y
