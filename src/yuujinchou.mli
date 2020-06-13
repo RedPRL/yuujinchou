@@ -279,13 +279,13 @@ end
 (**
    {1 Introduction}
 
-   {b Yuujinchou} is an OCaml combinator library for manipulating names. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
+   {b Yuujinchou} is an OCaml package of name patterns. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
 
    {v open import M -- Agda v}
 
    {v import foo # Python v}
 
-   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing content in the current scope? For example, if we have defined a function [test] in the current scope, maybe we do not import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
 
    {v
 open import M renaming (a to b) public
