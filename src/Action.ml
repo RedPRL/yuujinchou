@@ -83,7 +83,11 @@ let rec modal_run ~mode ~default ~join ~meet pattern path : ('a modal_result, 'a
       | `Matched m ->
         Result.map (join_result ~join) begin
           M.bindings m |> ResultMonad.map @@ fun (path, default) ->
-          modal_run ~mode ~default ~join ~meet pat path
+          modal_run ~mode ~default ~join ~meet pat path |>
+          Result.map @@
+          function
+          | `NoMatch -> singleton path default
+          | `Matched m -> `Matched m
         end
     in
     List.fold_left f (Ok `NoMatch) pats
