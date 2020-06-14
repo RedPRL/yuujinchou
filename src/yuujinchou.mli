@@ -353,6 +353,6 @@ import qualified Mod hiding (x,y)
 
    This library is also about using names to summon monsters.
 
-   The transliteration is in the Wāpuro style to work around the name restriction; otherwise, its Hepburn romanization would be "Yūjin-chō".
+   The transliteration is in the Wāpuro style to use only English alphabet letters; otherwise, its Hepburn romanization would be "Yūjin-chō".
 
 *)
