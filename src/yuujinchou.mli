@@ -238,7 +238,7 @@ sig
   (** The result type of pattern matching. *)
   type 'a result_ = [
     | `NoMatch (** The pattern does not match the name. *)
-    | `Matched of (path * 'a) list (** The pattern matches the name, with a list of tagged new names. *)
+    | `Matched of (path * 'a) list (** The pattern matches the name and outputs a list of tagged new names. *)
   ]
 
   (** The type of errors due to the violation of some invariant of patterns. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
