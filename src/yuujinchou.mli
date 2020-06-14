@@ -116,7 +116,7 @@ sig
          | `Private, _ | _, `Private -> `Private
          | `Public, `Public -> `Public
      ]}
-     In other words, [`Pubilc] is treated as the top element and [`Private] is the bottom element. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it {e will} be re-exported. This suggests that the join operator should outputs [`Public] whenever one of the inputs is [`Public]. It then makes sense to make the meet operator the dual of the join operator.
+     In other words, [`Public] is treated as the top element and [`Private] is the bottom element. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it {e will} be re-exported. This suggests that the join operator should outputs [`Public] whenever one of the inputs is [`Public]. It then makes sense to make the meet operator the dual of the join operator.
 
      The following pattern changes the default attribute before running the subpattern:
   *)
