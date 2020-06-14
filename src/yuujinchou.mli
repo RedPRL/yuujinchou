@@ -139,7 +139,7 @@ sig
   (** [join [p0; p1; p2; ...; pn]] calculates the "union" of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes are resolved by the provided [join] operator on attributes. See {!attributes}. *)
   val join : 'a pattern list -> 'a pattern
 
-  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched in all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
+  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched by all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
   val meet : 'a pattern list -> 'a pattern
 
   (** {2 Unsafe Builders} *)
@@ -241,7 +241,7 @@ sig
     | `Matched of (path * 'a) list (** The pattern matches the name, with a list of tagged new names. *)
   ]
 
-  (** The type of errors due to the violation of some invariant. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
+  (** The type of errors due to the violation of some invariant of patterns. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
 
       The pattern embedded in the error message is the fragment that violates the invariant. The pattern [pat] in [EmptyMeet pat] is not useful on its own---we all know it must be [PatJoin []]---but it facilitates using or-patterns in error handling. *)
   type 'a error =
