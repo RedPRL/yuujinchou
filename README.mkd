@@ -1,3 +1,16 @@
-# Yuujinchou: Name Manipulation Combinators
+# Yuujinchou: Name Pattern Combinators
 
-_Yuujinchou_ is an OCaml combinator library for manipulating names. See the [documentation](https://favonia.org/yuujinchou).
+_Yuujinchou_ is an OCaml package of name patterns. Please consult the [documentation](https://favonia.org/yuujinchou).
+
+## Installation
+
+You need OCaml 4.08.0 or newer. The package is available on the OPAM repository:
+```
+opam install yuujinchou
+```
+
+You could also check out the source repository and install the latest version in development:
+```
+git clone https://github.com/favonia/yuujinchou.git
+opam install ./yuujinchou
+```

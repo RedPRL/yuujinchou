@@ -116,7 +116,7 @@ sig
          | `Private, _ | _, `Private -> `Private
          | `Public, `Public -> `Public
      ]}
-     In other words, [`Pubilc] is treated as the top element and [`Private] is the bottom element. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it {e will} be re-exported. This suggests that the join operator should outputs [`Public] whenever one of the inputs is [`Public]. It then makes sense to make the meet operator the dual of the join operator.
+     In other words, [`Public] is treated as the top element and [`Private] is the bottom element. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it {e will} be re-exported. This suggests that the join operator should outputs [`Public] whenever one of the inputs is [`Public]. It then makes sense to make the meet operator the dual of the join operator.
 
      The following pattern changes the default attribute before running the subpattern:
   *)
@@ -139,7 +139,7 @@ sig
   (** [join [p0; p1; p2; ...; pn]] calculates the "union" of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes are resolved by the provided [join] operator on attributes. See {!attributes}. *)
   val join : 'a pattern list -> 'a pattern
 
-  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched in all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
+  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched by all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
   val meet : 'a pattern list -> 'a pattern
 
   (** {2 Unsafe Builders} *)
@@ -238,10 +238,10 @@ sig
   (** The result type of pattern matching. *)
   type 'a result_ = [
     | `NoMatch (** The pattern does not match the name. *)
-    | `Matched of (path * 'a) list (** The pattern matches the name, with a list of tagged new names. *)
+    | `Matched of (path * 'a) list (** The pattern matches the name and outputs a list of tagged new names. *)
   ]
 
-  (** The type of errors due to the violation of some invariant. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
+  (** The type of errors due to the violation of some invariant of patterns. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
 
       The pattern embedded in the error message is the fragment that violates the invariant. The pattern [pat] in [EmptyMeet pat] is not useful on its own---we all know it must be [PatJoin []]---but it facilitates using or-patterns in error handling. *)
   type 'a error =
@@ -279,13 +279,13 @@ end
 (**
    {1 Introduction}
 
-   {b Yuujinchou} is an OCaml combinator library for manipulating names. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
+   {b Yuujinchou} is an OCaml package of name patterns. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
 
    {v open import M -- Agda v}
 
    {v import foo # Python v}
 
-   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing content in the current scope? For example, if we have defined a function [test] in the current scope, maybe we do not import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
 
    {v
 open import M renaming (a to b) public
@@ -349,10 +349,10 @@ import qualified Mod hiding (x,y)
 
    {1 What is "Yuujinchou"?}
 
-   "Yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". The book is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
+   "Yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". It is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
 
    This library is also about using names to summon monsters.
 
-   The transliteration is in the Wāpuro style to work around the name restriction; otherwise, its Hepburn romanization would be "Yūjin-chō".
+   The transliteration is in the Wāpuro style to use only English alphabet letters; otherwise, its Hepburn romanization would be "Yūjin-chō".
 
 *)
