@@ -12,8 +12,7 @@ jobs:
     - uses: avsm/setup-ocaml@v1
       with:
         ocaml-version: '4.10.0'
-    - run: opam install odoc -y
-    - run: opam pin . -y
+    - run: opam install odoc . -y
     - run: opam exec -- dune build @doc
     - uses: peaceiris/actions-gh-pages@v3
       with:
