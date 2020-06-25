@@ -351,7 +351,7 @@ import qualified Mod hiding (x,y)
 (require (only-in ... id0 [old-id1 new-id1]))
    v}
    {[
-     seq [...; join [only ["id0"]; renaming ["old-id1"] ["new-id1"]]]
+     seq_filter [...; join [only ["id0"]; renaming ["old-id1"] ["new-id1"]]]
    ]}
 
    {v
@@ -365,7 +365,7 @@ import qualified Mod hiding (x,y)
 (require (prefix-in p: ...))
    v}
    {[
-     (renaming_scope [] ["p:"] ...)
+     seq [...; renaming_prefix [] ["p:"]]
    ]}
 
    {v
