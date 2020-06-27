@@ -34,7 +34,7 @@ let seq acts = PatSeq acts
 let seq_filter acts = inv @@ seq @@ List.map inv acts
 let none = seq []
 let any = inv none
-let id x = scope x root
+let only x = scope x root
 let renaming x x' = renaming_scope x x' root
 let prefix x = scope x any
 let renaming_prefix x x' = renaming_scope x x' any
@@ -48,6 +48,6 @@ let meet =
   function
   | [] -> invalid_arg "Pattern.meet: empty list"
   | l -> unsafe_meet l
-let hide x = inv @@ id x
-let hide_prefix x = inv @@ prefix x
+let except x = inv @@ only x
+let except_prefix x = inv @@ prefix x
 let unsafe_inv = inv

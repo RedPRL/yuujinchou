@@ -29,10 +29,10 @@ sig
   (** [any] matches any name. *)
   val any : 'a pattern
 
-  (** [id x] matches the name [x] and nothing else. *)
-  val id : path -> 'a pattern
+  (** [only x] matches the name [x] and nothing else. *)
+  val only : path -> 'a pattern
 
-  (** [root] matches only the empty name (the empty list [[]]). It is equivalent to [id []]. *)
+  (** [root] matches only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
   val root : 'a pattern
 
   (** [wildcard] matches everything {e except} the empty name (the empty list [[]]). It is the opposite of [root]. *)
@@ -45,7 +45,7 @@ sig
       For example, [scope ["a"; "b"] pat] on the name [a.b.c.d] will factor out the prefix [a.b]
       and continue running the pattern [pat] on the remaining part [c.d].
 
-      {!val:scope} is more general than {!val:id} and {!val:prefix}: [id x] is equivalent to [scope x root]
+      {!val:scope} is more general than {!val:only} and {!val:prefix}: [only x] is equivalent to [scope x root]
       and [prefix p] is equivalent to [scope p any].
   *)
   val scope : path -> 'a pattern -> 'a pattern
@@ -55,15 +55,15 @@ sig
   (** [none] matches no names. It is the opposite of {!val:any}. *)
   val none : 'a pattern
 
-  (** [hide x] matches any name {e except} [x]. It is the opposite of {!val:id}. *)
-  val hide : path -> 'a pattern
+  (** [except x] matches any name {e except} [x]. It is the opposite of {!val:only}. *)
+  val except : path -> 'a pattern
 
-  (** [hide_prefix p] matches any name that does not have the prefix [p]. It is the opposite of {!val:prefix}. *)
-  val hide_prefix : path -> 'a pattern
+  (** [except_prefix p] matches any name that does not have the prefix [p]. It is the opposite of {!val:prefix}. *)
+  val except_prefix : path -> 'a pattern
 
   (** {2 Renaming} *)
 
-  (** [renaming x x'] matches the name [x] and replaces it with [x']. See {!val:id}. *)
+  (** [renaming x x'] matches the name [x] and replaces it with [x']. See {!val:only}. *)
   val renaming : path -> path -> 'a pattern
 
   (** [renaming_prefix p p'] matches any name with the prefix [p] and replaces the prefix with [p']. See {!val:prefix}. *)
@@ -187,7 +187,7 @@ sig
 
       {2:modes Modes}
 
-      There are two modes of the pattern matching engine: the {e normal} mode and the {e inverse} mode. The motivation to have the inverse mode is to implement the patterns that hide names from being imported. Think about the pattern [id ["a"; "b"]], which would normally select the name [a.b] from the imported content. Its dual meaning---selecting everything {e other than} the name [a.b]---is exactly the hiding operator we are looking for. The inverse mode has been extended to the entire core language and significantly reduced the number of combinators. It is recommended to study how the core language works under the normal mode first.
+      There are two modes of the pattern matching engine: the {e normal} mode and the {e inverse} mode. The motivation to have the inverse mode is to implement the patterns that hide names from being imported. Think about the pattern [only ["a"; "b"]], which would normally select the name [a.b] from the imported content. Its dual meaning---selecting everything {e other than} the name [a.b]---is exactly the hiding operator we are looking for. The inverse mode has been extended to the entire core language and significantly reduced the number of combinators. It is recommended to study how the core language works under the normal mode first.
 
       {2 Combinators}
 
@@ -324,14 +324,12 @@ import Mod -- x is available an both x and Mod.x
      join [any; renaming_prefix [] ["Mod"]]
    ]}
 
-
    {v
 import Mod (x,y)
    v}
    {[
-     join [id ["x"]; id ["y"]]
+     join [only ["x"]; only ["y"]]
    ]}
-
 
    {v
 import qualified Mod
@@ -346,6 +344,45 @@ import qualified Mod hiding (x,y)
    {[
      renaming_scope [] ["Mod"] @@ meet [hide ["x"]; hide ["y"]]
    ]}
+
+   {2 Racket}
+
+   {v
+(require (only-in ... id0 [old-id1 new-id1]))
+   v}
+   {[
+     seq_filter [...; join [only ["id0"]; renaming ["old-id1"] ["new-id1"]]]
+   ]}
+
+   {v
+(require (except-in ... id0 id1]))
+   v}
+   {[
+     seq_filter [...; except ["id0"]; except ["id1"]]
+   ]}
+
+   {v
+(require (prefix-in p: ...))
+   v}
+   {[
+     seq [...; renaming_prefix [] ["p:"]]
+   ]}
+
+   {v
+(require (rename-in ... [old-id0 new-id0] [old-id1 new-id1]))
+   v}
+   {[
+     seq [...; join [renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]]]
+   ]}
+
+   {v
+(require (combine-in require-spec0 require-spec1 ...))
+   v}
+   {[
+     join [require-spec0; require-spec1; ...]
+   ]}
+
+   The [provide] mechanism can be simulated in a similar way. This library does not directly support the phase levels in Racket (yet).
 
    {1 What is "Yuujinchou"?}
 
