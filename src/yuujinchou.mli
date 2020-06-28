@@ -1,3 +1,37 @@
+(**
+   {b Yuujinchou} is an OCaml package of name patterns. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
+
+   {v open import M -- Agda v}
+
+   {v import foo # Python v}
+
+   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+
+   {v
+open import M renaming (a to b) public
+-- renaming a to b, and then re-exporting the content
+   v}
+
+   {v
+import foo as bar
+# putting content of foo under the prefix bar
+   v}
+
+   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!Pattern.core}.
+*)
+
+(**
+   {1 Applicability}
+
+   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. You can support fancy selection and renaming mechanism without crafting your own.
+*)
+
+(**
+   {1 Organization}
+
+   The code is split into two parts:
+*)
+
 (** The {!module:Pattern} module defines the patterns. *)
 module Pattern :
 sig
@@ -277,36 +311,6 @@ sig
 end
 
 (**
-   {1 Introduction}
-
-   {b Yuujinchou} is an OCaml package of name patterns. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
-
-   {v open import M -- Agda v}
-
-   {v import foo # Python v}
-
-   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
-
-   {v
-open import M renaming (a to b) public
--- renaming a to b, and then re-exporting the content
-   v}
-
-   {v
-import foo as bar
-# putting content of foo under the prefix bar
-   v}
-
-   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!Pattern.core}.
-
-   {1 Applicability}
-
-   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. You can support fancy selection and renaming mechanism without crafting your own.
-
-   {1 Organization}
-
-   The code is split into two parts: {!module:Pattern} and {!module:Action}.
-
    {1  Namespace Support}
 
    This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
