@@ -297,7 +297,7 @@ import foo as bar
 # putting content of foo under the prefix bar
    v}
 
-   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!core}.
+   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!Pattern.core}.
 
    {1 Applicability}
 
