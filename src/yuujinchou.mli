@@ -112,7 +112,7 @@ sig
   (** {2:attributes Attributes} *)
 
   (**
-     Attributes are custom tags attached to matched names. For example, you could attach [`Public] or [`Private] to names when implementing the import statement. You need to supply a default value and a lattice structure for your attribute type [t] when running the pattern using {!Action.run}:
+     Attributes are custom tags attached to matched names. For example, you could attach [`Public] or [`Private] to names when implementing the import statement. You need to supply a default value and a lattice structure for your attribute type [t] when running the pattern using {!val:Action.run}:
 
      {ol
 
@@ -151,6 +151,12 @@ sig
          | `Public, `Public -> `Public
      ]}
      In other words, [`Public] is treated as the top element and [`Private] is the bottom element. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it {e will} be re-exported. This suggests that the join operator should outputs [`Public] whenever one of the inputs is [`Public]. It then makes sense to make the meet operator the dual of the join operator.
+
+     To pass the lattice structure to the engine {!val:Action.run} when running the pattern [pat], use
+     {[
+       run ~default:`Public ~join:join_attr ~meet:meet pat ["some"; "path"]
+     ]}
+     Please read {!outcomes} on how attributes are attached to the results.
 
      The following pattern changes the default attribute before running the subpattern:
   *)
@@ -207,7 +213,7 @@ sig
 
       We will explain each combinator, one by one. However, it is essential to know the outcomes of pattern matching and {e modes} first.
 
-      {2 Outcomes}
+      {2:outcomes Outcomes}
 
       The result of pattern matching is one of the following:
 
