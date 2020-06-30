@@ -1,3 +1,37 @@
+(**
+   {b Yuujinchou} is an OCaml package of name patterns. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
+
+   {v open import M -- Agda v}
+
+   {v import foo # Python v}
+
+   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+
+   {v
+open import M renaming (a to b) public
+-- renaming a to b, and then re-exporting the content
+   v}
+
+   {v
+import foo as bar
+# putting content of foo under the prefix bar
+   v}
+
+   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!Pattern.core}.
+*)
+
+(**
+   {1 Applicability}
+
+   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. You can support fancy selection and renaming mechanism without crafting your own.
+*)
+
+(**
+   {1 Organization}
+
+   The code is split into two parts:
+*)
+
 (** The {!module:Pattern} module defines the patterns. *)
 module Pattern :
 sig
@@ -78,7 +112,7 @@ sig
   (** {2:attributes Attributes} *)
 
   (**
-     Attributes are custom tags attached to matched names. For example, you could attach [`Public] or [`Private] to names when implementing the import statement. You need to supply a default value and a lattice structure for your attribute type [t] when running the pattern using {!Action.run}:
+     Attributes are custom tags attached to matched names. For example, you could attach [`Public] or [`Private] to names when implementing the import statement. You need to supply a default value and a lattice structure for your attribute type [t] when running the pattern using {!val:Action.run}:
 
      {ol
 
@@ -117,6 +151,12 @@ sig
          | `Public, `Public -> `Public
      ]}
      In other words, [`Public] is treated as the top element and [`Private] is the bottom element. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it {e will} be re-exported. This suggests that the join operator should outputs [`Public] whenever one of the inputs is [`Public]. It then makes sense to make the meet operator the dual of the join operator.
+
+     To pass the lattice structure to the engine {!val:Action.run} when running the pattern [pat], use
+     {[
+       run ~default:`Public ~join:join_attr ~meet:meet pat ["some"; "path"]
+     ]}
+     Please read {!outcomes} on how attributes are attached to the results.
 
      The following pattern changes the default attribute before running the subpattern:
   *)
@@ -173,7 +213,7 @@ sig
 
       We will explain each combinator, one by one. However, it is essential to know the outcomes of pattern matching and {e modes} first.
 
-      {2 Outcomes}
+      {2:outcomes Outcomes}
 
       The result of pattern matching is one of the following:
 
@@ -277,36 +317,6 @@ sig
 end
 
 (**
-   {1 Introduction}
-
-   {b Yuujinchou} is an OCaml package of name patterns. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
-
-   {v open import M -- Agda v}
-
-   {v import foo # Python v}
-
-   The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
-
-   {v
-open import M renaming (a to b) public
--- renaming a to b, and then re-exporting the content
-   v}
-
-   {v
-import foo as bar
-# putting content of foo under the prefix bar
-   v}
-
-   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!core}.
-
-   {1 Applicability}
-
-   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. You can support fancy selection and renaming mechanism without crafting your own.
-
-   {1 Organization}
-
-   The code is split into two parts: {!module:Pattern} and {!module:Action}.
-
    {1  Namespace Support}
 
    This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
@@ -388,7 +398,7 @@ import qualified Mod hiding (x,y)
 
    "Yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". It is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
 
-   This library is also about using names to summon monsters.
+   This magical book will automatically turn to the page with the correct name when the protagonist pictures the youkai in his mind. This library is also about finding real names of youkais.
 
    The transliteration is in the Wāpuro style to use only English alphabet letters; otherwise, its Hepburn romanization would be "Yūjin-chō".
 
