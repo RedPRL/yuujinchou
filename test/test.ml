@@ -72,6 +72,10 @@ test true (prefix ["a"]) ["a"] @@ matched [["a"], true]
 ;;
 test true (prefix ["a"]) ["b"] nomatch
 ;;
+test true (prefix []) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (prefix ["a"; "b"]) [] nomatch
+;;
 test true (prefix ["a"]) ["b"; "c"] nomatch
 ;;
 test true (prefix ["a"; "b"]) ["c"] nomatch
@@ -88,23 +92,93 @@ test true (prefix ["a"; "b"]) ["c"; "b"] nomatch
 ;;
 test true (scope [] any) [] @@ matched [[], true]
 ;;
+test true (scope [] root) [] @@ matched [[], true]
+;;
+test true (scope [] none) [] @@ nomatch
+;;
+test true (scope [] wildcard) [] @@ nomatch
+;;
+test true (scope [] @@ renaming [] ["a"]) [] @@ matched [["a"], true]
+;;
 test true (scope [] any) ["a"] @@ matched [["a"], true]
 ;;
-test true (scope [] @@ only ["a"]) ["b"] nomatch
+test true (scope [] root) ["a"] nomatch
 ;;
 test true (scope [] none) ["a"] nomatch
 ;;
+test true (scope [] wildcard) ["a"] @@ matched [["a"], true]
+;;
+test true (scope [] @@ renaming ["a"] ["b"]) ["a"] @@ matched [["b"], true]
+;;
 test true (scope ["a"] any) [] nomatch
+;;
+test true (scope ["a"] root) [] nomatch
+;;
+test true (scope ["a"] none) [] nomatch
+;;
+test true (scope ["a"] wildcard) [] nomatch
+;;
+test true (scope ["a"] @@ renaming [] ["b"]) [] nomatch
 ;;
 test true (scope ["a"] any) ["a"] @@ matched [["a"], true]
 ;;
+test true (scope ["a"] root) ["a"] @@ matched [["a"], true]
+;;
 test true (scope ["a"] none) ["a"] nomatch
+;;
+test true (scope ["a"] wildcard) ["a"] nomatch
+;;
+test true (scope ["a"] @@ renaming ["a"] ["b"]) ["a"] nomatch
 ;;
 test true (scope ["a"] any) ["b"] nomatch
 ;;
+test true (scope ["a"] root) ["b"] nomatch
+;;
+test true (scope ["a"] none) ["b"] nomatch
+;;
+test true (scope ["a"] wildcard) ["b"] nomatch
+;;
+test true (scope ["a"] @@ renaming ["b"] ["c"]) ["b"] nomatch
+;;
 test true (scope ["a"] any) ["b"; "c"] nomatch
 ;;
+test true (scope ["a"] root) ["b"; "c"] nomatch
+;;
+test true (scope ["a"] none) ["b"; "c"] nomatch
+;;
+test true (scope ["a"] wildcard) ["b"; "c"] nomatch
+;;
+test true (scope ["a"] @@ renaming ["b"] ["c"]) ["b"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] any) ["c"] nomatch
+;;
+test true (scope ["a"; "b"] root) ["c"] nomatch
+;;
+test true (scope ["a"; "b"] none) ["c"] nomatch
+;;
+test true (scope ["a"; "b"] wildcard) ["c"] nomatch
+;;
+test true (scope ["a"; "b"] @@ renaming ["b"] ["c"]) ["c"] nomatch
+;;
+test true (scope ["a"] any) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (scope ["a"] root) ["a"; "b"] nomatch
+;;
+test true (scope ["a"] none) ["a"; "b"] nomatch
+;;
+test true (scope ["a"] wildcard) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (scope ["a"] @@ renaming ["b"] ["c"]) ["a"; "b"] @@ matched [["a"; "c"], true]
+;;
 test true (scope ["a"; "b"] any) ["a"] nomatch
+;;
+test true (scope ["a"; "b"] root) ["a"] nomatch
+;;
+test true (scope ["a"; "b"] none) ["a"] nomatch
+;;
+test true (scope ["a"; "b"] wildcard) ["a"] nomatch
+;;
+test true (scope ["a"; "b"] @@ renaming ["b"] ["c"]) ["a"] nomatch
 ;;
 test true (scope ["a"; "b"] any) ["a"; "b"] @@ matched [["a"; "b"], true]
 ;;
@@ -114,9 +188,27 @@ test true (scope ["a"; "b"] none) ["a"; "b"] nomatch
 ;;
 test true (scope ["a"; "b"] wildcard) ["a"; "b"] nomatch
 ;;
-test true (scope ["a"; "b"] root) ["a"; "b"; "c"] nomatch
+test true (scope ["a"; "b"] @@ renaming [] ["c"]) ["a"; "b"] @@ matched [["a"; "b"; "c"], true]
 ;;
-test true (scope ["a"; "b"] @@ only ["c"]) ["a"; "b"; "c"] @@ matched [["a"; "b"; "c"], true]
+test true (scope ["a"; "b"] any) ["a"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] root) ["a"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] none) ["a"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] wildcard) ["a"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] @@ renaming ["b"] ["c"]) ["a"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] any) ["c"; "b"] nomatch
+;;
+test true (scope ["a"; "b"] root) ["c"; "b"] nomatch
+;;
+test true (scope ["a"; "b"] none) ["c"; "b"] nomatch
+;;
+test true (scope ["a"; "b"] wildcard) ["c"; "b"] nomatch
+;;
+test true (scope ["a"; "b"] @@ renaming ["b"] ["c"]) ["c"; "b"] nomatch
 ;;
 test true none [] nomatch
 ;;
@@ -155,6 +247,10 @@ test true (except_prefix []) ["a"] nomatch
 test true (except_prefix ["a"]) [] @@ matched [[], true]
 ;;
 test true (except_prefix ["a"]) ["a"] nomatch
+;;
+test true (except_prefix []) ["a"; "b"] nomatch
+;;
+test true (except_prefix ["a"; "b"]) [] @@ matched [[], true]
 ;;
 test true (except_prefix ["a"]) ["b"] @@ matched [["b"], true]
 ;;
@@ -360,7 +456,126 @@ test true (renaming_prefix ["a"; "b"] ["c"]) ["c"; "b"] nomatch
 ;;
 test true (renaming_prefix ["a"; "b"] ["c"]) ["d"; "b"] nomatch
 ;;
-(* TODO continue working on renaming_scope, attr, seq, seq_filter, join, meet *)
+test true (renaming_scope [] ["x"] any) [] @@ matched [["x"], true]
+;;
+test true (renaming_scope [] ["x"] root) [] @@ matched [["x"], true]
+;;
+test true (renaming_scope [] ["x"] none) [] @@ nomatch
+;;
+test true (renaming_scope [] ["x"] wildcard) [] @@ nomatch
+;;
+test true (renaming_scope [] ["x"] @@ renaming [] ["a"]) [] @@ matched [["x"; "a"], true]
+;;
+test true (renaming_scope [] ["x"] any) ["a"] @@ matched [["x"; "a"], true]
+;;
+test true (renaming_scope [] ["x"] root) ["a"] nomatch
+;;
+test true (renaming_scope [] ["x"] none) ["a"] nomatch
+;;
+test true (renaming_scope [] ["x"] wildcard) ["a"] @@ matched [["x"; "a"], true]
+;;
+test true (renaming_scope [] ["x"] @@ renaming ["a"] ["b"]) ["a"] @@ matched [["x"; "b"], true]
+;;
+test true (renaming_scope ["a"] ["x"] any) [] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] root) [] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] none) [] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] wildcard) [] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] @@ renaming [] ["b"]) [] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] any) ["a"] @@ matched [["x"], true]
+;;
+test true (renaming_scope ["a"] ["x"] root) ["a"] @@ matched [["x"], true]
+;;
+test true (renaming_scope ["a"] ["x"] none) ["a"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] wildcard) ["a"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] @@ renaming ["a"] ["b"]) ["a"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] any) ["b"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] root) ["b"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] none) ["b"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] wildcard) ["b"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] @@ renaming ["b"] ["c"]) ["b"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] any) ["b"; "c"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] root) ["b"; "c"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] none) ["b"; "c"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] wildcard) ["b"; "c"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] @@ renaming ["b"] ["c"]) ["b"; "c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] any) ["c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] root) ["c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] none) ["c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] wildcard) ["c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] @@ renaming ["b"] ["c"]) ["c"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] any) ["a"; "b"] @@ matched [["x"; "b"], true]
+;;
+test true (renaming_scope ["a"] ["x"] root) ["a"; "b"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] none) ["a"; "b"] nomatch
+;;
+test true (renaming_scope ["a"] ["x"] wildcard) ["a"; "b"] @@ matched [["x"; "b"], true]
+;;
+test true (renaming_scope ["a"] ["x"] @@ renaming ["b"] ["c"]) ["a"; "b"] @@ matched [["x"; "c"], true]
+;;
+test true (renaming_scope ["a"; "b"] ["x"] any) ["a"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] root) ["a"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] none) ["a"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] wildcard) ["a"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] @@ renaming ["b"] ["c"]) ["a"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] any) ["a"; "b"] @@ matched [["x"], true]
+;;
+test true (renaming_scope ["a"; "b"] ["x"] root) ["a"; "b"] @@ matched [["x"], true]
+;;
+test true (renaming_scope ["a"; "b"] ["x"] none) ["a"; "b"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] wildcard) ["a"; "b"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] @@ renaming [] ["c"]) ["a"; "b"] @@ matched [["x"; "c"], true]
+;;
+test true (renaming_scope ["a"; "b"] ["x"] any) ["a"; "c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] root) ["a"; "c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] none) ["a"; "c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] wildcard) ["a"; "c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] @@ renaming ["b"] ["c"]) ["a"; "c"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] any) ["c"; "b"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] root) ["c"; "b"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] none) ["c"; "b"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] wildcard) ["c"; "b"] nomatch
+;;
+test true (renaming_scope ["a"; "b"] ["x"] @@ renaming ["b"] ["c"]) ["c"; "b"] nomatch
+(* TODO continue working on attr, seq, seq_filter, join, meet *)
 (* TODO clean up the following test cases *)
 ;;
 test true (join [renaming ["test"] ["test1"]; renaming ["test"] ["test2"]]) ["test"] @@
