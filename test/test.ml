@@ -11,8 +11,8 @@ let test default pattern path expected =
     Format.printf "Input Default:   %a@." pp_attr default;
     Format.printf "Input Pattern:   %a@." (pp_pattern pp_attr) pattern;
     Format.printf "Input Path:      %a@." pp_path path;
+    Format.printf "Output:          %a@." (pp_result pp_attr) output;
     Format.printf "Expected Output: %a@." (pp_result pp_attr) expected;
-    Format.printf "Actual Output:   %a@." (pp_result pp_attr) output;
     failwith "testing failed"
   end
 
@@ -104,7 +104,19 @@ test true (except ["a"; "b"]) ["a"] @@ matched [["a"], true]
 ;;
 test true (except ["a"]) ["a"; "b"] @@ matched [["a"; "b"], true]
 ;;
-(* TODO continue working on except_prefix, renaming, renaming_prefix, renaming_scope, attr, seq, seq_filter, join, meet *)
+test true (except_prefix []) [] nomatch
+;;
+test true (except_prefix []) ["a"] nomatch
+;;
+test true (except_prefix ["a"]) [] @@ matched [[], true]
+;;
+test true (except_prefix ["a"]) ["b"] @@ matched [["b"], true]
+;;
+test true (except_prefix ["a"; "b"]) ["a"] @@ matched [["a"], true]
+;;
+test true (except_prefix ["a"]) ["a"; "b"] nomatch
+;;
+(* TODO continue working on renaming, renaming_prefix, renaming_scope, attr, seq, seq_filter, join, meet *)
 (* TODO clean up the following test cases *)
 ;;
 test true (join [renaming ["test"] ["test1"]; renaming ["test"] ["test2"]]) ["test"] @@
