@@ -5,51 +5,126 @@ open Pattern
 let pp_attr = Format.pp_print_bool
 
 let test default pattern path expected =
-  Format.printf "@.";
-  Format.printf "Input Default:   %a@." pp_attr default;
-  Format.printf "Input Pattern:   %a@." (pp_pattern pp_attr) pattern;
-  Format.printf "Input Path:      %a@." pp_path path;
-  Format.printf "Expected Output: %a@." (pp_result pp_attr) expected;
   let output = run ~default ~join:(||) ~meet:(&&) pattern path in
-  Format.printf "Actual Output:   %a@." (pp_result pp_attr) output;
-  assert (output = expected)
+  if output <> expected then begin
+    Format.printf "@.";
+    Format.printf "Input Default:   %a@." pp_attr default;
+    Format.printf "Input Pattern:   %a@." (pp_pattern pp_attr) pattern;
+    Format.printf "Input Path:      %a@." pp_path path;
+    Format.printf "Expected Output: %a@." (pp_result pp_attr) expected;
+    Format.printf "Actual Output:   %a@." (pp_result pp_attr) output;
+    failwith "testing failed"
+  end
 
-let _ =
-  test true any ["test"] @@
-  Ok (`Matched [["test"], true])
+let matched l = Ok (`Matched l)
+let nomatch = Ok `NoMatch
 
-let _ =
-  test true none ["test"] @@
-  Ok `NoMatch
-
-let _ =
-  test true (renaming ["test"] ["test1"]) ["test"] @@
-  Ok (`Matched [["test1"], true])
-
-let _ =
-  test true (join [renaming ["test"] ["test1"]; renaming ["test"] ["test2"]]) ["test"] @@
-  Ok (`Matched [["test1"], true; ["test2"], true])
-
-let _ =
-  test true (join [any; renaming_prefix [] ["M"]]) ["test"] @@
-  Ok (`Matched [["M";"test"], true; ["test"], true])
-
-let _ =
-  test true (join [only ["x"]; only ["y"]]) ["x"] @@
-  Ok (`Matched [["x"], true])
-
-let _ =
-  test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["y"] @@
-  Ok `NoMatch
-
-let _ =
-  test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["z"] @@
-  Ok (`Matched [["M"; "z"], true])
-
-let _ =
-  test true (seq [renaming ["x"] ["y"]; renaming ["y"] ["z"]]) ["x"] @@
-  Ok (`Matched [["z"], true])
-
-let _ =
-  test true (seq [renaming ["x"] ["y"]; renaming ["z"] ["w"]]) ["x"] @@
-  Ok (`Matched [["y"], true])
+;;
+test true any ["a"] @@ matched [["a"], true]
+;;
+test true any [] @@ matched [[], true]
+;;
+test true (only []) [] @@ matched [[], true]
+;;
+test true (only ["a"]) ["a"] @@ matched [["a"], true]
+;;
+test true (only ["a"; "b"]) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true root [] @@ matched [[], true]
+;;
+test true root ["a"] nomatch
+;;
+test true root ["a"; "b"] nomatch
+;;
+test true wildcard [] nomatch
+;;
+test true wildcard ["a"] @@ matched [["a"], true]
+;;
+test true wildcard ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (prefix []) [] @@ matched [[], true]
+;;
+test true (prefix []) ["a"] @@ matched [["a"], true]
+;;
+test true (prefix ["a"]) [] nomatch
+;;
+test true (prefix ["a"]) ["b"] nomatch
+;;
+test true (prefix ["a"]) ["b"; "c"] nomatch
+;;
+test true (prefix ["a"; "b"]) ["a"] nomatch
+;;
+test true (prefix ["a"; "b"]) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (prefix ["a"; "b"]) ["a"; "b"; "c"] @@ matched [["a"; "b"; "c"], true]
+;;
+test true (scope [] any) [] @@ matched [[], true]
+;;
+test true (scope [] any) ["a"] @@ matched [["a"], true]
+;;
+test true (scope [] @@ only ["a"]) ["b"] nomatch
+;;
+test true (scope [] none) ["b"] nomatch
+;;
+test true (scope ["a"] any) [] nomatch
+;;
+test true (scope ["a"] any) ["b"] nomatch
+;;
+test true (scope ["a"] any) ["b"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] any) ["a"] nomatch
+;;
+test true (scope ["a"; "b"] any) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (scope ["a"; "b"] root) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (scope ["a"; "b"] none) ["a"; "b"] nomatch
+;;
+test true (scope ["a"; "b"] wildcard) ["a"; "b"] nomatch
+;;
+test true (scope ["a"; "b"] root) ["a"; "b"; "c"] nomatch
+;;
+test true (scope ["a"; "b"] @@ only ["c"]) ["a"; "b"; "c"] @@ matched [["a"; "b"; "c"], true]
+;;
+test true none [] nomatch
+;;
+test true none ["a"] nomatch
+;;
+test true none ["a"; "b"] nomatch
+;;
+test true (except []) [] nomatch
+;;
+test true (except []) ["a"] @@ matched [["a"], true]
+;;
+test true (except ["a"]) [] @@ matched [[], true]
+;;
+test true (except ["a"]) ["b"] @@ matched [["b"], true]
+;;
+test true (except ["a"; "b"]) ["a"] @@ matched [["a"], true]
+;;
+test true (except ["a"]) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+(* TODO continue working on except_prefix, renaming, renaming_prefix, renaming_scope, attr, seq, seq_filter, join, meet *)
+(* TODO clean up the following test cases *)
+;;
+test true (join [renaming ["test"] ["test1"]; renaming ["test"] ["test2"]]) ["test"] @@
+matched [["test1"], true; ["test2"], true]
+;;
+test true (join [any; renaming_prefix [] ["M"]]) ["test"] @@
+matched [["M";"test"], true; ["test"], true]
+;;
+test true (join [only ["x"]; only ["y"]]) ["x"] @@
+matched [["x"], true]
+;;
+test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["y"] nomatch
+;;
+test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["z"] @@
+matched [["M"; "z"], true]
+;;
+test true (seq [renaming ["x"] ["y"]; renaming ["y"] ["z"]]) ["x"] @@
+matched [["z"], true]
+;;
+test true (seq [renaming ["x"] ["y"]; renaming ["z"] ["w"]]) ["x"] @@
+matched [["y"], true]
+;;
+Printf.printf "All tests passed."
