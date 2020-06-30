@@ -98,11 +98,15 @@ test true (except []) ["a"] @@ matched [["a"], true]
 ;;
 test true (except ["a"]) [] @@ matched [[], true]
 ;;
+test true (except ["a"]) ["a"] nomatch
+;;
 test true (except ["a"]) ["b"] @@ matched [["b"], true]
 ;;
 test true (except ["a"; "b"]) ["a"] @@ matched [["a"], true]
 ;;
 test true (except ["a"]) ["a"; "b"] @@ matched [["a"; "b"], true]
+;;
+test true (except ["a"; "b"]) ["a"; "b"] nomatch
 ;;
 test true (except_prefix []) [] nomatch
 ;;
@@ -110,11 +114,15 @@ test true (except_prefix []) ["a"] nomatch
 ;;
 test true (except_prefix ["a"]) [] @@ matched [[], true]
 ;;
+test true (except_prefix ["a"]) ["a"] nomatch
+;;
 test true (except_prefix ["a"]) ["b"] @@ matched [["b"], true]
 ;;
 test true (except_prefix ["a"; "b"]) ["a"] @@ matched [["a"], true]
 ;;
 test true (except_prefix ["a"]) ["a"; "b"] nomatch
+;;
+test true (except_prefix ["a"; "b"]) ["a"; "b"] nomatch
 ;;
 (* TODO continue working on renaming, renaming_prefix, renaming_scope, attr, seq, seq_filter, join, meet *)
 (* TODO clean up the following test cases *)
