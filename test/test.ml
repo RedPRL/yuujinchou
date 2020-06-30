@@ -4,6 +4,8 @@ open Pattern
 
 let pp_attr = Format.pp_print_bool
 
+let success = ref true
+
 let test default pattern path expected =
   let output = run ~default ~join:(||) ~meet:(&&) pattern path in
   if output <> expected then begin
@@ -13,7 +15,7 @@ let test default pattern path expected =
     Format.printf "Input Path:      %a@." pp_path path;
     Format.printf "Output:          %a@." (pp_result pp_attr) output;
     Format.printf "Expected Output: %a@." (pp_result pp_attr) expected;
-    failwith "testing failed"
+    success := false
   end
 
 let matched l = Ok (`Matched l)
@@ -575,7 +577,18 @@ test true (renaming_scope ["a"; "b"] ["x"] none) ["c"; "b"] nomatch
 test true (renaming_scope ["a"; "b"] ["x"] wildcard) ["c"; "b"] nomatch
 ;;
 test true (renaming_scope ["a"; "b"] ["x"] @@ renaming ["b"] ["c"]) ["c"; "b"] nomatch
-(* TODO continue working on attr, seq, seq_filter, join, meet *)
+;;
+test true (attr false any) [] @@ matched [[], false]
+;;
+test true (attr false (attr true any)) [] @@ matched [[], true]
+;;
+test true (attr false (attr true (attr false any))) [] @@ matched [[], false]
+;;
+test true (attr true (attr false (attr true (attr false any)))) [] @@ matched [[], false]
+;;
+test true (attr true (attr false (attr true (attr false (attr false any))))) [] @@ matched [[], false]
+;;
+(* TODO continue working on seq, seq_filter, join, meet *)
 (* TODO clean up the following test cases *)
 ;;
 test true (join [renaming ["test"] ["test1"]; renaming ["test"] ["test2"]]) ["test"] @@
@@ -598,4 +611,9 @@ matched [["z"], true]
 test true (seq [renaming ["x"] ["y"]; renaming ["z"] ["w"]]) ["x"] @@
 matched [["y"], true]
 ;;
-Printf.printf "All tests passed."
+if !success then
+  Printf.printf "All tests passed."
+else begin
+  Printf.printf "Some tests failed.";
+  failwith "testing failed"
+end

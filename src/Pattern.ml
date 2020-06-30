@@ -40,7 +40,7 @@ let prefix x = scope x any
 let renaming_prefix x x' = renaming_scope x x' any
 let rec attr a =
   function
-  | PatAttr (_, p) -> attr a p
+  | PatAttr (a, p) -> attr a p
   | p -> PatAttr (a, p)
 let join l = PatJoin l
 let unsafe_meet l = inv @@ join @@ List.map inv l
