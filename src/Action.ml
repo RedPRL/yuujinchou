@@ -148,3 +148,6 @@ let run m ~default path : 'a matching_result =
   match m default path with
   | `NoMatch -> `NoMatch
   | `Matched ns -> `Matched (M.bindings ns)
+
+let run_ m path : unit matching_result =
+  run m ~default:() path

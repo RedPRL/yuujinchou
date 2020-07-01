@@ -301,11 +301,16 @@ sig
   (** The compiler specialized to [unit pattern] where the attribute type is [unit]. *)
   val compile_ : unit pattern -> (unit compiled_pattern, unit error) result
 
+  (** {1 Matching} *)
+
   (** [run pat ~default path] runs a compiled pattern to match [path] with the default attribute being [default].
 
       @param default The default attribute for the engine to start with. See {!Pattern.attributes}.
   *)
   val run : 'a compiled_pattern -> default:'a -> path -> 'a matching_result
+
+  (** This is {!val:run} specialized to [unit pattern] where the attribute type is [unit]. *)
+  val run_ : unit compiled_pattern -> path -> unit matching_result
 
   (** {1 Pretty Printers} *)
 

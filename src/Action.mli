@@ -15,6 +15,7 @@ type 'a matching_result = [
 ]
 
 val run : 'a compiled_pattern -> default:'a -> path -> 'a matching_result
+val run_ : unit compiled_pattern -> path -> unit matching_result
 
 val pp_error : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a error -> unit
 val pp_matching_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a matching_result -> unit
