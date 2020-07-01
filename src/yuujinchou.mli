@@ -334,16 +334,20 @@ end
          env |> Hashtbl.iter @@ fun path data ->
          match Action.run_ pattern path with
          | Error _ ->
-           invalid_arg "The pattern violates the invariants. This is impossible if only safe constructors are used."
+           (* This is impossible if only safe constructors are used. *)
+           invalid_arg "The pattern violates the invariants."
          | Ok `NoMatch -> ()
          | Ok (`Matched l) -> l |> List.iter @@ fun (path, ()) ->
            match Hashtbl.find_opt new_env path with
            | None -> Hashtbl.replace new_env path data
-           | Some data' -> if data <> data' then failwith "Inconsistent data assigned to the same path."
+           | Some data' ->
+             if data <> data' then
+               failwith "Inconsistent data assigned to the same path."
        end;
        new_env
 
-     (** [import env pattern imported] imports the environment [imported] massaged by [pattern] into [env]. *)
+     (** [import env pattern imported] imports the environment
+         [imported] massaged by [pattern] into [env]. *)
      let import env pattern imported =
        Hashtbl.replace_seq env @@ Hashtbl.to_seq @@ remap pattern imported
    ]}
