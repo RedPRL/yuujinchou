@@ -21,12 +21,6 @@ import foo as bar
 *)
 
 (**
-   {1 Applicability}
-
-   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. You can support fancy selection and renaming mechanism without crafting your own.
-*)
-
-(**
    {1 Organization}
 
    The code is split into two parts:
@@ -317,13 +311,51 @@ sig
 end
 
 (**
-   {1  Namespace Support}
+   {1 How to Use It}
+
+   {[
+     open Yuujinchou
+
+     type data = int
+
+     (** An environment is a mapping from paths to data. *)
+     type env = (Pattern.path, data) Hashtbl.t
+
+     (** [remap pattern env] uses the [pattern] to massage
+         the environment [env]. *)
+     let remap pattern env =
+       let new_env = Hashtbl.create @@ Hashtbl.length env in
+       begin
+         env |> Hashtbl.iter @@ fun path data ->
+         match Action.run_ pattern path with
+         | Error _ ->
+           (* Impossible if only safe constructors are used. *)
+           invalid_arg "The pattern violates the invariants."
+         | Ok `NoMatch -> ()
+         | Ok `Matched l -> l |> List.iter @@ fun (path, ()) ->
+           match Hashtbl.find_opt new_env path with
+           | None -> Hashtbl.replace new_env path data
+           | Some data' ->
+             if data <> data' then
+               failwith "Inconsistent data assigned to the same path."
+       end;
+       new_env
+
+     (** [import env pattern imported] imports the environment
+         [imported] massaged by [pattern] into [env]. *)
+     let import env pattern imported =
+       Hashtbl.replace_seq env @@ Hashtbl.to_seq @@ remap pattern imported
+   ]}
+*)
+
+(**
+   {1  Namespace?}
 
    This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
 
    Note that namespaces (name prefixes of unrelated items) are different from modules (groups of items that are bound together). This library does not provide special support for modules (yet).
 
-   {1 Examples}
+   {1 Examples from Other Languages}
 
    {2 Haskell}
 
