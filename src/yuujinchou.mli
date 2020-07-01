@@ -327,14 +327,15 @@ end
      (** An environment is a mapping from paths to data. *)
      type env = (Pattern.path, data) Hashtbl.t
 
-     (** [remap pattern env] uses the [pattern] to massage the environment [env]. *)
+     (** [remap pattern env] uses the [pattern] to massage
+         the environment [env]. *)
      let remap pattern env =
        let new_env = Hashtbl.create @@ Hashtbl.length env in
        begin
          env |> Hashtbl.iter @@ fun path data ->
          match Action.run_ pattern path with
          | Error _ ->
-           (* This is impossible if only safe constructors are used. *)
+           (* Impossible if only safe constructors are used. *)
            invalid_arg "The pattern violates the invariants."
          | Ok `NoMatch -> ()
          | Ok `Matched l -> l |> List.iter @@ fun (path, ()) ->
