@@ -174,7 +174,7 @@ sig
   (** [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
   val seq_filter : 'a pattern list -> 'a pattern
 
-  (** {2 Logical Connectives} *)
+  (** {2 Lattice} *)
 
   (** [join [p0; p1; p2; ...; pn]] calculates the "union" of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes are resolved by the provided [join] operator on attributes. See {!attributes}. *)
   val join : 'a pattern list -> 'a pattern
