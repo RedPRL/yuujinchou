@@ -219,7 +219,7 @@ sig
 
         {ol
         {li [`NoMatch]: the pattern does not match the name.}
-        {li [`Matched [(name_1, attr_1); (name_2, attr_2); ...]]: the pattern matches the name and outputs its new names tagged with attributes. If no renaming happens, then the name list is just a singleton list with the original name. For example, the pattern [Pattern.any] alone keeps the original name and tag it with the default attribute, so running it on a name [a.b] with the default attribute [def] will lead to the output [`Match [["a"; "b"], def]]. The union operator {!val:join} is the major source of multiple new names. It is possible that the set of new names is empty despite the old name being matched because we also support the intersection operator {!val:meet}.}
+        {li [`Matched [(name_1, attr_1); (name_2, attr_2); ...]]: the pattern matches the name and outputs its new names tagged with attributes. If no renaming happens, then the name list is just a singleton list with the original name. For example, the pattern {!val:any} alone keeps the original name and tag it with the default attribute, so running it on a name [a.b] with the default attribute [def] will lead to the output [`Match [["a"; "b"], def]]. The union operator {!val:join} is the major source of multiple new names. It is possible that the set of new names is empty despite the old name being matched because we also support the intersection operator {!val:meet}.}
         }
 
       See also {!type:Action.matching_result} and {!val:Action.run}.
