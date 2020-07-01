@@ -1,6 +1,6 @@
 # Yuujinchou: Name Pattern Combinators
 
-_Yuujinchou_ is an OCaml package of name patterns for implementing import statements. Please consult the [documentation](https://favonia.org/yuujinchou).
+_Yuujinchou_ is an OCaml package of name patterns for implementing import statements. Please consult the [documentation](https://favonia.org/yuujinchou/yuujinchou/Yuujinchou).
 
 ## How to Use It
 
@@ -15,15 +15,13 @@ type env = (Pattern.path, data) Hashtbl.t
 (** [remap pattern env] uses the [pattern] to massage
     the environment [env]. *)
 let remap pattern env =
+  let compiled_pattern = Result.get_ok @@ Action.compile_ pattern in
   let new_env = Hashtbl.create @@ Hashtbl.length env in
   begin
     env |> Hashtbl.iter @@ fun path data ->
-    match Action.run_ pattern path with
-    | Error _ ->
-      (* Impossible if only safe constructors are used. *)
-      invalid_arg "The pattern violates the invariants."
-    | Ok `NoMatch -> ()
-    | Ok `Matched l -> l |> List.iter @@ fun (path, ()) ->
+    match Action.run_ compiled_pattern path with
+    | `NoMatch -> ()
+    | `Matched l -> l |> List.iter @@ fun (path, ()) ->
       match Hashtbl.find_opt new_env path with
       | None -> Hashtbl.replace new_env path data
       | Some data' ->

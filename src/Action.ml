@@ -1,3 +1,4 @@
+open StdLabels
 open Pattern
 
 type 'a error =
@@ -7,143 +8,146 @@ type 'a error =
 
 module M = Map.Make (struct type t = path let compare = compare end)
 
-let singleton path attr = `Matched (M.singleton path attr)
+module Compile :
+sig
+  type 'a compiled_pattern = 'a -> path -> [ `NoMatch | `Matched of 'a M.t ]
+  val compile : join:('a -> 'a -> 'a) -> meet:('a -> 'a -> 'a) -> 'a pattern -> ('a compiled_pattern, 'a error) result
+  val compile_ : unit pattern -> (unit compiled_pattern, unit error) result
+end
+=
+struct
+  type 'a compiled_pattern = 'a -> path -> [ `NoMatch | `Matched of 'a M.t ]
 
-let join2_result ~join r1 r2 =
-  match r1, r2 with
-  | _, `NoMatch -> r1
-  | `NoMatch, _ -> r2
-  | `Matched m1, `Matched m2 ->
-    let merger _ e1 e2 = Some (join e1 e2)
-    in `Matched (M.union merger m1 m2)
+  let singleton path attr = `Matched (M.singleton path attr)
 
-let join_result ~join rs = List.fold_left (join2_result ~join) `NoMatch rs
+  let join2_result ~join r1 r2 =
+    match r1, r2 with
+    | _, `NoMatch -> r1
+    | `NoMatch, _ -> r2
+    | `Matched ns1, `Matched ns2 ->
+      let merger _ e1 e2 = Some (join e1 e2)
+      in `Matched (M.union merger ns1 ns2)
 
-let meet2_result ~meet r1 r2 =
-  match r1, r2 with
-  | _, `NoMatch | `NoMatch, _ -> `NoMatch
-  | `Matched m1, `Matched m2 ->
-    let merger _ a1 a2 =
-      match a1, a2 with
-      | None, _ | _, None -> None
-      | Some a1, Some a2 -> Some (meet a1 a2)
-    in `Matched (M.merge merger m1 m2)
+  let join_result ~join rs = Seq.fold_left (join2_result ~join) `NoMatch rs
 
-let meet_result ~meet =
-  function
-  | [] -> invalid_arg "meet: empty list"
-  | r :: rs -> List.fold_left (meet2_result ~meet) r rs
+  let meet2_result ~meet r1 r2 =
+    match r1, r2 with
+    | _, `NoMatch | `NoMatch, _ -> `NoMatch
+    | `Matched ns1, `Matched ns2 ->
+      let merger _ a1 a2 =
+        match a1, a2 with
+        | None, _ | _, None -> None
+        | Some a1, Some a2 -> Some (meet a1 a2)
+      in `Matched (M.merge merger ns1 ns2)
 
-type mode = [`Normal | `Inverse]
+  let meet_result ~meet rs =
+    match rs () with
+    | Seq.Nil -> invalid_arg "meet: empty list"
+    | Seq.Cons (r, rs) -> Seq.fold_left (meet2_result ~meet) r rs
 
-let flip_mode : mode -> mode =
-  function
-  | `Normal -> `Inverse
-  | `Inverse -> `Normal
+  let rec trim_prefix prefix path =
+    match prefix, path with
+    | [], _ -> Some path
+    | _, [] -> None
+    | (id :: prefix), (id' :: path) ->
+      if id = id' then trim_prefix prefix path else None
 
-let rec trim_prefix prefix path =
-  match prefix, path with
-  | [], _ -> Some path
-  | _, [] -> None
-  | (id :: prefix), (id' :: path) ->
-    if id = id' then trim_prefix prefix path else None
-
-type 'a modal_result = [ `NoMatch | `Matched of 'a M.t ]
-
-let rec modal_run ~mode ~default ~join ~meet pattern path : ('a modal_result, 'a error) result =
-  match mode, pattern, path with
-  | `Normal, PatWildcard, (_ :: _) | `Inverse, PatWildcard, [] ->
-    Ok (singleton path default)
-  | `Inverse, PatWildcard, (_ :: _) | `Normal, PatWildcard, [] ->
-    Ok `NoMatch
-  | `Inverse, PatScope (_, Some _, _), _ ->
-    Error (ReplacementNotUsed pattern)
-  | _, PatScope (prefix, prefix_replacement, pattern), _ ->
-    begin
-      match trim_prefix prefix path with
-      | None ->
-        begin
-          match mode with
-          | `Normal -> Ok `NoMatch
-          | `Inverse -> Ok (singleton path default)
-        end
-      | Some remaining ->
-        let prefix_replacement = Option.value prefix_replacement ~default:prefix in
-        modal_run ~mode ~default ~join ~meet pattern remaining |> Result.map begin
-          function
+  let rec compile ~join ~meet : 'a pattern -> ('a compiled_pattern, 'a error) result =
+    function
+    | PatWildcard ->
+      Ok begin fun default ->
+        function
+        | [] -> `NoMatch
+        | _::_ as path -> singleton path default
+      end
+    | PatScope (prefix, prefix_replacement, pattern) ->
+      compile ~join ~meet pattern |> Result.map @@
+      let prefix_replacement = Option.value prefix_replacement ~default:prefix in
+      begin fun m default path ->
+        match trim_prefix prefix path with
+        | None -> `NoMatch
+        | Some remaining ->
+          match m default remaining with
           | `NoMatch -> `NoMatch
-          | `Matched m ->
-            `Matched (m |> M.to_seq |> Seq.map (fun (r, attr) -> prefix_replacement @ r, attr) |> M.of_seq)
-        end
-    end
-  | `Normal, PatSeq pats, _ ->
-    let f r pat = Result.bind r @@
-      function
-      | `NoMatch -> modal_run ~mode ~default ~join ~meet pat path
-      | `Matched m ->
-        Result.map (join_result ~join) begin
-          M.bindings m |> ResultMonad.map @@ fun (path, default) ->
-          modal_run ~mode ~default ~join ~meet pat path |>
-          Result.map @@
-          function
-          | `NoMatch -> singleton path default
-          | `Matched m -> `Matched m
-        end
-    in
-    List.fold_left f (Ok `NoMatch) pats
-  | `Inverse, PatSeq pats, _ ->
-    let f r pat = Result.bind r @@
-      function
-      | `NoMatch -> Ok `NoMatch
-      | `Matched m ->
-        Result.map (join_result ~join) begin
-          M.bindings m |> ResultMonad.map @@ fun (path, default) ->
-          modal_run ~mode ~default ~join ~meet pat path
-        end
-    in
-    List.fold_left f (Ok (singleton path default)) pats
-  | _, PatInv pat, _ -> modal_run ~mode:(flip_mode mode) ~default ~join ~meet pat path
-  | _, PatAttr (default, pat), _ -> modal_run ~mode ~default ~join ~meet pat path
-  | `Normal, PatJoin pats, _ ->
-    Result.map (join_result ~join) begin
-      pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~default ~join ~meet pat path
-    end
-  | `Inverse, PatJoin [], _ ->
-    Error (EmptyMeet pattern)
-  | `Inverse, PatJoin pats, _ ->
-    Result.map (meet_result ~meet) begin
-      pats |> ResultMonad.map @@ fun pat -> modal_run ~mode ~default ~join ~meet pat path
-    end
+          | `Matched ns ->
+            `Matched (M.to_seq ns |> Seq.map (fun (r, attr) -> prefix_replacement @ r, attr) |> M.of_seq)
+      end
+    | PatSeq pats ->
+      ResultMonad.map (compile ~join ~meet) pats |> Result.map @@ fun matchers ->
+      let f r m default path =
+        match r default path with
+        | `NoMatch -> m default path
+        | `Matched ns ->
+          join_result ~join begin
+            M.to_seq ns |> Seq.map @@ fun (path, default) ->
+            match m default path with
+            | `NoMatch -> singleton path default
+            | `Matched ns -> `Matched ns
+          end
+      in
+      List.fold_left ~f ~init:(fun _ _ -> `NoMatch) matchers
+    | PatInv pat -> compile_inv ~join ~meet pat
+    | PatAttr (default, pat) ->
+      compile ~join ~meet pat |> Result.map @@ fun m _ -> m default
+    | PatJoin pats ->
+      ResultMonad.map (compile ~join ~meet) pats |> Result.map @@ fun ms default path ->
+      join_result ~join begin List.to_seq ms |> Seq.map @@ fun m -> m default path end
 
-type 'a result_ = [ `NoMatch | `Matched of (path * 'a) list ]
+  and compile_inv ~join ~meet : 'a pattern -> ('a compiled_pattern, 'a error) result =
+    function
+    | PatWildcard ->
+      Ok begin fun default ->
+        function
+        | [] -> singleton [] default
+        | _::_ -> `NoMatch
+      end
+    | PatScope (_, Some _, _) as pattern ->
+      Error (ReplacementNotUsed pattern)
+    | PatScope (prefix, None, pattern) ->
+      compile_inv ~join ~meet pattern |> Result.map @@
+      begin fun m default path ->
+        match trim_prefix prefix path with
+        | None -> singleton path default
+        | Some remaining ->
+          match m default remaining with
+          | `NoMatch -> `NoMatch
+          | `Matched ns ->
+            `Matched (M.to_seq ns |> Seq.map (fun (r, attr) -> prefix @ r, attr) |> M.of_seq)
+      end
+    | PatSeq pats ->
+      ResultMonad.map (compile_inv ~join ~meet) pats |> Result.map @@ fun matchers ->
+      let f r m default path =
+        match r default path with
+        | `NoMatch -> `NoMatch
+        | `Matched ns ->
+          join_result ~join begin
+            M.to_seq ns |> Seq.map @@ fun (path, default) ->
+            m default path
+          end
+      in
+      List.fold_left ~f ~init:(fun default path -> singleton path default) matchers
+    | PatInv pat -> compile ~join ~meet pat
+    | PatAttr (default, pat) ->
+      compile_inv ~join ~meet pat |> Result.map @@ fun m _ -> m default
+    | PatJoin [] as pattern ->
+      Error (EmptyMeet pattern)
+    | PatJoin pats ->
+      ResultMonad.map (compile_inv ~join ~meet) pats |> Result.map @@ fun ms default path ->
+      meet_result ~meet begin List.to_seq ms |> Seq.map @@ fun m -> m default path end
+
+  let compile_ : unit pattern -> (unit compiled_pattern, unit error) result =
+    compile ~join:(fun _ _ -> ()) ~meet:(fun _ _ -> ())
+end
+
+include Compile
+
+type 'a matching_result = [ `NoMatch | `Matched of (path * 'a) list ]
 [@@deriving show]
 
-let pp_result pp_a = Format.pp_print_result ~ok:(pp_result_ pp_a) ~error:(pp_error pp_a)
-
-let run ~default ~join ~meet pattern path : ('a result_, 'a error) result =
-  modal_run ~mode:`Normal ~default ~join ~meet pattern path |> Result.map @@
-  function
+let run m ~default path : 'a matching_result =
+  match m default path with
   | `NoMatch -> `NoMatch
-  | `Matched m -> `Matched (M.bindings m)
+  | `Matched ns -> `Matched (M.bindings ns)
 
-let run_ pattern : path -> (unit result_, unit error) result =
-  run ~default:() ~join:(fun _ _ -> ()) ~meet:(fun _ _ -> ()) pattern
-
-let rec modal_check ~mode pattern : (unit, 'a error) result =
-  match mode, pattern with
-  | _, PatWildcard -> Ok ()
-  | `Inverse, PatScope (_, Some _, _) -> Error (ReplacementNotUsed pattern)
-  | _, PatScope (_, _, pattern) -> modal_check ~mode pattern
-  | _, PatSeq pats -> ResultMonad.iter (modal_check ~mode) pats
-  | _, PatInv pattern -> modal_check ~mode:(flip_mode mode) pattern
-  | _, PatAttr (_, pattern) -> modal_check ~mode pattern
-  | `Inverse, PatJoin [] ->
-    Error (EmptyMeet pattern)
-  | _, PatJoin pats ->
-    ResultMonad.iter (modal_check ~mode) pats
-
-let check pattern : (unit, 'a error) result =
-  modal_check ~mode:`Normal pattern
-
-let pp_check_result pp_a =
-  Format.pp_print_result ~ok:(fun fmt () -> Format.pp_print_string fmt "()") ~error:(pp_error pp_a)
+let run_ m path : unit matching_result =
+  run m ~default:() path
