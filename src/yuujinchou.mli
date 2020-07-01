@@ -337,7 +337,7 @@ end
            (* This is impossible if only safe constructors are used. *)
            invalid_arg "The pattern violates the invariants."
          | Ok `NoMatch -> ()
-         | Ok (`Matched l) -> l |> List.iter @@ fun (path, ()) ->
+         | Ok `Matched l -> l |> List.iter @@ fun (path, ()) ->
            match Hashtbl.find_opt new_env path with
            | None -> Hashtbl.replace new_env path data
            | Some data' ->
