@@ -284,7 +284,7 @@ sig
 
   (** The type of errors due to the violation of some invariant of patterns. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
 
-      The pattern embedded in the error message is the fragment that violates the invariant. The pattern [pat] in [EmptyMeet pat] is not useful on its own---we all know it must be [PatJoin []]---but it facilitates using or-patterns in error handling. *)
+      The pattern embedded in the error message is the fragment that violates the invariant. The pattern [pat] in [EmptyMeet pat] is not useful on its own---it must be [PatJoin []]---but it facilitates using or-patterns in error handling. *)
   type 'a error =
     | ReplacementNotUsed of 'a pattern (** Renaming patterns are run under the inverse mode. *)
     | EmptyMeet of 'a pattern (** The join patterns under the inverse mode (or, equivalently, the meet patterns under the normal mode) have no subpatterns. *)
@@ -298,7 +298,7 @@ sig
   *)
   val compile : join:('a -> 'a -> 'a) -> meet:('a->'a->'a) -> 'a pattern -> ('a compiled_pattern, 'a error) result
 
-  (** The compiler specialized to [unit pattern] where the attribute type is [unit]. *)
+  (** This is {!val:compile} specialized to [unit pattern] where the attribute type is [unit]. *)
   val compile_ : unit pattern -> (unit compiled_pattern, unit error) result
 
   (** {1 Matching} *)
