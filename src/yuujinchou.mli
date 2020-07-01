@@ -349,13 +349,13 @@ end
 *)
 
 (**
-   {1  Namespace Support}
+   {1  Namespace?}
 
    This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
 
    Note that namespaces (name prefixes of unrelated items) are different from modules (groups of items that are bound together). This library does not provide special support for modules (yet).
 
-   {1 Examples}
+   {1 Examples from Other Languages}
 
    {2 Haskell}
 
