@@ -317,6 +317,39 @@ sig
 end
 
 (**
+   {1 How to Use It}
+
+   {[
+     open Yuujinchou
+
+     type data = int
+
+     (** An environment is a mapping from paths to data. *)
+     type env = (Pattern.path, data) Hashtbl.t
+
+     (** [remap pattern env] uses the [pattern] to massage the environment [env]. *)
+     let remap pattern env =
+       let new_env = Hashtbl.create @@ Hashtbl.length env in
+       begin
+         env |> Hashtbl.iter @@ fun path data ->
+         match Action.run_ pattern path with
+         | Error _ ->
+           invalid_arg "The pattern violates the invariants. This is impossible if only safe constructors are used."
+         | Ok `NoMatch -> ()
+         | Ok (`Matched l) -> l |> List.iter @@ fun (path, ()) ->
+           match Hashtbl.find_opt new_env path with
+           | None -> Hashtbl.replace new_env path data
+           | Some data' -> if data <> data' then failwith "Inconsistent data assigned to the same path."
+       end;
+       new_env
+
+     (** [import env pattern imported] imports the environment [imported] massaged by [pattern] into [env]. *)
+     let import env pattern imported =
+       Hashtbl.replace_seq env @@ Hashtbl.to_seq @@ remap pattern imported
+   ]}
+*)
+
+(**
    {1  Namespace Support}
 
    This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
