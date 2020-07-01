@@ -7,19 +7,20 @@ let pp_attr = Format.pp_print_bool
 let success = ref true
 
 let test default pattern path expected =
-  let output = run ~default ~join:(||) ~meet:(&&) pattern path in
+  let compiled = Result.get_ok @@ compile ~join:(||) ~meet:(&&) pattern in
+  let output = run compiled ~default path in
   if output <> expected then begin
     Format.printf "@.";
     Format.printf " default: %a@." pp_attr default;
     Format.printf " pattern: %a@." (pp_pattern pp_attr) pattern;
     Format.printf "    path: %a@." pp_path path;
-    Format.printf "  output: %a@." (pp_result pp_attr) output;
-    Format.printf "expected: %a@." (pp_result pp_attr) expected;
+    Format.printf "  output: %a@." (pp_matching_result pp_attr) output;
+    Format.printf "expected: %a@." (pp_matching_result pp_attr) expected;
     success := false
   end
 
-let matched l = Ok (`Matched l)
-let nomatch = Ok `NoMatch
+let matched l = `Matched l
+let nomatch = `NoMatch
 
 ;;
 test true any [] @@ matched [[], true]

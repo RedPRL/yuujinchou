@@ -4,16 +4,17 @@ type 'a error =
   | ReplacementNotUsed of 'a pattern
   | EmptyMeet of 'a pattern
 
-type 'a result_ = [
+type 'a compiled_pattern
+
+val compile : join:('a -> 'a -> 'a) -> meet:('a->'a->'a) -> 'a pattern -> ('a compiled_pattern, 'a error) result
+val compile_ : unit pattern -> (unit compiled_pattern, unit error) result
+
+type 'a matching_result = [
   | `NoMatch
   | `Matched of (path * 'a) list
 ]
 
-val run : default:'a -> join:('a -> 'a -> 'a) -> meet:('a->'a->'a) -> 'a pattern -> path -> ('a result_, 'a error) result
-val run_ : unit pattern -> path -> (unit result_, unit error) result
+val run : 'a compiled_pattern -> default:'a -> path -> 'a matching_result
 
-val check : 'a pattern -> (unit, 'a error) result
-
-val pp_result_ : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a result_ -> unit
-val pp_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> ('a result_, 'a error) result -> unit
-val pp_check_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> (unit, 'a error) result -> unit
+val pp_error : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a error -> unit
+val pp_matching_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a matching_result -> unit
