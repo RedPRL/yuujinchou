@@ -10,11 +10,11 @@ let test default pattern path expected =
   let output = run ~default ~join:(||) ~meet:(&&) pattern path in
   if output <> expected then begin
     Format.printf "@.";
-    Format.printf "Input Default:   %a@." pp_attr default;
-    Format.printf "Input Pattern:   %a@." (pp_pattern pp_attr) pattern;
-    Format.printf "Input Path:      %a@." pp_path path;
-    Format.printf "Output:          %a@." (pp_result pp_attr) output;
-    Format.printf "Expected Output: %a@." (pp_result pp_attr) expected;
+    Format.printf " default: %a@." pp_attr default;
+    Format.printf " pattern: %a@." (pp_pattern pp_attr) pattern;
+    Format.printf "    path: %a@." pp_path path;
+    Format.printf "  output: %a@." (pp_result pp_attr) output;
+    Format.printf "expected: %a@." (pp_result pp_attr) expected;
     success := false
   end
 
@@ -588,32 +588,116 @@ test true (attr true (attr false (attr true (attr false any)))) [] @@ matched [[
 ;;
 test true (attr true (attr false (attr true (attr false (attr false any))))) [] @@ matched [[], false]
 ;;
-(* TODO continue working on seq, seq_filter, join, meet *)
-(* TODO clean up the following test cases *)
+(* XXX More work needed for [seq] *)
 ;;
-test true (join [renaming ["test"] ["test1"]; renaming ["test"] ["test2"]]) ["test"] @@
-matched [["test1"], true; ["test2"], true]
+test true (seq []) ["a"] nomatch
 ;;
-test true (join [any; renaming_prefix [] ["M"]]) ["test"] @@
-matched [["M";"test"], true; ["test"], true]
+test true (seq [any]) ["a"] @@ matched [["a"], true]
 ;;
-test true (join [only ["x"]; only ["y"]]) ["x"] @@
-matched [["x"], true]
+test true (seq [none]) ["a"] nomatch
+;;
+test false (seq [join [only ["a"]; renaming ["a"] ["b"]]]) ["a"] @@ matched [["a"], false; ["b"], false]
+;;
+test false (seq [join [only ["a"]; renaming ["a"] ["b"]]; renaming ["b"] ["a"]]) ["a"] @@ matched [["a"], false]
+;;
+test false (seq [join [only ["a"]; renaming ["a"] ["b"]]; attr true (only ["b"])]) ["a"] @@ matched [["a"], false; ["b"], true]
+;;
+test false (seq [join [only ["a"]; renaming ["a"] ["b"]]; attr true (renaming ["b"] ["a"])]) ["a"] @@ matched [["a"], true]
+;;
+test false (seq [join [only ["a"]; renaming ["a"] ["b"]]; attr true (renaming ["b"] ["a"])]) ["b"] @@ matched [["a"], true]
+;;
+test false (seq [join [only ["a"]; renaming ["a"] ["b"]]; attr true (renaming ["b"] ["a"])]) ["c"] nomatch
+;;
+test true (seq [renaming ["a"] ["b"]; renaming ["b"] ["c"]]) ["a"] @@ matched [["c"], true]
+;;
+test true (seq [renaming ["a"] ["b"]; renaming ["b"] ["c"]]) ["b"] @@ matched [["c"], true]
+;;
+test true (seq [renaming ["a"] ["b"]; renaming ["b"] ["c"]]) ["c"] nomatch
+;;
+(* XXX More work needed for [seq_filter] *)
+;;
+test true (seq_filter []) ["a"] @@ matched [["a"], true]
+;;
+test true (seq_filter [any]) ["a"] @@ matched [["a"], true]
+;;
+test true (seq_filter [none]) ["a"] nomatch
+;;
+test false (seq_filter [join [only ["a"]; renaming ["a"] ["b"]]]) ["a"] @@ matched [["a"], false; ["b"], false]
+;;
+test false (seq_filter [join [only ["a"]; renaming ["a"] ["b"]]; renaming ["b"] ["a"]]) ["a"] @@ matched [["a"], false]
+;;
+test false (seq_filter [join [only ["a"]; renaming ["a"] ["b"]]; attr true (only ["b"])]) ["a"] @@ matched [["b"], true]
+;;
+test false (seq_filter [join [only ["a"]; renaming ["a"] ["b"]]; attr true (renaming ["b"] ["a"])]) ["a"] @@ matched [["a"], true]
+;;
+test false (seq_filter [join [only ["a"]; renaming ["a"] ["b"]]; attr true (renaming ["b"] ["a"])]) ["b"] nomatch
+;;
+test false (seq_filter [join [only ["a"]; renaming ["a"] ["b"]]; attr true (renaming ["b"] ["a"])]) ["c"] nomatch
+;;
+test true (seq_filter [renaming ["a"] ["b"]; renaming ["b"] ["c"]]) ["a"] @@ matched [["c"], true]
+;;
+test true (seq_filter [renaming ["a"] ["b"]; renaming ["b"] ["c"]]) ["b"] nomatch
+;;
+test true (seq_filter [renaming ["a"] ["b"]; renaming ["b"] ["c"]]) ["c"] nomatch
+;;
+(* XXX More work needed for [join] *)
+;;
+test true (join []) ["a"] nomatch
+;;
+test true (join [any]) ["a"] @@ matched [["a"], true]
+;;
+test true (join [none]) ["a"] nomatch
+;;
+test true (join [wildcard; root]) [] @@ matched [[], true]
+;;
+test true (join [wildcard; root]) ["a"] @@ matched [["a"], true]
+;;
+test true (join [any; renaming ["a"] ["b"]]) ["a"] @@ matched [["a"], true; ["b"], true]
+;;
+test true (join [any; renaming ["a"] ["b"]]) ["b"] @@ matched [["b"], true]
+;;
+test true (join [any; attr false any]) ["a"] @@ matched [["a"], true]
+;;
+test false (join [any; attr true any]) ["a"] @@ matched [["a"], true]
+;;
+(* XXX More work needed for [meet] *)
+;;
+test true (meet [any]) ["a"] @@ matched [["a"], true]
+;;
+test true (meet [none]) ["a"] nomatch
+;;
+test true (meet [wildcard; root]) [] nomatch
+;;
+test true (meet [wildcard; root]) ["a"] nomatch
+;;
+test true (meet [any; renaming ["a"] ["b"]]) ["a"] @@ matched []
+;;
+test true (meet [any; renaming ["a"] ["b"]]) ["b"] nomatch
+;;
+test true (meet [any; attr false any]) ["a"] @@ matched [["a"], false]
+;;
+test false (meet [any; attr true any]) ["a"] @@ matched [["a"], false]
+;;
+(* some "real" test cases *)
+;;
+test true (join [any; renaming_prefix [] ["M"]]) ["x"] @@ matched [["M";"x"], true; ["x"], true]
+;;
+test true (join [only ["x"]; only ["y"]]) ["x"] @@ matched [["x"], true]
+;;
+test true (join [only ["x"]; only ["y"]]) ["y"] @@ matched [["y"], true]
+;;
+test true (join [only ["x"]; only ["y"]]) ["z"] nomatch
+;;
+test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["x"] nomatch
 ;;
 test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["y"] nomatch
 ;;
-test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["z"] @@
-matched [["M"; "z"], true]
-;;
-test true (seq [renaming ["x"] ["y"]; renaming ["y"] ["z"]]) ["x"] @@
-matched [["z"], true]
-;;
-test true (seq [renaming ["x"] ["y"]; renaming ["z"] ["w"]]) ["x"] @@
-matched [["y"], true]
+test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["z"] @@ matched [["M"; "z"], true]
 ;;
 if !success then
-  Printf.printf "All tests passed."
+  Format.printf "All tests passed.@."
 else begin
-  Printf.printf "Some tests failed.";
+  Format.printf "@.";
+  Format.printf "Some tests failed.@.";
   failwith "testing failed"
 end
