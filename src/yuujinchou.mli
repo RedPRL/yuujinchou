@@ -266,7 +266,7 @@ sig
   *)
 end
 
-(** The {!module:Action} module implements the engine runnig the patterns. *)
+(** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
   open Pattern
