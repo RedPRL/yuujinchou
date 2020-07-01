@@ -21,12 +21,6 @@ import foo as bar
 *)
 
 (**
-   {1 Applicability}
-
-   This library was motivated by the import mechanism in most programming languages, but can be used in any situation involving selecting names. For example, during interactive theorem proving, perhaps you want to unfold some definitions but not others. You can support fancy selection and renaming mechanism without crafting your own.
-*)
-
-(**
    {1 Organization}
 
    The code is split into two parts:
