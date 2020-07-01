@@ -186,7 +186,7 @@ sig
   (** [unsafe_meet l] is the same as [meet l] except that it does not check whether the list is empty. This might be useful for writing a parser for user-defined patterns. See also {!invariants}. *)
   val unsafe_meet : 'a pattern list -> 'a pattern
 
-  (** [unsafe_inv p] negates the meaning of pattern [p], which might be useful for writing a parser or building more efficient patterns by temporarily violating the invariants. Please read {!core} for more information on "negation". See also {!invariants}. *)
+  (** [unsafe_inv p] negates the meaning of pattern [p], which might be useful for writing a parser or building more efficient patterns by temporarily violating the invariants. Please consult {!core} for more information on "negation". See also {!invariants}. *)
   val unsafe_inv : 'a pattern -> 'a pattern
 
   (** {1 Pretty Printers } *)
@@ -221,7 +221,7 @@ sig
         {li [`Matched [(name_1, attr_1); (name_2, attr_2); ...]]: the pattern matches the name and outputs its new names tagged with attributes. If no renaming happens, then the name list is just a singleton list with the original name. For example, the pattern [Pattern.any] alone keeps the original name and tag it with the default attribute, so running it on a name [a.b] with the default attribute [def] will lead to the output [`Match [["a"; "b"], def]]. The union operator {!val:join} is the major source of multiple new names. It is possible that the set of new names is empty despite the old name being matched because we also support the intersection operator {!val:meet}.}
         }
 
-      See {!type:Action.matching_result} and {!val:Action.run}.
+      See also {!type:Action.matching_result} and {!val:Action.run}.
 
       {2:modes Modes}
 
@@ -231,7 +231,7 @@ sig
 
       {3 Wildcard ([PatWildcard])}
 
-      The wildcard pattern [PatWildcard] under the normal mode matches every name except for the root (the empty list [[]]). The same pattern under the inverse mode matches nothing but the root (the empty list [[]]). In either case, if a name [p] is matched, then the output is [Ok (Match [p, a])] where [a] is the inherited default attribute.
+      The wildcard pattern [PatWildcard] under the normal mode matches every name except for the root (the empty list [[]]). The same pattern under the inverse mode matches nothing but the root (the empty list [[]]). In either case, if a name [p] is matched, then the output is [`Matched [p, a]] where [a] is the inherited default attribute.
 
       {3 Scope Renaming ([PatScope])}
 
@@ -262,7 +262,7 @@ sig
 
       {2:invariants Invariants}
 
-      Patterns involving renaming (e.g., [PatScope (p, Some r, pattern)]) and the empty join pattern [PatJoin []] should not be run under the inverse mode. These invariants are checked when using {!val:Action.compile} or {!val:Action.compile_} to compile a pattern. It is impossible to violate these invariants unless unsafe builders such as {!val:Pattern.unsafe_meet} and {!val:Pattern.unsafe_inv} are used.
+      Patterns involving renaming (e.g., [PatScope (p, Some r, pattern)]) and the empty join pattern [PatJoin []] should not be run under the inverse mode. This invariant is checked when using {!val:Action.compile} or {!val:Action.compile_} to compile a pattern. It is impossible to violate the invariant unless {!val:unsafe_meet} or {!val:unsafe_inv} is used.
   *)
 end
 
@@ -276,7 +276,7 @@ sig
   (** The abstract type of compiled patterns. *)
   type 'a compiled_pattern
 
-  (** The result type of pattern matching. *)
+  (** The result type of pattern matching. See {!Pattern.outcomes}. *)
   type 'a matching_result = [
     | `NoMatch (** The pattern does not match the name. *)
     | `Matched of (path * 'a) list (** The pattern matches the name and outputs a list of tagged new names. *)
