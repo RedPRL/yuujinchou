@@ -262,7 +262,7 @@ sig
 
       {2:invariants Invariants}
 
-      Patterns involving renaming (e.g., [PatScope (p, Some r, pattern)]) and the empty join pattern [PatJoin []] should not be run under the inverse mode. These invariants are checked when using {!val:Action.compile} or {!val:Action.compile_} to compile a pattern. It is impossible to violate these invariants unless unsafe constructors such as {!val:Pattern.unsafe_meet} and {!val:Pattern.unsafe_inv} are used.
+      Patterns involving renaming (e.g., [PatScope (p, Some r, pattern)]) and the empty join pattern [PatJoin []] should not be run under the inverse mode. These invariants are checked when using {!val:Action.compile} or {!val:Action.compile_} to compile a pattern. It is impossible to violate these invariants unless unsafe builders such as {!val:Pattern.unsafe_meet} and {!val:Pattern.unsafe_inv} are used.
   *)
 end
 
