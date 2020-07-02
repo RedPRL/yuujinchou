@@ -106,7 +106,7 @@ sig
   (** {2:attributes Attributes} *)
 
   (**
-     Attributes are custom tags attached to matched names. For example, you could attach [`Public] or [`Private] to names when implementing the import statement. You need to supply a lattice structure for your attribute type [t] when compiling a pattern using {!val:Action.compile}, and then specify a default attribute when running the compiled pattern using {!val:Action.run}. Here are the components you need to execute a pattern:
+     Attributes are custom tags attached to matched names. For example, you could attach [`Public] or [`Private] to names when implementing the import statements. You need to supply a lattice structure for your attribute type [t] when compiling a pattern using {!val:Action.compile}, and then specify a default attribute when running the compiled pattern using {!val:Action.run}. Here are the components you need to execute a pattern:
 
      {ol
 
@@ -130,7 +130,7 @@ sig
      The default attribute attached to the new names until the engine encounters the pattern created via {!val:attr} that explicitly sets a new default attribute.
      }}
 
-     For example, when implementing the traditional import statement, the attribute type can be
+     For example, when implementing the traditional import statements, the attribute type can be
      {[
        type attr = [ `Public | `Private ]
      ]}
