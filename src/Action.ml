@@ -61,9 +61,9 @@ struct
         | _::_ as path -> singleton path default
       end
     | PatScope (prefix, prefix_replacement, pattern) ->
-      compile ~join ~meet pattern |> Result.map @@
+      compile ~join ~meet pattern |> Result.map @@ fun m ->
       let prefix_replacement = Option.value prefix_replacement ~default:prefix in
-      begin fun m default path ->
+      begin fun default path ->
         match trim_prefix prefix path with
         | None -> `NoMatch
         | Some remaining ->
@@ -104,8 +104,8 @@ struct
     | PatScope (_, Some _, _) as pattern ->
       Error (ReplacementNotUsed pattern)
     | PatScope (prefix, None, pattern) ->
-      compile_inv ~join ~meet pattern |> Result.map @@
-      begin fun m default path ->
+      compile_inv ~join ~meet pattern |> Result.map @@ fun m ->
+      begin fun default path ->
         match trim_prefix prefix path with
         | None -> singleton path default
         | Some remaining ->
