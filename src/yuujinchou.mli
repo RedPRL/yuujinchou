@@ -325,6 +325,8 @@ end
 (**
    {1 How to Use It}
 
+   {2 Import Statements}
+
    {[
      open Yuujinchou
 
@@ -355,6 +357,28 @@ end
          [imported] massaged by [pattern] into [env]. *)
      let import env pattern imported =
        Hashtbl.replace_seq env @@ Hashtbl.to_seq @@ remap pattern imported
+   ]}
+
+   {2 Data Selection}
+
+   {[
+     open Yuujinchou
+
+     type data = int
+
+     (** An environment is a mapping from paths to data. *)
+     type env = (Pattern.path, data) Hashtbl.t
+
+     module DataSet = Set.Make (struct type t = data let compare = compare end)
+
+     let collect_matched env pattern =
+       let compiled_pattern = Result.get_ok @@ Action.compile_ pattern in
+       begin
+         env |> Hashtbl.fold @@ fun path data set ->
+         match Action.run_ compiled_pattern path with
+         | `NoMatch -> set
+         | `Matched _ -> DataSet.add data set
+       end DataSet.empty
    ]}
 *)
 
