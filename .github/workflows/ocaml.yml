@@ -14,13 +14,13 @@ jobs:
     - uses: avsm/setup-ocaml@v1
       with:
         ocaml-version: '4.10.0'
-    - if: ${{ ! with_doc }}
+    - if: ${{ ! env.with_doc }}
       run: opam pin . --with-test -y
-    - if: with_doc
+    - if: env.with_doc
       run: |
         opam pin . --with-test --with-doc -y
         opam exec -- dune build @doc
-    - if: with_doc
+    - if: env.with_doc
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
