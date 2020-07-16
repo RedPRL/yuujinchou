@@ -14,9 +14,11 @@ depends: [
   "dune" {>= "2.5"}
   "ocaml" {>= "4.08.0"}
   "ppx_deriving" {>= "4.5"}
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "-p" name "-j" jobs "@doc"] {with-doc}
 ]
