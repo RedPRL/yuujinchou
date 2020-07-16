@@ -14,7 +14,7 @@ jobs:
     - uses: avsm/setup-ocaml@v1
       with:
         ocaml-version: '4.10.0'
-    - if: ! with_doc
+    - if: ${{ ! with_doc }}
       run: opam pin . --with-test -y
     - if: with_doc
       run: |
