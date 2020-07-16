@@ -1,2 +1,2 @@
 (lang dune 2.5)
-(name yujincho)
+(name yuujinchou)
