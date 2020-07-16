@@ -1,15 +1,27 @@
 name: Build and test
-on: [push,pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 jobs:
   run:
-    strategy:
-      matrix:
-        operating-system: [ubuntu-latest]
-        ocaml-version: ['4.10.0']
-    runs-on: ${{ matrix.operating-system }}
+    env:
+      with_doc: ${{ github.ref == "refs/heads/master" || startsWith (github.ref, "refs/heads/doc") }}
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: avsm/setup-ocaml@v1
       with:
-        ocaml-version: ${{ matrix.ocaml-version }}
-    - run: opam pin . --with-test -y
+        ocaml-version: '4.10.0'
+    - if: ${{ ! with_doc }}
+      run: opam pin . --with-test -y
+    - if: ${{ with_doc }}
+      run: |
+        opam pin . --with-test --with-doc -y
+        opam exec -- dune build @doc
+    - if: ${{ with_doc }}
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_build/default/_doc/_html/
