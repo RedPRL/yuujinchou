@@ -18,7 +18,8 @@ depends: [
 ]
 build: [
   ["dune" "subst"] {pinned}
-  ["dune" "build" "-p" name "-j" jobs]
-  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
-  ["dune" "build" "-p" name "-j" jobs "@doc"] {with-doc}
+  ["dune" "build" "-p" name "-j" jobs "@default"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
 ]
