@@ -43,7 +43,6 @@ let import env pattern imported =
 
 let hashtbl_of_list l = Hashtbl.of_seq @@ List.to_seq l
 let list_of_hashtbl t = List.of_seq @@ Hashtbl.to_seq t
-
 let differ_hashtbl t1 t2 =
   List.sort compare (list_of_hashtbl t1) <> List.sort compare (list_of_hashtbl t2)
 

@@ -11,3 +11,10 @@
  (preprocess
   (pps ppx_deriving.std))
  (libraries yuujinchou))
+
+(test
+ (name select)
+ (modules select)
+ (preprocess
+  (pps ppx_deriving.std))
+ (libraries yuujinchou))
