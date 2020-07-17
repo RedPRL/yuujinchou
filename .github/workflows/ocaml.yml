@@ -19,9 +19,9 @@ jobs:
     - if: env.with_doc
       run: |
         opam pin . --with-test --with-doc -y
-        opam exec -- dune build @doc
+        echo '::set-env name=BUILD_ROOT::'`opam config var yuujinchou:build`
     - if: env.with_doc
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./_build/default/_doc/_html/
+        publish_dir: ${{ format('{0}/_build/default/_doc/_html/', env.BUILD_ROOT) }}
