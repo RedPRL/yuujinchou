@@ -22,6 +22,7 @@ let test default pattern path expected =
 let matched l = `Matched l
 let nomatch = `NoMatch
 
+let starting_time = Sys.time ()
 ;;
 let () = test true any [] @@ matched [[], true]
 ;;
@@ -695,8 +696,10 @@ let () = test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]
 ;;
 let () = test true (renaming_scope [] ["M"] @@ meet [except ["x"]; except ["y"]]) ["z"] @@ matched [["M"; "z"], true]
 ;;
+let time_spent = Sys.time () -. starting_time
+;;
 if !success then
-  Format.printf "All tests passed.@."
+  Format.printf "All tests passed.@ Time spent: %f@." time_spent
 else begin
   Format.printf "@.";
   Format.printf "Some tests failed.@.";
