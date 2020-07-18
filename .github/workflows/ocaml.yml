@@ -1,27 +1,22 @@
-name: Build and test
+name: Upload the website
 on:
   push:
     branches:
       - master
   pull_request:
+    branches:
+      - doc*
 jobs:
   run:
-    env:
-      with_doc: ${{ github.ref == 'refs/heads/master' || startsWith (github.ref, 'refs/heads/doc') }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: avsm/setup-ocaml@v1
       with:
         ocaml-version: '4.10.0'
-    - if: ${{ ! env.with_doc }}
-      run: opam pin . --with-test -y
-    - if: env.with_doc
-      run: |
-        opam pin . --with-test --with-doc -y
-        opam exec -- dune build @doc
-    - if: env.with_doc
-      uses: peaceiris/actions-gh-pages@v3
+    - run: opam pin . --with-test --with-doc -y
+    - run: echo '::set-env name=BUILD_ROOT::'`opam config var yuujinchou:build`
+    - uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./_build/default/_doc/_html/
+        publish_dir: ${{ format('{0}/_build/default/_doc/_html/', env.BUILD_ROOT) }}
