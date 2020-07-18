@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - doc*
   pull_request:
 jobs:
   run:
