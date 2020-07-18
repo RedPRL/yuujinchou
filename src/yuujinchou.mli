@@ -27,12 +27,11 @@ import foo as bar
 *)
 
 (** The {!module:Pattern} module defines the patterns. *)
-module Pattern :
-sig
+module Pattern : sig
   (** {1 Pattern Type } *)
 
-  (** The type of patterns, parametrized by the attribute type. See {!attributes} for more information about attributes. *)
   type 'a pattern
+  (** The type of patterns, parametrized by the attribute type. See {!attributes} for more information about attributes. *)
 
   (**
      The pattern type is abstract---you should build a pattern using the following builders. The detail of the core language is at the end of this page. Use {!val:Action.compile} and {!val:Action.run} to execute a pattern.
@@ -40,8 +39,8 @@ sig
 
   (** {2 Hierarchical Names} *)
 
-  (** The type of names. *)
   type path = string list
+  (** The type of names. *)
 
   (**
      We assume names are hierarchical and can be encoded as lists of strings. For example, the name [a.b.c] is represented as the following OCaml list:
@@ -54,21 +53,22 @@ sig
 
   (** {2 Basics} *)
 
-  (** [any] matches any name. *)
   val any : 'a pattern
+  (** [any] matches any name. *)
 
-  (** [only x] matches the name [x] and nothing else. *)
   val only : path -> 'a pattern
+  (** [only x] matches the name [x] and nothing else. *)
 
-  (** [root] matches only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
   val root : 'a pattern
+  (** [root] matches only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
 
-  (** [wildcard] matches everything {e except} the empty name (the empty list [[]]). It is the opposite of [root]. *)
   val wildcard : 'a pattern
+  (** [wildcard] matches everything {e except} the empty name (the empty list [[]]). It is the opposite of [root]. *)
 
-  (** [prefix p] matches any name with the given prefix [p] and is equivalent to [scope p any]. *)
   val prefix : path -> 'a pattern
+  (** [prefix p] matches any name with the given prefix [p] and is equivalent to [scope p any]. *)
 
+  val scope : path -> 'a pattern -> 'a pattern
   (** [scope p pat] picks out names with the prefix [p] and runs the pattern [pat] on the remaining part of them.
       For example, [scope ["a"; "b"] pat] on the name [a.b.c.d] will factor out the prefix [a.b]
       and continue running the pattern [pat] on the remaining part [c.d].
@@ -76,32 +76,31 @@ sig
       {!val:scope} is more general than {!val:only} and {!val:prefix}: [only x] is equivalent to [scope x root]
       and [prefix p] is equivalent to [scope p any].
   *)
-  val scope : path -> 'a pattern -> 'a pattern
 
   (** {2 Negation} *)
 
-  (** [none] matches no names. It is the opposite of {!val:any}. *)
   val none : 'a pattern
+  (** [none] matches no names. It is the opposite of {!val:any}. *)
 
-  (** [except x] matches any name {e except} [x]. It is the opposite of {!val:only}. *)
   val except : path -> 'a pattern
+  (** [except x] matches any name {e except} [x]. It is the opposite of {!val:only}. *)
 
-  (** [except_prefix p] matches any name that does not have the prefix [p]. It is the opposite of {!val:prefix}. *)
   val except_prefix : path -> 'a pattern
+  (** [except_prefix p] matches any name that does not have the prefix [p]. It is the opposite of {!val:prefix}. *)
 
   (** {2 Renaming} *)
 
-  (** [renaming x x'] matches the name [x] and replaces it with [x']. See {!val:only}. *)
   val renaming : path -> path -> 'a pattern
+  (** [renaming x x'] matches the name [x] and replaces it with [x']. See {!val:only}. *)
 
-  (** [renaming_prefix p p'] matches any name with the prefix [p] and replaces the prefix with [p']. See {!val:prefix}. *)
   val renaming_prefix : path -> path -> 'a pattern
+  (** [renaming_prefix p p'] matches any name with the prefix [p] and replaces the prefix with [p']. See {!val:prefix}. *)
 
+  val renaming_scope : path -> path -> 'a pattern -> 'a pattern
   (** [renaming_scope p p' pat] is the same as [scope p pat] except that the prefix will be replaced by [p']. See {!val:scope}.
 
       {!val:renaming_scope} is more general than {!val:renaming} and {!val:renaming_prefix}: [renaming x x'] is equivalent to [renaming_scope x x' root] and [renaming_prefix p p'] is equivalent to [renaming_scope p p' any].
   *)
-  val renaming_scope : path -> path -> 'a pattern -> 'a pattern
 
   (** {2:attributes Attributes} *)
 
@@ -161,42 +160,43 @@ sig
      The following pattern changes the default attribute before running the subpattern:
   *)
 
-  (** [attr a p] assigns the default attribute to [a] and then runs the pattern [p]. *)
   val attr : 'a -> 'a pattern -> 'a pattern
+  (** [attr a p] assigns the default attribute to [a] and then runs the pattern [p]. *)
 
   (** {2 Sequencing} *)
 
+  val seq : 'a pattern list -> 'a pattern
   (** [seq [p0; p1; p2; ...; pn]] runs the patterns [p0], [p1], [p2], ..., [pn] in order.
 
       If a pattern triggers renaming, then the new names are used in the subsequent patterns. A name is considered matched if it is matched by any pattern during the process. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
-  val seq : 'a pattern list -> 'a pattern
 
-  (** [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
   val seq_filter : 'a pattern list -> 'a pattern
+  (** [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
 
   (** {2 Lattice} *)
 
-  (** [join [p0; p1; p2; ...; pn]] calculates the "union" of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes are resolved by the provided [join] operator on attributes. See {!attributes}. *)
   val join : 'a pattern list -> 'a pattern
+  (** [join [p0; p1; p2; ...; pn]] calculates the "union" of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes are resolved by the provided [join] operator on attributes. See {!attributes}. *)
 
-  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched by all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
   val meet : 'a pattern list -> 'a pattern
+  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched by all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
 
   (** {2 Unsafe Builders} *)
 
-  (** [unsafe_meet l] is the same as [meet l] except that it does not check whether the list is empty. This might be useful for writing a parser for user-defined patterns. See also {!invariants}. *)
   val unsafe_meet : 'a pattern list -> 'a pattern
+  (** [unsafe_meet l] is the same as [meet l] except that it does not check whether the list is empty. This might be useful for writing a parser for user-defined patterns. See also {!invariants}. *)
 
-  (** [unsafe_inv p] negates the meaning of pattern [p], which might be useful for writing a parser or building more efficient patterns by temporarily violating the invariants. Please consult {!core} for more information on "negation". See also {!invariants}. *)
   val unsafe_inv : 'a pattern -> 'a pattern
+  (** [unsafe_inv p] negates the meaning of pattern [p], which might be useful for writing a parser or building more efficient patterns by temporarily violating the invariants. Please consult {!core} for more information on "negation". See also {!invariants}. *)
 
   (** {1 Pretty Printers } *)
 
-  (** Pretty printer for {!type:path}. *)
   val pp_path : Format.formatter -> path -> unit
+  (** Pretty printer for {!type:path}. *)
 
+  val pp_pattern :
+    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a pattern -> unit
   (** Pretty printer for {!type:pattern}. *)
-  val pp_pattern : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a pattern -> unit
 
   (** {1:core Core Language}
 
@@ -268,58 +268,69 @@ sig
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
-module Action :
-sig
+module Action : sig
   open Pattern
 
   (** {1 Types} *)
 
-  (** The abstract type of compiled patterns. *)
   type 'a compiled_pattern
+  (** The abstract type of compiled patterns. *)
 
+  type 'a matching_result =
+    [ `NoMatch  (** The pattern does not match the name. *)
+    | `Matched of (path * 'a) list
+      (** The pattern matches the name and outputs a list of tagged new names. *)
+    ]
   (** The result type of pattern matching. See {!Pattern.outcomes}. *)
-  type 'a matching_result = [
-    | `NoMatch (** The pattern does not match the name. *)
-    | `Matched of (path * 'a) list (** The pattern matches the name and outputs a list of tagged new names. *)
-  ]
 
   (** The type of errors due to the violation of some invariant of patterns. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
 
       The pattern embedded in the error message is the fragment that violates the invariant. The pattern [pat] in [EmptyMeet pat] is not useful on its own---it must be [PatJoin []]---but it facilitates using or-patterns in error handling. *)
   type 'a error =
-    | ReplacementNotUsed of 'a pattern (** Renaming patterns are run under the inverse mode. *)
-    | EmptyMeet of 'a pattern (** The join patterns under the inverse mode (or, equivalently, the meet patterns under the normal mode) have no subpatterns. *)
+    | ReplacementNotUsed of 'a pattern
+        (** Renaming patterns are run under the inverse mode. *)
+    | EmptyMeet of 'a pattern
+        (** The join patterns under the inverse mode (or, equivalently, the meet patterns under the normal mode) have no subpatterns. *)
 
   (** {1 Compilers} *)
 
+  val compile :
+    join:('a -> 'a -> 'a) ->
+    meet:('a -> 'a -> 'a) ->
+    'a pattern ->
+    ('a compiled_pattern, 'a error) result
   (** The pattern compiler.
 
       @param join The join operator to resolve conflicting attributes. See {!Pattern.attributes}.
       @param meet The meet operator to resolve conflicting attributes. See {!Pattern.attributes}.
   *)
-  val compile : join:('a -> 'a -> 'a) -> meet:('a->'a->'a) -> 'a pattern -> ('a compiled_pattern, 'a error) result
 
-  (** This is {!val:compile} specialized to [unit pattern] where the attribute type is [unit]. *)
   val compile_ : unit pattern -> (unit compiled_pattern, unit error) result
+  (** This is {!val:compile} specialized to [unit pattern] where the attribute type is [unit]. *)
 
   (** {1 Matching} *)
 
+  val run : 'a compiled_pattern -> default:'a -> path -> 'a matching_result
   (** [run pat ~default path] runs a compiled pattern to match [path] with the default attribute being [default].
 
       @param default The default attribute for the engine to start with. See {!Pattern.attributes}.
   *)
-  val run : 'a compiled_pattern -> default:'a -> path -> 'a matching_result
 
-  (** This is {!val:run} specialized to [unit pattern] where the attribute type is [unit]. *)
   val run_ : unit compiled_pattern -> path -> unit matching_result
+  (** This is {!val:run} specialized to [unit pattern] where the attribute type is [unit]. *)
 
   (** {1 Pretty Printers} *)
 
+  val pp_error :
+    (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a error -> unit
   (** Pretty printer for {!type:error}. *)
-  val pp_error : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a error -> unit
 
+  val pp_matching_result :
+    (Format.formatter -> 'a -> unit) ->
+    Format.formatter ->
+    'a matching_result ->
+    unit
   (** Pretty printer for {!type:matching_result}. *)
-  val pp_matching_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a matching_result -> unit
 end
 
 (**
