@@ -10,12 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ocaml-version: '4.10.0'
+      opam-status-filepath: '/tmp/opam.status'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
         path: ~/.opam
-        key: ${{ runner.os }}-${{ env.ocaml-version }}-${{ hashFiles('/tmp/opam.status') }}
+        key: ${{ runner.os }}-${{ env.ocaml-version }}-${{ hashFiles(${{ env.opam-status-filepath }}) }}
         restore-keys:
           ${{ runner.os }}-${{ env.ocaml-version }}-
     - uses: avsm/setup-ocaml@v1
@@ -23,9 +24,9 @@ jobs:
         ocaml-version: ${{ env.ocaml-version }}
     - run: opam upgrade -y
     - run: opam pin . --with-test --with-doc -y
-    - run: echo '::set-env name=BUILD_ROOT::'`opam config var yuujinchou:build`
+    - run: echo '::set-env name=opam-build-root::'`opam config var yuujinchou:build`
     - run: opam switch export /tmp/opam.status
     - uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ${{ format('{0}/_build/default/_doc/_html/', env.BUILD_ROOT) }}
+        publish_dir: ${{ format('{0}/_build/default/_doc/_html/', env.opam-build-root) }}
