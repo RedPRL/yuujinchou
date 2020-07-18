@@ -1,3 +1,4 @@
+name: Build, test, and doc update
 on:
   push:
     branches:
@@ -25,7 +26,6 @@ jobs:
     - run: opam pin . --with-test --with-doc -y
     - run: echo '::set-env name=opam-build-root::'`opam config var yuujinchou:build`
     - run: opam switch export ${{ env.opam-status-filepath }}
-    - run: echo ${{ runner.os }}-${{ env.ocaml-version }}-${{ hashFiles(env.opam-status-filepath) }}
     - uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
