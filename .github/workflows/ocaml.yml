@@ -3,11 +3,11 @@ on:
   push:
     branches:
       - master
+      - docs
   pull_request:
-    branches:
-      - doc*
 jobs:
   run:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith (github.ref, 'refs/heads/doc') }}
     runs-on: ubuntu-latest
     env:
       ocaml-version: '4.10.0'
@@ -16,7 +16,7 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: ~/.opam
-        key: ${{ runner.os }}-${{ env.ocaml-version }}-${{ hashFiles('**/tmp/opam.status') }}
+        key: ${{ runner.os }}-${{ env.ocaml-version }}-${{ hashFiles('/tmp/opam.status') }}
         restore-keys:
           ${{ runner.os }}-${{ env.ocaml-version }}-
     - uses: avsm/setup-ocaml@v1
