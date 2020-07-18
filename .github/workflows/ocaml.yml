@@ -1,4 +1,4 @@
-name: Upload the website
+name: Update the documentation website
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
   pull_request:
 jobs:
   run:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith (github.ref, 'refs/heads/doc') }}
+    if: ${{ github.ref == 'refs/heads/master' || github.event_name = 'pull_request' && startsWith (github.head_ref, 'refs/heads/doc') }}
     runs-on: ubuntu-latest
     env:
       ocaml-version: '4.10.0'
