@@ -24,7 +24,7 @@ jobs:
     - run: opam upgrade -y
     - run: opam pin . --with-test --with-doc -y
     - run: echo '::set-env name=opam-build-root::'`opam config var yuujinchou:build`
-    - run: opam switch export /tmp/opam.status
+    - run: opam switch export ${{ env.opam-status-filepath }}
     - run: echo ${{ runner.os }}-${{ env.ocaml-version }}-${{ hashFiles(env.opam-status-filepath) }}
     - uses: peaceiris/actions-gh-pages@v3
       with:
