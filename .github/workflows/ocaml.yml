@@ -6,14 +6,12 @@ on:
   pull_request:
 jobs:
   run:
-    if: ${{ github.ref == 'refs/heads/master' || github.event_name == 'pull_request' }}
+    if: ${{ github.ref == 'refs/heads/master' || (github.event_name == 'pull_request' && startsWith (github.head_ref, 'doc')) }}
     runs-on: ubuntu-latest
     env:
       ocaml-version: '4.10.0'
       opam-status-filepath: '/tmp/opam.status'
     steps:
-    - if: github.event_name == 'pull_request'
-      run: echo $${{ github.head_ref }}
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
