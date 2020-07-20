@@ -22,4 +22,3 @@ type ('a, 'b) pattern =
       }
   | PatSeq of ('a, 'b) pattern list
   | PatUnion of ('a, 'b) pattern list
-  | PatTry of ('a, 'b) pattern * ('b -> ('a, 'b) pattern)

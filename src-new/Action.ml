@@ -55,7 +55,3 @@ let rec run m pat t =
       Ok (T.union m u t')
     in
     List.fold_left ~f ~init:(Ok T.empty) pats
-  | PatTry (pat1, pat2) ->
-    match run m pat1 t with
-    | Ok t -> Ok t
-    | Error (_, e) -> run m (pat2 e) t
