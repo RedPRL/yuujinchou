@@ -1,16 +1,22 @@
 type path = string list
 
+type act =
+  { if_existing : [`Error | `Keep | `Hide]
+  ; if_absent : [`Error | `Ignored]
+  }
+
 type 'a pattern =
   | PatRootSplit of
-      { root : [`Keep | `Hide | `Unchanged]
-      ; children : [`Keep | `Hide | `Unchanged]
+      { on_root : act
+      ; on_children : act
       }
   | PatScopeSplit of
       { prefix : path
-      ; replacement : path option
-      ; subtree : 'a pattern
-      ; others : [`Keep | `Hide | `Unchanged]
+      ; prefix_replacement : path option
+      ; on_subtree : 'a pattern
+      ; on_others : act
       }
   | PatSeq of 'a pattern list
   | PatUnion of 'a pattern list
-  | PatAttrMod of ('a -> [`Keep of 'a | `Hide]) * 'a pattern
+  | PatModify of ('a -> [`Error | `Keep of 'a | `Hide]) * 'a pattern
+  | PatTry of 'a pattern * 'a pattern
