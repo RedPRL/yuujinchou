@@ -3,7 +3,7 @@
  (modules test)
  (preprocess
   (pps ppx_deriving.std))
- (libraries unix yuujinchou))
+ (libraries yuujinchou))
 
 (test
  (name import)
