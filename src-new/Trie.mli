@@ -29,3 +29,7 @@ val detach_root : 'a t -> 'a t * 'a option
 
 val to_seq : 'a t -> (path * 'a) Seq.t
 val of_seq : ('a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
+
+val map : ('a -> 'b) -> 'a t -> 'b t
+val filter : ('a -> bool) -> 'a t -> 'a t
+val map_filter : ('a -> 'b option) -> 'a t -> 'b t

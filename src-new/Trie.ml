@@ -161,3 +161,31 @@ and children_to_seq prefix_stack children =
 let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq []) t
 
 let of_seq m = Seq.fold_left (union_singleton m) empty
+
+(** {1 Map} *)
+
+let rec map_node f {root; children} =
+  { root = Option.map f root
+  ; children = StringMap.map (map_node f) children
+  }
+
+let map f t = Option.map (map_node f) t
+
+let filter_map_stringmap f m =
+  let f_binding (seg, child) =
+    match f child with
+    | None -> None
+    | Some c -> Some (seg, c)
+  in
+  StringMap.of_seq @@ Seq.filter_map f_binding @@ StringMap.to_seq m
+
+let rec filter_node f {root; children} =
+  mk_tree (Option.bind root @@ fun d -> if f d then Some d else None) @@
+  filter_map_stringmap (filter_node f) children
+
+let filter f t = Option.bind t @@ filter_node f
+
+let rec map_filter_node f {root; children} =
+  mk_tree (Option.bind root f) @@ filter_map_stringmap (map_filter_node f) children
+
+let map_filter f t = Option.bind t @@ map_filter_node f

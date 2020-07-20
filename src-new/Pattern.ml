@@ -14,9 +14,9 @@ type 'a pattern =
       { prefix : path
       ; prefix_replacement : path option
       ; on_subtree : 'a pattern
-      ; on_others : act
+      ; on_others : 'a pattern
       }
   | PatSeq of 'a pattern list
   | PatUnion of 'a pattern list
-  | PatModify of ('a -> [`Error | `Keep of 'a | `Hide]) * 'a pattern
+  | PatModify of ('a -> [`Error | `Keep of 'a | `Hide])
   | PatTry of 'a pattern * 'a pattern
