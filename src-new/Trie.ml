@@ -54,7 +54,7 @@ let rec find_node_cont path t k =
     Option.bind (StringMap.find_opt seg t.children) @@ fun t ->
     find_node_cont path t k
 
-let find_prefix path t =
+let find_subtree path t =
   Option.bind t @@ fun t -> find_node_cont path t non_empty
 
 let find_singleton path t =
@@ -126,10 +126,10 @@ let update_root f t = update_singleton [] f t
 
 let rec update_extra_node_cont path t k =
   match path with
-  | [] -> k (non_empty t)
+  | [] -> k @@ non_empty t
   | seg::path ->
     let new_child, info = update_extra_cont path (StringMap.find_opt seg t.children) k in
-    let children = StringMap.update seg (fun _ -> new_child) t.children in
+    let children = StringMap.update seg (Fun.const new_child) t.children in
     mk_tree t.root children, info
 
 and update_extra_cont path t k =

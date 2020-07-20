@@ -10,7 +10,7 @@ val prefix : path -> 'a t -> 'a t
 val singleton : path * 'a -> 'a t
 val root : 'a -> 'a t
 
-val find_prefix : path -> 'a t -> 'a t
+val find_subtree : path -> 'a t -> 'a t
 val find_singleton : path -> 'a t -> 'a option
 val find_root : 'a t -> 'a option
 
