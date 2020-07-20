@@ -2,10 +2,31 @@ open StdLabels
 
 type path = string list
 
-module StringMap = Map.Make (struct
-    type t = string
-    let compare = String.compare
-  end)
+module StringMap =
+struct
+  include Map.Make (struct
+      type t = string
+      let compare = String.compare
+    end)
+
+  let filter_map f m =
+    let f seg child m =
+      match f child with
+      | None -> m
+      | Some c -> add seg c m
+    in
+    fold f m empty
+
+  let filter_map_err f m =
+    let f seg child m =
+      Result.bind m @@ fun m ->
+      match f child with
+      | Ok None -> Ok m
+      | Ok (Some c) -> Ok (add seg c m)
+      | Error (p, e) -> Error (seg::p, e)
+    in
+    fold f m (Ok empty)
+end
 
 type 'a node = {
   root : 'a option;
@@ -29,7 +50,7 @@ let mk_tree root children =
 
 let mk_root_node data = {root = Some data; children = StringMap.empty}
 
-let mk_root_opt root = Option.map mk_root_node root
+let mk_root root = Option.map mk_root_node root
 
 let rec prefix_node path t : 'a node =
   let f seg t =
@@ -117,31 +138,31 @@ let update_subtree path f t = update_cont t path f
 
 let update_singleton path f t = update_cont t path @@
   function
-  | None -> mk_root_opt @@ f None
+  | None -> mk_root @@ f None
   | Some t -> mk_tree (f t.root) t.children
 
 let update_root f t = update_singleton [] f t
 
 (** {1 Detaching subtrees} *)
 
-let rec update_extra_node_cont path t k =
+let rec apply_and_update_node_cont path t k =
   match path with
   | [] -> k @@ non_empty t
   | seg::path ->
-    let new_child, info = update_extra_cont path (StringMap.find_opt seg t.children) k in
+    let ans, new_child = apply_and_update_cont path (StringMap.find_opt seg t.children) k in
     let children = StringMap.update seg (Fun.const new_child) t.children in
-    mk_tree t.root children, info
+    ans, mk_tree t.root children
 
-and update_extra_cont path t k =
+and apply_and_update_cont path t (k : 'a t -> 'b * 'a t) : 'b * 'a t =
   match t with
-  | None -> let t, info = k empty in prefix path t, info
-  | Some t -> update_extra_node_cont path t k
+  | None -> let ans, t = k empty in ans, prefix path t
+  | Some t -> apply_and_update_node_cont path t k
 
-let detach_subtree path t = update_extra_cont path t @@ fun t -> empty, t
+let detach_subtree path t = apply_and_update_cont path t @@ fun t -> t, empty
 
-let detach_singleton path t = update_extra_cont path t @@ function
-  | None -> empty, None
-  | Some t -> mk_tree None t.children, t.root
+let detach_singleton path t = apply_and_update_cont path t @@ function
+  | None -> None, empty
+  | Some t -> t.root, mk_tree None t.children
 
 let detach_root t = detach_singleton [] t
 
@@ -171,21 +192,28 @@ let rec map_node f {root; children} =
 
 let map f t = Option.map (map_node f) t
 
-let filter_map_stringmap f m =
-  let f_binding (seg, child) =
-    match f child with
-    | None -> None
-    | Some c -> Some (seg, c)
-  in
-  StringMap.of_seq @@ Seq.filter_map f_binding @@ StringMap.to_seq m
-
 let rec filter_node f {root; children} =
   mk_tree (Option.bind root @@ fun d -> if f d then Some d else None) @@
-  filter_map_stringmap (filter_node f) children
+  StringMap.filter_map (filter_node f) children
 
 let filter f t = Option.bind t @@ filter_node f
 
-let rec map_filter_node f {root; children} =
-  mk_tree (Option.bind root f) @@ filter_map_stringmap (map_filter_node f) children
+let rec filter_map_node f {root; children} =
+  mk_tree (Option.bind root f) @@ StringMap.filter_map (filter_map_node f) children
 
-let map_filter f t = Option.bind t @@ map_filter_node f
+let filter_map f t = Option.bind t @@ filter_map_node f
+
+let rec filter_map_err_node f {root; children} =
+  let root =
+    match root with
+    | None -> Ok None
+    | Some r -> Result.map_error (fun e -> [], e) @@ f r
+  in
+  Result.bind root @@ fun root ->
+  Result.bind (StringMap.filter_map_err (filter_map_err_node f) children) @@ fun children ->
+  Ok (mk_tree root children)
+
+let filter_map_err f =
+  function
+  | None -> Ok None
+  | Some t -> filter_map_err_node f t
