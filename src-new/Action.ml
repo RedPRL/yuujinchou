@@ -6,17 +6,17 @@ module T = Trie
 
 open ResultMonad.Syntax
 
-type error = DefinitionNotFound
+type error = BindingNotFound
 let error (p : string bwd) (e : error) = fail (p >> [], e)
 
 let run_act p act t =
   match act with
   | P.ActFilterMap f -> ret @@ T.filter_map_endo f t
-  | P.ActOnExistence {if_existing; if_absent} ->
+  | P.ActExists {if_existing; if_absent} ->
     if T.is_empty t then
       match if_absent with
-      | `Err -> error p DefinitionNotFound
-      | `Ignore -> ret t
+      | `Ok -> ret t
+      | `Error -> error p BindingNotFound
     else
       match if_existing with
       | `Keep -> ret t

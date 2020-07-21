@@ -1,4 +1,5 @@
 open StdLabels
+open Bwd
 
 type seg = string
 type path = seg list
@@ -174,18 +175,17 @@ let detach_root t = detach_singleton [] t
 
 (** {1 Conversion from/to Seq} *)
 
-let rec node_to_seq prefix_stack t () =
+let rec node_to_seq prefix t () =
   match t.root with
-  | None -> children_to_seq prefix_stack t.children ()
+  | None -> children_to_seq prefix t.children ()
   | Some data ->
-    let path = List.rev prefix_stack in
-    Seq.Cons ((path, data), children_to_seq prefix_stack t.children)
+    Seq.Cons ((prefix >> [], data), children_to_seq prefix t.children)
 
 and children_to_seq prefix_stack children =
   SegMap.to_seq children |> Seq.flat_map @@ fun (seg, t) ->
-  node_to_seq (seg :: prefix_stack) t
+  node_to_seq (Snoc (prefix_stack, seg)) t
 
-let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq []) t
+let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq Nil) t
 
 let of_seq m = Seq.fold_left (union_singleton m) empty
 

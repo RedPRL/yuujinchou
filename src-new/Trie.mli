@@ -6,10 +6,11 @@ val empty : 'a t
 
 val is_empty : 'a t -> bool
 
+val mk_root : 'a option -> 'a t
+
 val prefix : path -> 'a t -> 'a t
 val singleton : path * 'a -> 'a t
 val root : 'a -> 'a t
-val mk_root : 'a option -> 'a t
 
 val find_subtree : path -> 'a t -> 'a t
 val find_singleton : path -> 'a t -> 'a option
@@ -32,16 +33,15 @@ val to_seq : 'a t -> (path * 'a) Seq.t
 val of_seq : ('a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 
 val map : ('a -> 'b) -> 'a t -> 'b t
+val map_endo : ('a -> 'a) -> 'a t -> 'a t
 val filter : ('a -> bool) -> 'a t -> 'a t
 val filter_map : ('a -> 'b option) -> 'a t -> 'b t
-val map_endo : ('a -> 'a) -> 'a t -> 'a t
 val filter_map_endo : ('a -> 'a option) -> 'a t -> 'a t
 
 (*
 module PhyEq :
 sig
-  val tree : 'a t -> 'a t -> bool
-  val root : 'a t -> 'a t -> bool
-  val children : 'a t -> 'a t -> bool
+  val on_root : 'a t -> 'a t -> bool
+  val on_children : 'a t -> 'a t -> bool
 end
 *)

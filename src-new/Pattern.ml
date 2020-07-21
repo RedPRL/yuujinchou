@@ -1,16 +1,15 @@
 type path = string list
 
 type 'a act =
-  | ActOnExistence of
+  | ActExists of
       { if_existing : [`Keep | `Hide]
-      ; if_absent : [`Err | `Ignore]
+      ; if_absent : [`Ok | `Error]
       }
   | ActFilterMap of ('a -> 'a option)
 
-let use = ActOnExistence {if_existing = `Keep; if_absent = `Err}
-let pass = ActOnExistence {if_existing = `Keep; if_absent = `Ignore}
-let hide = ActOnExistence {if_existing = `Hide; if_absent = `Err}
-let ignore = ActOnExistence {if_existing = `Hide; if_absent = `Ignore}
+let use = ActExists {if_existing = `Keep; if_absent = `Error}
+let hide = ActExists {if_existing = `Hide; if_absent = `Error}
+let ignore = ActExists {if_existing = `Hide; if_absent = `Ok}
 
 type 'a pattern =
   | PatAct of 'a act
@@ -27,7 +26,7 @@ type 'a pattern =
   | PatSeq of 'a pattern list
   | PatUnion of 'a pattern list
 
-let id = PatAct pass
+let id = PatSeq []
 let none = PatAct hide
 let any = PatAct use
 
@@ -39,14 +38,13 @@ let only x = only_scope x root
 let prefix x = only_scope x any
 
 let update_scope prefix on_subtree =
-  PatScopeSplit {prefix; prefix_replacement = None; on_subtree; on_others = PatAct pass}
-let except_root = PatRootSplit {on_root = PatAct hide; on_children = PatAct pass}
+  PatScopeSplit {prefix; prefix_replacement = None; on_subtree; on_others = id}
+let except_root = PatRootSplit {on_root = PatAct hide; on_children = id}
 let except x = update_scope x except_root
 let except_prefix x = update_scope x none
 
 let renaming_scope prefix prefix_replacement on_subtree =
-  PatScopeSplit {prefix; prefix_replacement = Some prefix_replacement; on_subtree; on_others = PatAct pass}
-let renaming x x' = renaming_scope x x' root
+  PatScopeSplit {prefix; prefix_replacement = Some prefix_replacement; on_subtree; on_others = id}
 let renaming_prefix x x' = renaming_scope x x' any
 
 let seq pats = PatSeq pats
