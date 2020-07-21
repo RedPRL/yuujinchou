@@ -1,23 +1,25 @@
 type path = string list
 
 type 'a act =
-  | ActExists of
+  | ActCheckExistence of
       { if_existing : [`Keep | `Hide]
       ; if_absent : [`Ok | `Error]
       }
   | ActFilterMap of ('a -> 'a option)
 
-let use = ActExists {if_existing = `Keep; if_absent = `Error}
-let hide = ActExists {if_existing = `Hide; if_absent = `Error}
-let ignore = ActExists {if_existing = `Hide; if_absent = `Ok}
+let act_use = ActCheckExistence {if_existing = `Keep; if_absent = `Error}
+let act_hide = ActCheckExistence {if_existing = `Hide; if_absent = `Error}
+let act_ignore = ActCheckExistence {if_existing = `Hide; if_absent = `Ok}
 
 type 'a pattern =
   | PatAct of 'a act
-  | PatRootSplit of
-      { on_root : 'a pattern
-      ; on_children : 'a pattern
+  | PatSingletonSplit of
+      { path : path
+      ; path_replacement : path option
+      ; on_singleton : 'a pattern
+      ; on_others : 'a pattern
       }
-  | PatScopeSplit of
+  | PatSubtreeSplit of
       { prefix : path
       ; prefix_replacement : path option
       ; on_subtree : 'a pattern
@@ -27,25 +29,41 @@ type 'a pattern =
   | PatUnion of 'a pattern list
 
 let id = PatSeq []
-let none = PatAct hide
-let any = PatAct use
+let hide = PatAct act_hide
+let use = PatAct act_use
+let ignore = PatAct act_ignore
 
-let wildcard = PatRootSplit {on_root = PatAct ignore; on_children = any}
-let root = PatRootSplit {on_root = any; on_children = PatAct ignore}
-let only_scope prefix on_subtree =
-  PatScopeSplit {prefix; prefix_replacement = None; on_subtree; on_others = PatAct ignore}
-let only x = only_scope x root
-let prefix x = only_scope x any
+let any = use
+let none = hide
 
-let update_scope prefix on_subtree =
-  PatScopeSplit {prefix; prefix_replacement = None; on_subtree; on_others = id}
-let except_root = PatRootSplit {on_root = PatAct hide; on_children = id}
-let except x = update_scope x except_root
-let except_prefix x = update_scope x none
+let only_subtree prefix on_subtree =
+  PatSubtreeSplit {prefix; prefix_replacement = None; on_subtree; on_others = ignore}
+let only_singleton path on_singleton =
+  PatSingletonSplit {path; path_replacement = None; on_singleton; on_others = ignore}
 
-let renaming_scope prefix prefix_replacement on_subtree =
-  PatScopeSplit {prefix; prefix_replacement = Some prefix_replacement; on_subtree; on_others = id}
-let renaming_prefix x x' = renaming_scope x x' any
+let wildcard =
+  PatSingletonSplit {path = []; path_replacement = None; on_singleton = ignore; on_others = use}
+let root = PatSingletonSplit {path = []; path_replacement = None; on_singleton = use; on_others = ignore}
+let only p = only_singleton p use
+let prefix p = only_subtree p use
+
+let update_subtree prefix on_subtree =
+  PatSubtreeSplit {prefix; prefix_replacement = None; on_subtree; on_others = id}
+let update_singleton path on_singleton =
+  PatSingletonSplit {path; path_replacement = None; on_singleton; on_others = id}
+
+let except_root =
+  PatSingletonSplit {path = []; path_replacement = None; on_singleton = hide; on_others = id}
+let except p = update_singleton p hide
+let except_prefix p = update_subtree p hide
+
+let renaming_subtree prefix prefix_replacement on_subtree =
+  PatSubtreeSplit {prefix; prefix_replacement = Some prefix_replacement; on_subtree; on_others = id}
+let renaming_singleton path path_replacement on_singleton =
+  PatSingletonSplit {path; path_replacement = Some path_replacement; on_singleton; on_others = id}
+
+let renaming p p' = renaming_singleton p p' use
+let renaming_prefix p p' = renaming_subtree p p' use
 
 let seq pats = PatSeq pats
 
