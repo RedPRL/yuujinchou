@@ -1,23 +1,23 @@
 type path = string list
 
-type ('a, 'b) act =
+type 'a act =
   | ActCheckExistence of
-      { if_existing : [`Error of 'b | `Keep | `Hide]
-      ; if_absent : [`Error of 'b | `Ignored]
+      { if_existing : [`Error | `Keep | `Hide]
+      ; if_absent : [`Error | `Ignored]
       }
   | ActFilterMap of ('a -> 'a option)
 
-type ('a, 'b) pattern =
-  | PatAct of ('a, 'b) act
+type 'a pattern =
+  | PatAct of 'a act
   | PatRootSplit of
-      { on_root : ('a, 'b) pattern
-      ; on_children : ('a, 'b) pattern
+      { on_root : 'a pattern
+      ; on_children : 'a pattern
       }
   | PatScopeSplit of
       { prefix : path
       ; prefix_replacement : path option
-      ; on_subtree : ('a, 'b) pattern
-      ; on_others : ('a, 'b) pattern
+      ; on_subtree : 'a pattern
+      ; on_others : 'a pattern
       }
-  | PatSeq of ('a, 'b) pattern list
-  | PatUnion of ('a, 'b) pattern list
+  | PatSeq of 'a pattern list
+  | PatUnion of 'a pattern list
