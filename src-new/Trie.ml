@@ -1,4 +1,5 @@
 open StdLabels
+open MoreLabels
 open Bwd
 
 type seg = string
@@ -12,12 +13,12 @@ struct
     end)
 
   let filter_map f m =
-    let f seg child m =
+    let f ~key:seg ~data:child m =
       match f child with
       | None -> m
-      | Some c -> add seg c m
+      | Some c -> add ~key:seg ~data:c m
     in
-    fold f m empty
+    fold ~f m ~init:empty
 end
 
 type 'a node = {
@@ -44,9 +45,9 @@ let mk_root_node data = {root = Some data; children = SegMap.empty}
 
 let mk_root root = Option.map mk_root_node root
 
-let rec prefix_node path t : 'a node =
+let prefix_node path t : 'a node =
   let f seg t =
-    {root = None; children = SegMap.singleton seg @@ prefix_node path t}
+    {root = None; children = SegMap.singleton seg t}
   in
   List.fold_right ~f path ~init:t
 
@@ -82,7 +83,7 @@ let rec update_node_cont t path k =
   match path with
   | [] -> k @@ non_empty t
   | seg::path ->
-    mk_tree t.root @@ SegMap.update seg (fun t -> update_cont t path k) t.children
+    mk_tree t.root @@ SegMap.update ~key:seg ~f:(fun t -> update_cont t path k) t.children
 
 (* TODO preserves physical eq *)
 and update_cont t path k =
@@ -103,7 +104,7 @@ let rec union_node m t t' =
   let root = union_option m t.root t'.root in
   let children =
     let f _key t t' = Some (union_node m t t') in
-    SegMap.union f t.children t'.children
+    SegMap.union ~f t.children t'.children
   in
   {root; children}
 
@@ -153,7 +154,7 @@ let rec apply_and_update_node_cont path t k =
   | [] -> k @@ non_empty t
   | seg::path ->
     let ans, new_child = apply_and_update_cont path (SegMap.find_opt seg t.children) k in
-    let children = SegMap.update seg (Fun.const new_child) t.children in
+    let children = SegMap.update ~key:seg ~f:(Fun.const new_child) t.children in
     ans, mk_tree t.root children
 
 (* TODO preserves physical eq *)
@@ -193,7 +194,7 @@ let of_seq m = Seq.fold_left (union_singleton m) empty
 
 let rec map_node f {root; children} =
   { root = Option.map f root
-  ; children = SegMap.map (map_node f) children
+  ; children = SegMap.map ~f:(map_node f) children
   }
 
 let map f t = Option.map (map_node f) t
@@ -217,12 +218,14 @@ let filter_map f t = Option.bind t @@ filter_map_node f
 let filter_map_endo f t = filter_map f t
 
 let rec pp_node pp_data fmt {root; children} =
-  Format.fprintf fmt "@[{@[<hv2> . => %a@]%a@ }@]"
-    Format.(pp_print_option pp_data) root
+  Format.fprintf fmt "@[@[<hv2>{ . =>@ %a@]%a@ @[<hv2>}@]@]"
+    Format.(pp_print_option ~none:(fun fmt () -> pp_print_string fmt "") pp_data) root
     (pp_children pp_data) children
 
 and pp_children pp_data fmt =
-  SegMap.iter @@ fun seg n ->
-  Format.fprintf fmt "@ ; @[<hv2>%a => %a@]" Format.pp_print_string seg (pp_node pp_data) n
+  let f ~key:seg ~data:n =
+    Format.fprintf fmt "@ @[<hv2>; %a =>@ %a@]" Format.pp_print_string seg (pp_node pp_data) n
+  in
+  SegMap.iter ~f
 
 let pp pp_data = Format.pp_print_option (pp_node pp_data)
