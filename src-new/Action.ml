@@ -48,7 +48,7 @@ let rec run m p pat t =
     and+ others = run m p on_others others in
     T.union_subtree m others (prefix_replacement, subtree)
   | PatSeq pats ->
-    let f t pat = let* t = t in run m p pat t in
+    let f t pat = Result.bind t (run m p pat) in
     List.fold_left ~f ~init:(ret t) pats
   | PatUnion pats ->
     let+ ts = ResultMonad.map (fun pat -> run m p pat t) pats in
