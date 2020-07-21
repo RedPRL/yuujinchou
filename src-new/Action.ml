@@ -1,18 +1,8 @@
 open StdLabels
+open Bwd
+
 module P = Pattern
 module T = Trie
-
-type 'a bwd = Nil | Snoc of 'a bwd * 'a
-
-let rec (<<) xs ys =
-  match ys with
-  | [] -> xs
-  | y :: ys -> Snoc (xs, y) << ys
-
-let rec (>>) xs ys =
-  match xs with
-  | Nil -> ys
-  | Snoc (xs, x) -> xs >> x :: ys
 
 open ResultMonad.Syntax
 
@@ -22,14 +12,13 @@ let error (p : string bwd) (e : error) = fail (p >> [], e)
 let run_act p act t =
   match act with
   | P.ActFilterMap f -> ret @@ T.filter_map_endo f t
-  | P.ActCheckExistence {if_existing; if_absent} ->
+  | P.ActOnExistence {if_existing; if_absent} ->
     if T.is_empty t then
       match if_absent with
-      | `Error -> error p DefinitionNotFound
-      | `Ignored -> ret t
+      | `Err -> error p DefinitionNotFound
+      | `Ignore -> ret t
     else
       match if_existing with
-      | `Error -> error p DefinitionNotFound
       | `Keep -> ret t
       | `Hide -> ret T.empty
 
