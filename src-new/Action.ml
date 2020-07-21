@@ -51,8 +51,5 @@ let rec run m p pat t =
     let f t pat = let* t = t in run m p pat t in
     List.fold_left ~f ~init:(ret t) pats
   | PatUnion pats ->
-    let f u pat =
-      let+ u = u and+ t = run m p pat t in
-      T.union m u t
-    in
-    List.fold_left ~f ~init:(ret T.empty) pats
+    let+ ts = ResultMonad.map (fun pat -> run m p pat t) pats in
+    List.fold_left ~f:(T.union m) ~init:T.empty ts
