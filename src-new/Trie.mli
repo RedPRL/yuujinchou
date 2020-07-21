@@ -35,6 +35,9 @@ val map : ('a -> 'b) -> 'a t -> 'b t
 val filter : ('a -> bool) -> 'a t -> 'a t
 val filter_map : ('a -> 'b option) -> 'a t -> 'b t
 val filter_map_err : ('a -> ('b option, 'c) result) -> 'a t -> ('b t, path * 'c) result
+val map_endo : ('a -> 'a) -> 'a t -> 'a t
+val filter_map_endo : ('a -> 'a option) -> 'a t -> 'a t
+val filter_map_endo_err : ('a -> ('a option, 'b) result) -> 'a t -> ('a t, path * 'b) result
 
 (*
 module PhyEq :
