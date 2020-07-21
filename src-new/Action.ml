@@ -4,27 +4,19 @@ module T = Trie
 
 let run_act act t =
   match act with
-  | P.ActSimple {if_existing; if_absent} ->
+  | P.ActCheckExistence {if_existing; if_absent} ->
     begin
       if T.is_empty t then
         match if_absent with
-        | `Error e -> Result.error ([], e)
-        | `Ignored -> Result.ok t
+        | `Error e -> Error ([], e)
+        | `Ignored -> Ok t
       else
         match if_existing with
-        | `Error e -> Result.error ([], e)
-        | `Keep -> Result.ok t
-        | `Hide -> Result.ok T.empty
+        | `Error e -> Error ([], e)
+        | `Keep -> Ok t
+        | `Hide -> Ok T.empty
     end
-  | P.ActMap f -> Result.ok (T.map f t)
-  | P.ActFilterMap f ->
-    let f x =
-      match f x with
-      | `Error e -> Error e
-      | `Keep x -> Ok (Some x)
-      | `Hide -> Ok None
-    in
-    T.filter_map_err f t
+  | P.ActFilterMap f -> Ok (T.filter_map_endo f t)
 
 let rec run m pat t =
   match pat with

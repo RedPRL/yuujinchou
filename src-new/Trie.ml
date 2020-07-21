@@ -17,16 +17,6 @@ struct
       | Some c -> add seg c m
     in
     fold f m empty
-
-  let filter_map_err f m =
-    let f seg child m =
-      Result.bind m @@ fun m ->
-      match f child with
-      | Ok None -> Ok m
-      | Ok (Some c) -> Ok (add seg c m)
-      | Error (p, e) -> Error (seg::p, e)
-    in
-    fold f m (Ok empty)
 end
 
 type 'a node = {
@@ -225,20 +215,3 @@ let filter_map f t = Option.bind t @@ filter_map_node f
 
 (* TODO preserves physical eq *)
 let filter_map_endo f t = filter_map f t
-
-let rec filter_map_err_node f {root; children} =
-  let root =
-    match root with
-    | None -> Ok None
-    | Some r -> Result.map_error (fun e -> [], e) @@ f r
-  in
-  Result.bind root @@ fun root ->
-  Result.bind (SegMap.filter_map_err (filter_map_err_node f) children) @@ fun children ->
-  Ok (mk_tree root children)
-
-let filter_map_err f =
-  function
-  | None -> Ok None
-  | Some t -> filter_map_err_node f t
-
-let filter_map_endo_err f t = filter_map_err f t
