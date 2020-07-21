@@ -217,12 +217,12 @@ let filter_map f t = Option.bind t @@ filter_map_node f
 let filter_map_endo f t = filter_map f t
 
 let rec pp_node pp_data fmt {root; children} =
-  Format.fprintf fmt "@[<hv2>{@[<hv2>. => %a;@]%a}@]@ "
+  Format.fprintf fmt "@[{@[<hv2> . => %a@]%a@ }@]"
     Format.(pp_print_option pp_data) root
     (pp_children pp_data) children
 
 and pp_children pp_data fmt =
   SegMap.iter @@ fun seg n ->
-  Format.fprintf fmt "@ @[<hv2>%a => %a;@]" Format.pp_print_string seg (pp_node pp_data) n
+  Format.fprintf fmt "@ ; @[<hv2>%a => %a@]" Format.pp_print_string seg (pp_node pp_data) n
 
 let pp pp_data = Format.pp_print_option (pp_node pp_data)
