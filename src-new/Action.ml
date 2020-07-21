@@ -1,9 +1,6 @@
 open StdLabels
 open Bwd
-
-module P = Pattern
-module T = Trie
-
+open Pattern
 open ResultMonad.Syntax
 
 type error = BindingNotFound
@@ -11,35 +8,35 @@ let error (p : string bwd) (e : error) = fail (p >> [], e)
 
 let run_act p act t =
   match act with
-  | P.ActFilterMap f -> ret @@ T.filter_map_endo f t
-  | P.ActCheckExistence {if_existing; if_absent} ->
-    if T.is_empty t then
+  | ActFilterMap f -> ret @@ Trie.filter_map_endo f t
+  | ActCheckExistence {if_existing; if_absent} ->
+    if Trie.is_empty t then
       match if_absent with
       | `Ok -> ret t
       | `Error -> error p BindingNotFound
     else
       match if_existing with
       | `Keep -> ret t
-      | `Hide -> ret T.empty
+      | `Hide -> ret Trie.empty
 
 let rec run m p pat t =
   match pat with
-  | P.PatAct act -> run_act p act t
-  | P.PatSingletonSplit {path; path_replacement; on_singleton; on_others} ->
-    let path_replacement = Option.value ~default:path path_replacement in
-    let singleton, others = T.detach_singleton path t in
-    let+ singleton = run m (p << path) on_singleton (T.mk_root singleton)
-    and+ others = run m p on_others others in
-    T.union_subtree m others (path_replacement, singleton)
-  | P.PatSubtreeSplit {prefix; prefix_replacement; on_subtree; on_others} ->
+  | PatAct act -> run_act p act t
+  | PatSplit {mode; prefix; prefix_replacement; on_target; on_others} ->
     let prefix_replacement = Option.value ~default:prefix prefix_replacement in
-    let subtree, others = T.detach_subtree prefix t in
-    let+ subtree = run m (p << prefix) on_subtree subtree
+    let target, others =
+      match mode with
+      | `Subtree -> Trie.detach_subtree prefix t
+      | `Node ->
+        let singleton, others = Trie.detach_singleton prefix t in
+        Trie.mk_root singleton, others
+    in
+    let+ target = run m (p << prefix) on_target target
     and+ others = run m p on_others others in
-    T.union_subtree m others (prefix_replacement, subtree)
+    Trie.union_subtree m others (prefix_replacement, target)
   | PatSeq pats ->
     let f t pat = Result.bind t (run m p pat) in
     List.fold_left ~f ~init:(ret t) pats
   | PatUnion pats ->
     let+ ts = ResultMonad.map (fun pat -> run m p pat t) pats in
-    List.fold_left ~f:(T.union m) ~init:T.empty ts
+    List.fold_left ~f:(Trie.union m) ~init:Trie.empty ts
