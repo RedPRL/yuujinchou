@@ -1,6 +1,6 @@
 type path = string list
 
-type 'a t
+type +'a t
 
 val empty : 'a t
 
@@ -37,6 +37,8 @@ val map_endo : ('a -> 'a) -> 'a t -> 'a t
 val filter : ('a -> bool) -> 'a t -> 'a t
 val filter_map : ('a -> 'b option) -> 'a t -> 'b t
 val filter_map_endo : ('a -> 'a option) -> 'a t -> 'a t
+
+val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 
 (*
 module PhyEq :
