@@ -3,7 +3,9 @@ open Bwd
 open Pattern
 open ResultMonad.Syntax
 
-type error = BindingNotFound
+type path = Pattern.path
+
+type error = BindingNotFound of path
 
 let run_act p act t =
   match act with
@@ -12,7 +14,7 @@ let run_act p act t =
     if Trie.is_empty t then
       match if_absent with
       | `Ok -> ret t
-      | `Error -> fail (p >> [], BindingNotFound)
+      | `Error -> fail (BindingNotFound (p >> []))
     else
       match if_existing with
       | `Keep -> ret t
