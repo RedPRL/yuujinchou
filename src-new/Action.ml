@@ -10,13 +10,11 @@ type error = BindingNotFound of path
 let run_act p act t =
   match act with
   | ActFilterMap f -> ret @@ Trie.filter_map_endo f t
-  | ActCheckExistence {if_existing; if_absent} ->
+  | ActSwitch switch ->
     if Trie.is_empty t then
-      match if_absent with
-      | `Ok -> ret t
-      | `Error -> fail (BindingNotFound (p >> []))
+      fail (BindingNotFound (p >> []))
     else
-      match if_existing with
+      match switch with
       | `Keep -> ret t
       | `Hide -> ret Trie.empty
 
@@ -43,3 +41,7 @@ let rec run_ m p pat t =
     List.fold_left ~f:(Trie.union m) ~init:Trie.empty ts
 
 let run m = run_ m Nil
+
+let pp_error fmt =
+  function
+  | BindingNotFound path -> Format.fprintf fmt "@[<hov 1>(not-found@ %s)@]" (String.concat ~sep:"." path)

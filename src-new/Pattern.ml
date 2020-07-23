@@ -1,54 +1,50 @@
 type path = string list
 
+type switch = [`Keep | `Hide]
+
 type 'a act =
-  | ActCheckExistence of
-      { if_existing : [`Keep | `Hide]
-      ; if_absent : [`Ok | `Error]
-      }
+  | ActSwitch of switch
   | ActFilterMap of ('a -> 'a option)
 
 let pp_act _pp_data fmt =
   function
-  | ActCheckExistence {if_existing = `Keep; if_absent = `Ok} -> Format.pp_print_string fmt "pass"
-  | ActCheckExistence {if_existing = `Hide; if_absent = `Ok} -> Format.pp_print_string fmt "ignore"
-  | ActCheckExistence {if_existing = `Keep; if_absent = `Error} -> Format.pp_print_string fmt "use"
-  | ActCheckExistence {if_existing = `Hide; if_absent = `Error} -> Format.pp_print_string fmt "hide"
+  | ActSwitch `Keep -> Format.pp_print_string fmt "use"
+  | ActSwitch `Hide -> Format.pp_print_string fmt "hide"
   | ActFilterMap _ -> Format.pp_print_string fmt "@[<hov 1>(map-filter@ <fun>)@]"
 
-let act_use = ActCheckExistence {if_existing = `Keep; if_absent = `Error}
-let act_hide = ActCheckExistence {if_existing = `Hide; if_absent = `Error}
-let act_ignore = ActCheckExistence {if_existing = `Hide; if_absent = `Ok}
+let act_use = ActSwitch `Keep
+let act_hide = ActSwitch `Hide
 
-type 'a pattern =
+type 'a t =
   | PatAct of 'a act
   | PatSplit of
       { mode : [`Subtree | `Node]
       ; prefix : path
       ; prefix_replacement : path option
-      ; on_target : 'a pattern
-      ; on_others : 'a pattern
+      ; on_target : 'a t
+      ; on_others : 'a t
       }
-  | PatSeq of 'a pattern list
-  | PatUnion of 'a pattern list
+  | PatSeq of 'a t list
+  | PatUnion of 'a t list
 
 let id = PatSeq []
 let hide = PatAct act_hide
 let use = PatAct act_use
-let ignore = PatAct act_ignore
+let ignore = PatUnion []
 
 let any = use
 let none = hide
 
-let only_subtree prefix on_target =
+let select_and_update_subtree prefix on_target =
   PatSplit {mode = `Subtree; prefix; prefix_replacement = None; on_target; on_others = ignore}
-let only_singleton prefix on_target =
+let select_and_update_singleton prefix on_target =
   PatSplit {mode = `Node; prefix; prefix_replacement = None; on_target; on_others = ignore}
 
 let wildcard =
   PatSplit {mode = `Node; prefix = []; prefix_replacement = None; on_target = ignore; on_others = use}
 let root = PatSplit {mode = `Node; prefix = []; prefix_replacement = None; on_target = use; on_others = ignore}
-let only p = only_singleton p use
-let prefix p = only_subtree p use
+let only p = select_and_update_singleton p use
+let only_subtree p = select_and_update_subtree p use
 
 let update_subtree prefix on_target =
   PatSplit {mode = `Subtree; prefix; prefix_replacement = None; on_target; on_others = id}
@@ -56,15 +52,16 @@ let update_singleton prefix on_target =
   PatSplit {mode = `Node; prefix; prefix_replacement = None; on_target; on_others = id}
 
 let except p = update_singleton p hide
-let except_prefix p = update_subtree p hide
+let except_subtree p = update_subtree p hide
+let on_subtree prefix = update_subtree prefix
 
-let renaming_subtree prefix prefix_replacement on_target =
+let rename_and_update_subtree prefix prefix_replacement on_target =
   PatSplit {mode = `Subtree; prefix; prefix_replacement = Some prefix_replacement; on_target; on_others = id}
-let renaming_singleton prefix prefix_replacement on_target =
+let rename_and_update_singleton prefix prefix_replacement on_target =
   PatSplit {mode = `Node; prefix; prefix_replacement = Some prefix_replacement; on_target; on_others = id}
 
-let renaming p p' = renaming_singleton p p' use
-let renaming_prefix p p' = renaming_subtree p p' use
+let renaming p p' = rename_and_update_singleton p p' use
+let renaming_subtree p p' = rename_and_update_subtree p p' use
 
 let seq pats = PatSeq pats
 
@@ -74,9 +71,7 @@ let union l = PatUnion l
 
 let equal_act _equal_a a1 a2 =
   match a1, a2 with
-  | ActCheckExistence {if_existing = e1; if_absent = a1},
-    ActCheckExistence {if_existing = e2; if_absent = a2} ->
-    e1 = e2 && a1 = a2
+  | ActSwitch s1, ActSwitch s2 -> s1 = s2
   | ActFilterMap _, ActFilterMap _ -> failwith "functions not comparable"
   | _ -> false
 
@@ -100,8 +95,7 @@ let pp_split_mode fmt =
 
 let pp_prefix fmt =
   function
-  |
-    (prefix, None) -> pp_path fmt prefix
+  | (prefix, None) -> pp_path fmt prefix
   | (prefix, Some replacement) ->
     Format.fprintf fmt "@[<hov 1>(=>@ %a@ %a)@]" pp_path prefix pp_path replacement
 

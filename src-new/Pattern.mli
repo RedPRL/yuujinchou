@@ -1,46 +1,43 @@
 type path = string list
 
+type switch = [`Keep | `Hide]
+
 type 'a act =
-  | ActCheckExistence of
-      { if_existing : [`Keep | `Hide]
-      ; if_absent : [`Ok | `Error]
-      }
+  | ActSwitch of switch
   | ActFilterMap of ('a -> 'a option)
 
-type 'a pattern =
+type 'a t =
   | PatAct of 'a act
   | PatSplit of
       { mode : [`Subtree | `Node]
       ; prefix : path
       ; prefix_replacement : path option
-      ; on_target : 'a pattern
-      ; on_others : 'a pattern
+      ; on_target : 'a t
+      ; on_others : 'a t
       }
-  | PatSeq of 'a pattern list
-  | PatUnion of 'a pattern list
+  | PatSeq of 'a t list
+  | PatUnion of 'a t list
 
-val equal : ('a -> 'a -> bool) -> 'a pattern -> 'a pattern -> bool
-val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a pattern -> unit
+val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 
-val none : 'a pattern
-val any : 'a pattern
-val wildcard : 'a pattern
-val root : 'a pattern
+val none : 'a t
+val any : 'a t
+val wildcard : 'a t
+val root : 'a t
 
-val only : path -> 'a pattern
-val prefix : path -> 'a pattern
-val only_subtree : path -> 'a pattern -> 'a pattern
+val only : path -> 'a t
+val only_subtree : path -> 'a t
 
-val except : path -> 'a pattern
-val except_prefix : path -> 'a pattern
-val update_subtree : path -> 'a pattern -> 'a pattern
+val except : path -> 'a t
+val except_subtree : path -> 'a t
+val on_subtree : path -> 'a t -> 'a t
 
-val renaming : path -> path -> 'a pattern
-val renaming_prefix : path -> path -> 'a pattern
-val renaming_subtree : path -> path -> 'a pattern -> 'a pattern
+val renaming : path -> path -> 'a t
+val renaming_subtree : path -> path -> 'a t
 
-val seq : 'a pattern list -> 'a pattern
+val seq : 'a t list -> 'a t
 
-val union : 'a pattern list -> 'a pattern
+val union : 'a t list -> 'a t
 
-val filter_map : ('a -> 'a option) -> 'a pattern
+val filter_map : ('a -> 'a option) -> 'a t
