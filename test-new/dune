@@ -1,0 +1,4 @@
+(test
+ (name TestTrie)
+ (modules TestTrie)
+ (libraries alcotest yuujinchou.new))
