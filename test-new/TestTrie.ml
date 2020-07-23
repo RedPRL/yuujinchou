@@ -46,6 +46,36 @@ let test_equal_2 () =
     false
     (Trie.equal Alcotest.(equal int) (of_list [["x"; "y"], 100]) (of_list [["x"; "z"], 100]))
 
+let test_union () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 10+160; [], 20; ["x"], 40])
+    (Trie.union (+) (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_union_subtree () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 10; [], 20; ["x"], 40+80; ["x"; "x"; "y"], 1600])
+    (Trie.union_subtree (+) (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
+
+let test_detach_subtree () =
+  Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
+    (of_list [["y"], 10], of_list [[], 20])
+    (Trie.detach_subtree ["x"] (of_list [["x"; "y"], 10; [], 20]))
+
+let test_detach_singleton_1 () =
+  Alcotest.(check @@ pair (option int) (trie int)) "same trie"
+    (None, of_list [["x"; "y"], 10; [], 20])
+    (Trie.detach_singleton ["x"] (of_list [["x"; "y"], 10; [], 20]))
+
+let test_detach_singleton_2 () =
+  Alcotest.(check @@ pair (option int) (trie int)) "same trie"
+    (Some 20, of_list [["x"; "y"], 10])
+    (Trie.detach_singleton [] (of_list [["x"; "y"], 10; [], 20]))
+
+let test_filter_map_endo () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [[], 30])
+    (Trie.filter_map_endo (fun x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
+
 (*
 val detach_subtree : path -> 'a t -> 'a t * 'a t
 val detach_singleton : path -> 'a t -> 'a option * 'a t
@@ -71,5 +101,21 @@ let () =
     "equal", [
       test_case "equal" `Quick test_equal_1;
       test_case "equal" `Quick test_equal_2;
+    ];
+    "union", [
+      test_case "union" `Quick test_union;
+    ];
+    "union_subtree", [
+      test_case "union_subtree" `Quick test_union_subtree;
+    ];
+    "detach_subtree", [
+      test_case "detach_subtree" `Quick test_detach_subtree;
+    ];
+    "detach_singleton", [
+      test_case "detach_singleton" `Quick test_detach_singleton_1;
+      test_case "detach_singleton" `Quick test_detach_singleton_2;
+    ];
+    "filter_map_endo", [
+      test_case "filter_map_endo" `Quick test_filter_map_endo;
     ];
   ]
