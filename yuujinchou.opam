@@ -13,7 +13,7 @@ dev-repo: "git+https://github.com/favonia/yuujinchou.git"
 depends: [
   "dune" {>= "2.5"}
   "ocaml" {>= "4.08.0"}
-  "ppx_deriving" {>= "4.5"}
+  "alcotest" {>= "1.2.1" & with-test}
   "odoc" {with-doc}
 ]
 build: [
