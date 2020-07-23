@@ -9,7 +9,6 @@ let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   (module M)
 
 let of_list l = Trie.of_seq (fun _ _ -> failwith "conflicting keys") (List.to_seq l)
-let of_trie t = List.of_seq (Trie.to_seq t)
 
 let test_empty () =
   Alcotest.(check @@ trie int) "same trie" (of_list []) Trie.empty
@@ -76,19 +75,15 @@ let test_filter_map_endo () =
     (of_list [[], 30])
     (Trie.filter_map_endo (fun x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
 
-(*
-val detach_subtree : path -> 'a t -> 'a t * 'a t
-val detach_singleton : path -> 'a t -> 'a option * 'a t
-*)
-
 let () =
   let open Alcotest in
   run "Trie" [
     "empty", [
-      test_case "empty" `Quick test_empty
+      test_case "empty" `Quick test_empty;
     ];
     "is_empty", [
-      test_case "is_empty" `Quick test_empty
+      test_case "is_empty" `Quick test_is_empty_empty;
+      test_case "is_empty" `Quick test_is_empty_root;
     ];
     "mk_root", [
       test_case "mk_root" `Quick test_mk_root_none;

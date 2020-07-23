@@ -2,3 +2,8 @@
  (name TestTrie)
  (modules TestTrie)
  (libraries alcotest yuujinchou.new))
+
+(test
+ (name TestAction)
+ (modules TestAction)
+ (libraries alcotest yuujinchou.new))
