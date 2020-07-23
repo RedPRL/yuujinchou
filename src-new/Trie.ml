@@ -57,10 +57,30 @@ let singleton_node (path, data) = prefix_node path @@ mk_root_node data
 
 let singleton (path, data) = non_empty @@ singleton_node (path, data)
 
+(*
 let root data = non_empty @@ mk_root_node data
+*)
+
+(** {1 Comparison} *)
+
+let rec equal_node eq n1 n2 =
+  n1 == n2 || Option.equal eq n1.root n2.root && SegMap.equal ~cmp:(equal_node eq) n1.children n2.children
+
+let equal eq = Option.equal (equal_node eq)
+
+(*
+let rec compare_node cmp n1 n2 =
+  if n1 == n2 then 0 else
+    match Option.compare cmp n1.root n2.root with
+    | 0 -> SegMap.compare ~cmp:(compare_node cmp) n1.children n2.children
+    | n -> n
+
+let compare cmp = Option.compare (compare_node cmp)
+*)
 
 (** {1 Getting data} *)
 
+(*
 let rec find_node_cont path t k =
   match path with
   | [] -> k t
@@ -75,6 +95,7 @@ let find_singleton path t =
   Option.bind t @@ fun t -> find_node_cont path t @@ fun t -> t.root
 
 let find_root t = find_singleton [] t
+*)
 
 (** {1 Traversing the trees} *)
 
@@ -129,11 +150,9 @@ let union_singleton m t (path, data) =
     | None -> non_empty @@ mk_root_node data
     | Some t -> non_empty {t with root = union_option m t.root @@ Some data}
 
-(* TODO preserves physical eq *)
-let union_root m t data = union_singleton m t ([], data)
-
 (** {1 Updating trees} *)
 
+(*
 (* TODO preserves physical eq *)
 let update_subtree path f t = update_cont t path f
 
@@ -145,6 +164,7 @@ let update_singleton path f t = update_cont t path @@
 
 (* TODO preserves physical eq *)
 let update_root f t = update_singleton [] f t
+*)
 
 (** {1 Detaching subtrees} *)
 
@@ -171,9 +191,6 @@ let detach_singleton path t = apply_and_update_cont path t @@ function
   | None -> None, empty
   | Some t -> t.root, mk_tree None t.children
 
-(* TODO preserves physical eq *)
-let detach_root t = detach_singleton [] t
-
 (** {1 Conversion from/to Seq} *)
 
 let rec node_to_seq prefix t () =
@@ -192,22 +209,23 @@ let of_seq m = Seq.fold_left (union_singleton m) empty
 
 (** {1 Map} *)
 
+(*
 let rec map_node f {root; children} =
   { root = Option.map f root
   ; children = SegMap.map ~f:(map_node f) children
   }
 
 let map f t = Option.map (map_node f) t
+*)
 
-(* TODO preserves physical eq *)
-let map_endo f t = Option.map (map_node f) t
-
+(*
 (* TODO preserves physical eq *)
 let rec filter_node f {root; children} =
   mk_tree (Option.bind root @@ fun d -> if f d then Some d else None) @@
   SegMap.filter_map (filter_node f) children
 
 let filter f t = Option.bind t @@ filter_node f
+*)
 
 let rec filter_map_node f {root; children} =
   mk_tree (Option.bind root f) @@ SegMap.filter_map (filter_map_node f) children
