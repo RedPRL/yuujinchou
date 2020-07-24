@@ -65,7 +65,7 @@ val detach_singleton : path -> 'a t -> 'a option * 'a t
 (** [to_seq t] traverses through the trie [t] in the lexicographical order. *)
 val to_seq : 'a t -> (path * 'a) Seq.t
 
-(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is faster than [to_seq t] because it does not need to reconstruct the paths. *)
+(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is faster than [Seq.map snd @@ to_seq t] because it does not need to reconstruct the paths. *)
 val to_seq_values : 'a t -> 'a Seq.t
 
 (** [of_seq m s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_subtree}. *)
