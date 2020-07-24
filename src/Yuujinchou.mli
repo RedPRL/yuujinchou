@@ -121,7 +121,7 @@ end
 (** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
-  (** {1 Types} *)
+  (** {1 Error Type} *)
 
   (** The type of errors due to the absense of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [BindingNotFound ["x"; "y"]]. *)
   type error = BindingNotFound of Pattern.path (** The engine could not find the expected bindings. *)
