@@ -26,6 +26,7 @@ import foo as bar
    The code is split into three parts:
 *)
 
+(** The {!module:Trie} module implements a data structure (tries) that supports efficient operators on subtrees for a collection of hierarchical names and their associated data. *)
 module Trie : module type of (Trie)
 
 (** The {!module:Pattern} module defines the patterns. *)
