@@ -1,4 +1,4 @@
-open YuujinchouNew
+open Yuujinchou
 open Pattern
 
 let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =

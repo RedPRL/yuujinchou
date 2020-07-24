@@ -1,20 +1,14 @@
 (test
- (name test)
- (modules test)
- (preprocess
-  (pps ppx_deriving.std))
- (libraries yuujinchou))
+ (name TestTrie)
+ (modules TestTrie)
+ (libraries alcotest yuujinchou))
 
 (test
- (name import)
- (modules import)
- (preprocess
-  (pps ppx_deriving.std))
- (libraries yuujinchou))
+ (name TestAction)
+ (modules TestAction)
+ (libraries alcotest yuujinchou))
 
 (test
- (name select)
- (modules select)
- (preprocess
-  (pps ppx_deriving.std))
- (libraries yuujinchou))
+ (name TestImportSelect)
+ (modules TestImportSelect)
+ (libraries alcotest yuujinchou))

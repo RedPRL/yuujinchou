@@ -7,7 +7,7 @@ end
 
 (** {1 Example Code} *)
 
-open Yuujinchou
+open YuujinchouOld
 
 type data = int
 [@@deriving show]
