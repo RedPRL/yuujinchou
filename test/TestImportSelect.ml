@@ -67,6 +67,15 @@ let test_import_2 () =
     (trie_of_list [["x"], 10])
     (import (trie_of_list [["x"], 10]) Pattern.none (trie_of_list [["x"], 20]))
 
+let test_import_3 () =
+  Alcotest.(check @@ trie int) "ok"
+    (trie_of_list [["x"; "y"], 100; ["z"], 200; ["x"; "z"], 30; ["x"; "w"], 300])
+    (import
+       (trie_of_list [["x"; "y"], 10; ["z"], 20; ["x"; "z"], 30])
+       Pattern.(seq [renaming_subtree [] ["x"]; renaming ["x";"z"] ["z"]])
+       (trie_of_list [["y"], 100; ["z"], 200; ["w"], 300])
+    )
+
 let test_select_1 () =
   Alcotest.(check data_set) "ok"
     (set_of_list [10])
@@ -77,15 +86,24 @@ let test_select_2 () =
     (set_of_list [])
     (select (trie_of_list [["x"], 10]) Pattern.none)
 
+let test_select_3 () =
+  Alcotest.(check data_set) "ok"
+    (set_of_list [30])
+    (select
+       (trie_of_list [["x"; "y"], 10; ["z"], 20; ["x"; "z"], 30])
+       Pattern.(seq [only ["x"; "z"]; renaming ["x"; "z"] ["z"]]))
+
 let () =
   let open Alcotest in
   run "TestImportSelect" [
     "import", [
       test_case "import" `Quick test_import_1;
       test_case "import" `Quick test_import_2;
+      test_case "import" `Quick test_import_3;
     ];
     "select", [
       test_case "select" `Quick test_select_1;
       test_case "select" `Quick test_select_2;
+      test_case "select" `Quick test_select_3;
     ];
   ]
