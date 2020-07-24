@@ -17,26 +17,32 @@ import foo as bar
 # putting content of foo under the prefix bar
    v}
 
-   We can view hiding and renaming as partial functions from names to names. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such partial functions---the library you are checking now. It supports renaming, scopes, sequencing, logical connectives, negation and tags with only six combinators in the language. For technical detail, see {!Pattern.core}.
+   We can view a collection of hierarchical names as a tree, and see these modifiers as tree transformers. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such tree transformers---the library you are checking now. It supports renaming, scopes, sequencing, unions, generic filtering.
 *)
 
 (**
    {1 Organization}
 
-   The code is split into two parts:
+   The code is split into three parts:
 *)
+
+(** The {!module:Trie} module implements a data structure (tries) that supports efficient operators on subtrees for a collection of hierarchical names and their associated data. *)
+module Trie : module type of (Trie)
 
 (** The {!module:Pattern} module defines the patterns. *)
 module Pattern :
 sig
   (** {1 Pattern Type } *)
 
-  (** The type of patterns, parametrized by the attribute type. See {!attributes} for more information about attributes. *)
-  type 'a pattern
+  (** The type of patterns, parametrized by the type of associated data. *)
+  type 'a t
 
   (**
-     The pattern type is abstract---you should build a pattern using the following builders. The detail of the core language is at the end of this page. Use {!val:Action.compile} and {!val:Action.run} to execute a pattern.
+     The pattern type is abstract---you should build a pattern using the following builders and execute it by {!val:Action.run}.
   *)
+
+  (** Checking equality. Note that patterns created by {!val:filter_map} are not comparable to each other because they take a function. *)
+  val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 
   (** {2 Hierarchical Names} *)
 
@@ -54,331 +60,124 @@ sig
 
   (** {2 Basics} *)
 
-  (** [any] matches any name. *)
-  val any : 'a pattern
+  (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match). *)
+  val any : 'a t
 
-  (** [only x] matches the name [x] and nothing else. *)
-  val only : path -> 'a pattern
+  (** [root] keeps only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
+  val root : 'a t
 
-  (** [root] matches only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
-  val root : 'a pattern
+  (** [wildcard] keeps everything {e except} the empty name (the empty list [[]]). It is an error if there was no name is matched. *)
+  val wildcard : 'a t
 
-  (** [wildcard] matches everything {e except} the empty name (the empty list [[]]). It is the opposite of [root]. *)
-  val wildcard : 'a pattern
+  (** [only x] keeps the name [x] and drops everything else. It is an error if there was no binding named [x] in the tree. *)
+  val only : path -> 'a t
 
-  (** [prefix p] matches any name with the given prefix [p] and is equivalent to [scope p any]. *)
-  val prefix : path -> 'a pattern
+  (** [only_subtree path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
+  val only_subtree : path -> 'a t
 
-  (** [scope p pat] picks out names with the prefix [p] and runs the pattern [pat] on the remaining part of them.
-      For example, [scope ["a"; "b"] pat] on the name [a.b.c.d] will factor out the prefix [a.b]
-      and continue running the pattern [pat] on the remaining part [c.d].
-
-      {!val:scope} is more general than {!val:only} and {!val:prefix}: [only x] is equivalent to [scope x root]
-      and [prefix p] is equivalent to [scope p any].
-  *)
-  val scope : path -> 'a pattern -> 'a pattern
+  (** [on_subtree path pattern] runs the pattern [pat] against the subtree rooted at [path]. Names that were not in the subtree are kept. *)
+  val in_subtree : path -> 'a t -> 'a t
 
   (** {2 Negation} *)
 
-  (** [none] matches no names. It is the opposite of {!val:any}. *)
-  val none : 'a pattern
+  (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
+  val none : 'a t
 
-  (** [except x] matches any name {e except} [x]. It is the opposite of {!val:only}. *)
-  val except : path -> 'a pattern
+  (** [except x] drops the binding named [x]. It is an error if there was no [x] from the beginning. *)
+  val except : path -> 'a t
 
-  (** [except_prefix p] matches any name that does not have the prefix [p]. It is the opposite of {!val:prefix}. *)
-  val except_prefix : path -> 'a pattern
+  (** [except_subtree p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to [in_subtree p none]. *)
+  val except_subtree : path -> 'a t
 
   (** {2 Renaming} *)
 
-  (** [renaming x x'] matches the name [x] and replaces it with [x']. See {!val:only}. *)
-  val renaming : path -> path -> 'a pattern
+  (** [renaming x x'] renames the name [x] into [x']. It is an error if there was no [x] from the beginning. *)
+  val renaming : path -> path -> 'a t
 
-  (** [renaming_prefix p p'] matches any name with the prefix [p] and replaces the prefix with [p']. See {!val:prefix}. *)
-  val renaming_prefix : path -> path -> 'a pattern
+  (** [renaming_subtree path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty. *)
+  val renaming_subtree : path -> path -> 'a t
 
-  (** [renaming_scope p p' pat] is the same as [scope p pat] except that the prefix will be replaced by [p']. See {!val:scope}.
+  (** {2 Associated Data} *)
 
-      {!val:renaming_scope} is more general than {!val:renaming} and {!val:renaming_prefix}: [renaming x x'] is equivalent to [renaming_scope x x' root] and [renaming_prefix p p'] is equivalent to [renaming_scope p p' any].
-  *)
-  val renaming_scope : path -> path -> 'a pattern -> 'a pattern
-
-  (** {2:attributes Attributes} *)
-
-  (**
-     Attributes are custom tags attached to matched names. For example, you could attach [`Public] or [`Private] to names when implementing the import statements. You need to supply a lattice structure for your attribute type [t] when compiling a pattern using {!val:Action.compile}, and then specify a default attribute when running the compiled pattern using {!val:Action.run}. Here are the components you need to execute a pattern:
-
-     {ol
-
-     {li
-
-     A join operator of type [t -> t -> t].
-
-     An operator to resolve the conflicting attributes by taking their "union". It is used when running patterns built by {!val:seq}, {!val:seq_filter} or {!val:join}. The exact meaning of "union" depends on the lattice structure.
-     }
-
-     {li
-     A meet operator of type [t -> t -> t].
-
-     An operator to resolve the conflicting attributes by taking their "intersection". It is used when running patterns built by {!val:meet}. The exact meaning of "intersection" depends on the lattice structure.
-     }
-
-     {li
-
-     A default value of type [t].
-
-     The default attribute attached to the new names until the engine encounters the pattern created via {!val:attr} that explicitly sets a new default attribute.
-     }}
-
-     For example, when implementing the traditional import statements, the attribute type can be
-     {[
-       type attr = [ `Public | `Private ]
-     ]}
-     and then the meet and join operators can be implemented as follows:
-     {[
-       let join_attr a1 a2 =
-         match a1, a2 with
-         | `Public, _ | _, `Public -> `Public
-         | `Private, `Private -> `Private
-
-       let meet_attr a1 a2 =
-         match a1, a2 with
-         | `Private, _ | _, `Private -> `Private
-         | `Public, `Public -> `Public
-     ]}
-     In other words, [`Public] is treated as the top element and [`Private] is the bottom element. The rationale is that if a name is simultanously imported as a public name (to be re-exported) and a private name (not to be re-exported), then in most programming languages it {e will} be re-exported. This suggests that the join operator should outputs [`Public] whenever one of the inputs is [`Public]. It then makes sense to make the meet operator the dual of the join operator.
-
-     To pass the lattice structure to the compiler {!val:Action.compile}, use
-     {[
-       let compiled_pat = Action.compile ~join:join_attr ~meet:meet pat
-     ]}
-     To pass the default value to {!val:Action.run}, use
-     {[
-       Action.run compiled_pat ~default:`Private path
-     ]}
-     Please read {!outcomes} on how attributes are attached to the results.
-
-     The following pattern changes the default attribute before running the subpattern:
-  *)
-
-  (** [attr a p] assigns the default attribute to [a] and then runs the pattern [p]. *)
-  val attr : 'a -> 'a pattern -> 'a pattern
+  (** [filter_map f] applies the function [f] to the associated data in the tree. If the result is [None], the binding would be removed from the tree. Otherwise, if the result is [Some x], the content of the binding would be replaced with [x]. *)
+  val filter_map : ('a -> 'a option) -> 'a t
 
   (** {2 Sequencing} *)
 
-  (** [seq [p0; p1; p2; ...; pn]] runs the patterns [p0], [p1], [p2], ..., [pn] in order.
+  (** [seq [pat0; pat1; pat2; ...; patn]] runs the patterns [pat0], [pat1], [pat2], ..., [patn] in order. *)
+  val seq : 'a t list -> 'a t
 
-      If a pattern triggers renaming, then the new names are used in the subsequent patterns. A name is considered matched if it is matched by any pattern during the process. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
-  val seq : 'a pattern list -> 'a pattern
+  (** {2 Union} *)
 
-  (** [seq_filter [p0; p1; p2; ...; pn]] is almost the same as [seq [p0; p1; p2; ...; pn]], except that a name is considered matched only when it is matched (and potentially renamed) by all the patterns in the list. Inconsistent attributes are resolved by the provided [join] operator. See {!attributes}. *)
-  val seq_filter : 'a pattern list -> 'a pattern
-
-  (** {2 Lattice} *)
-
-  (** [join [p0; p1; p2; ...; pn]] calculates the "union" of the patterns [p0], [p1], [p2], ..., [pn]. A name is considered matched when it is matched by any subpattern. Inconsistent attributes are resolved by the provided [join] operator on attributes. See {!attributes}. *)
-  val join : 'a pattern list -> 'a pattern
-
-  (** [meet [p0; p1; p2; ...; pn]] calculates the "intersection" of the patterns [p0], [p1], [p2], ..., [pn]. There must be at least one subpattern; if the input list is empty, {!val:meet} will raise [Invalid_argument]. A name is considered matched only when it is matched by all the subpatterns. If a name is matched by all subpatterns, but the intersection of the new names is empty, then the name is still considered matched (with an empty set of new names). Inconsistent attributes are resolved by the provided [meet] operator on attributes. See {!attributes}. *)
-  val meet : 'a pattern list -> 'a pattern
-
-  (** {2 Unsafe Builders} *)
-
-  (** [unsafe_meet l] is the same as [meet l] except that it does not check whether the list is empty. This might be useful for writing a parser for user-defined patterns. See also {!invariants}. *)
-  val unsafe_meet : 'a pattern list -> 'a pattern
-
-  (** [unsafe_inv p] negates the meaning of pattern [p], which might be useful for writing a parser or building more efficient patterns by temporarily violating the invariants. Please consult {!core} for more information on "negation". See also {!invariants}. *)
-  val unsafe_inv : 'a pattern -> 'a pattern
+  (** [union [pat0; pat1; pat2; ...; patn]] calculates the union of the results of individual patterns [pat0], [pat1], [pat2], ..., [patn]. *)
+  val union : 'a t list -> 'a t
 
   (** {1 Pretty Printers } *)
 
-  (** Pretty printer for {!type:path}. *)
-  val pp_path : Format.formatter -> path -> unit
-
-  (** Pretty printer for {!type:pattern}. *)
-  val pp_pattern : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a pattern -> unit
-
-  (** {1:core Core Language}
-
-      Here is the current implementation of {!type:pattern}:
-      {[
-        type 'a pattern =
-          | PatWildcard
-          | PatScope of path * path option * 'a pattern
-          | PatSeq of 'a pattern list
-          | PatInv of 'a pattern
-          | PatJoin of 'a pattern list
-          | PatAttr of 'a * 'a pattern
-      ]}
-
-      We will explain each combinator, one by one. However, it is essential to know the outcomes of pattern matching and {e modes} first.
-
-      {2:outcomes Outcomes}
-
-      The result of pattern matching is one of the following:
-
-        {ol
-        {li [`NoMatch]: the pattern does not match the name.}
-        {li [`Matched [(name_1, attr_1); (name_2, attr_2); ...]]: the pattern matches the name and outputs its new names tagged with attributes. If no renaming happens, then the name list is just a singleton list with the original name. For example, the pattern {!val:any} alone keeps the original name and tag it with the default attribute, so running it on a name [a.b] with the default attribute [def] will lead to the output [`Match [["a"; "b"], def]]. The union operator {!val:join} is the major source of multiple new names. It is possible that the set of new names is empty despite the old name being matched because we also support the intersection operator {!val:meet}.}
-        }
-
-      See also {!type:Action.matching_result} and {!val:Action.run}.
-
-      {2:modes Modes}
-
-      There are two modes of the pattern matching engine: the {e normal} mode and the {e inverse} mode. The motivation to have the inverse mode is to implement the patterns that hide names from being imported. Think about the pattern [only ["a"; "b"]], which would normally select the name [a.b] from the imported content. Its dual meaning---selecting everything {e other than} the name [a.b]---is exactly the hiding operator we are looking for. The inverse mode has been extended to the entire core language and significantly reduced the number of combinators. It is recommended to study how the core language works under the normal mode first.
-
-      {2 Combinators}
-
-      {3 Wildcard ([PatWildcard])}
-
-      The wildcard pattern [PatWildcard] under the normal mode matches every name except for the root (the empty list [[]]). The same pattern under the inverse mode matches nothing but the root (the empty list [[]]). In either case, if a name [p] is matched, then the output is [`Matched [p, a]] where [a] is the inherited default attribute.
-
-      {3 Scope Renaming ([PatScope])}
-
-      The pattern [PatScope (p, None, pat)] under the normal mode identifies any name with the prefix [p] and then runs [pat] against the residual part of the name. For example, [PatScope (["a"; "b"], None, PatWildcard)] will first identify the name [a.b.c] (represented by [["a"; "b"; "c"]]) because it has the prefix [["a"; "b"]], and then the pattern [PatWildcard] will match the remaining part [c]. The same pattern under the inverse mode will match any name whose prefix is {e not} [p], and any name that has the prefix [p] but fails to match [pat] after removing the prefix [p].
-
-      The pattern [PatScope (p, Some r, pattern)] is the same as [PatScope (p, None, pattern)] expect that the prefix [p], if matched, will be replaced by [r]. The same pattern under the inverse mode will result into an error because the replacement [r] would not be used.
-
-      {3 Sequencing ([PatSeq])}
-
-      The pattern [PatSeq [pat_1; pat_2; ...; pat_n]] under the normal mode runs the patterns [pat_1], [pat_2], ..., [pat_n] in order. New names generated by previous patterns (possibly through the scope renaming operator [PatScope]) are used in later patterns. A name is matched if it is matched by any pattern in the sequence during the process. It is possible that a name is renamed into multiple names during the process, and these renamings are merged by taking the union of all possible renamings, where conflicting attributes are resolved by the join operation in the attribute lattice. As a special case, [PatSeq []] under the normal mode matches nothing.
-
-      The same pattern [PatSeq [pat_1; pat_2; ...; pat_n]] under the inverse mode also runs the patterns [pat_1], [pat_2], ..., [pat_n] in order, but with a twist: a name is matched only if it is matched by all patterns in the sequence. Overlapping renamings and conflicting attributes are resolved by the unions and joins. As a special case, [PatSeq []] under the inverse mode matches any name, including the root (represented by [[]]), which is different from the wildcard pattern ([PatWildcard]).
-
-      {3 Mode Inversion ([PatInv])}
-
-      The pattern [PatInv pat] flips the current mode of the engine (from the normal mode to the inverse mode or vice versa) and proceed with the pattern [pat].
-
-      {3 Join and Meet ([PatJoin])}
-
-      [PatJoin [pat_1; pat_2; ...; pat_n]] under the normal mode runs the subpatterns independently and takes the join of the renaming relations. The same pattern under the inverse mode takes the meet of the renaming relations instead. However, the pattern [PatJoin []] under the inverse mode will result into an error because there is not an unit of the meet of patterns.
-
-      There is one trick case about the meet operation: Assume we have two different names [x] and [y]. The meet of [`Matched [x, a]] and [`Matched [y, a]] is [`Matched []], not [`NoMatch]. It means the name is matched but there are no new names for it.
-
-      {3 Attribute Assignment ([PatAttr])}
-
-      The pattern [PatAttr (attr, pat)] sets the default attribute to [attr] before running the pattern [pat]. It does not change the mode of the engine.
-
-
-      {2:invariants Invariants}
-
-      Patterns involving renaming (e.g., [PatScope (p, Some r, pattern)]) and the empty join pattern [PatJoin []] should not be run under the inverse mode. This invariant is checked when using {!val:Action.compile} or {!val:Action.compile_} to compile a pattern. It is impossible to violate the invariant unless {!val:unsafe_meet} or {!val:unsafe_inv} is used.
-  *)
+  (** Pretty printer for {!type:t}. *)
+  val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
-  open Pattern
+  (** {1 Error Type} *)
 
-  (** {1 Types} *)
-
-  (** The abstract type of compiled patterns. *)
-  type 'a compiled_pattern
-
-  (** The result type of pattern matching. See {!Pattern.outcomes}. *)
-  type 'a matching_result = [
-    | `NoMatch (** The pattern does not match the name. *)
-    | `Matched of (path * 'a) list (** The pattern matches the name and outputs a list of tagged new names. *)
-  ]
-
-  (** The type of errors due to the violation of some invariant of patterns. See {!Pattern.invariants}. It should be impossible to violate these invariants unless {!val:Pattern.unsafe_meet} or {!val:Pattern.unsafe_inv} is used.
-
-      The pattern embedded in the error message is the fragment that violates the invariant. The pattern [pat] in [EmptyMeet pat] is not useful on its own---it must be [PatJoin []]---but it facilitates using or-patterns in error handling. *)
-  type 'a error =
-    | ReplacementNotUsed of 'a pattern (** Renaming patterns are run under the inverse mode. *)
-    | EmptyMeet of 'a pattern (** The join patterns under the inverse mode (or, equivalently, the meet patterns under the normal mode) have no subpatterns. *)
-
-  (** {1 Compilers} *)
-
-  (** The pattern compiler.
-
-      @param join The join operator to resolve conflicting attributes. See {!Pattern.attributes}.
-      @param meet The meet operator to resolve conflicting attributes. See {!Pattern.attributes}.
-  *)
-  val compile : join:('a -> 'a -> 'a) -> meet:('a->'a->'a) -> 'a pattern -> ('a compiled_pattern, 'a error) result
-
-  (** This is {!val:compile} specialized to [unit pattern] where the attribute type is [unit]. *)
-  val compile_ : unit pattern -> (unit compiled_pattern, unit error) result
+  (** The type of errors due to the absense of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [BindingNotFound ["x"; "y"]]. *)
+  type error = BindingNotFound of Pattern.path (** The engine could not find the expected bindings. *)
 
   (** {1 Matching} *)
 
-  (** [run pat ~default path] runs a compiled pattern to match [path] with the default attribute being [default].
+  (** [run merger pattern trie] runs the [pattern] on the [trie]
 
-      @param default The default attribute for the engine to start with. See {!Pattern.attributes}.
+      @param merger The resolver for two conflicting bindings sharing the same name. Patterns such as [Pattern.renaming] and [Pattern.union] could lead to conflicting bindings, and [merger x y] should return the resolution of [x] and [y].
   *)
-  val run : 'a compiled_pattern -> default:'a -> path -> 'a matching_result
-
-  (** This is {!val:run} specialized to [unit pattern] where the attribute type is [unit]. *)
-  val run_ : unit compiled_pattern -> path -> unit matching_result
+  val run : ('a -> 'a -> 'a) -> 'a Pattern.t -> 'a Trie.t -> ('a Trie.t, error) result
 
   (** {1 Pretty Printers} *)
 
   (** Pretty printer for {!type:error}. *)
-  val pp_error : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a error -> unit
-
-  (** Pretty printer for {!type:matching_result}. *)
-  val pp_matching_result : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a matching_result -> unit
+  val pp_error : Format.formatter -> error -> unit
 end
 
 (**
    {1 How to Use It}
 
-   {2 Import Statements}
-
    {[
      open Yuujinchou
 
-     type data = int
+     module Data =
+     struct
+       type t = int
+       let equal n1 n2 = n1 = n2
+       let merge x y =
+         if equal x y then x
+         else failwith "Inconsistent data assigned to the same path."
+       let shadow _x y = y
+       let compare : t -> t -> int = compare
+     end
 
      (** An environment is a mapping from paths to data. *)
-     type env = (Pattern.path, data) Hashtbl.t
+     type env = Data.t Trie.t
 
      (** [remap pattern env] uses the [pattern] to massage
          the environment [env]. *)
      let remap pattern env =
-       let compiled_pattern = Result.get_ok @@ Action.compile_ pattern in
-       let new_env = Hashtbl.create @@ Hashtbl.length env in
-       begin
-         env |> Hashtbl.iter @@ fun path data ->
-         match Action.run_ compiled_pattern path with
-         | `NoMatch -> ()
-         | `Matched l -> l |> List.iter @@ fun (path, ()) ->
-           match Hashtbl.find_opt new_env path with
-           | None -> Hashtbl.replace new_env path data
-           | Some data' ->
-             if data <> data' then
-               failwith "Inconsistent data assigned to the same path."
-       end;
-       new_env
+       match Action.run Data.merge pattern env with
+       | Ok env -> env
+       | Error (Action.BindingNotFound path) ->
+         failwith ("Expected item not found within the subtree rooted at #root." ^ String.concat "." path ^ ".")
 
      (** [import env pattern imported] imports the environment
          [imported] massaged by [pattern] into [env]. *)
      let import env pattern imported =
-       Hashtbl.replace_seq env @@ Hashtbl.to_seq @@ remap pattern imported
-   ]}
+       Trie.union Data.shadow env @@ remap pattern imported
 
-   {2 Data Selection}
+     module DataSet = Set.Make (Data)
 
-   {[
-     open Yuujinchou
-
-     type data = int
-
-     (** An environment is a mapping from paths to data. *)
-     type env = (Pattern.path, data) Hashtbl.t
-
-     module DataSet = Set.Make (struct type t = data let compare = compare end)
-
-     let collect_matched env pattern =
-       let compiled_pattern = Result.get_ok @@ Action.compile_ pattern in
-       begin
-         env |> Hashtbl.fold @@ fun path data set ->
-         match Action.run_ compiled_pattern path with
-         | `NoMatch -> set
-         | `Matched _ -> DataSet.add data set
-       end DataSet.empty
+     (** [select env pattern] returns the set of matched data. *)
+     let select env pattern =
+       DataSet.of_seq @@ Trie.to_seq_values @@ remap pattern env
    ]}
 *)
 
@@ -397,28 +196,28 @@ end
 import Mod -- x is available an both x and Mod.x
    v}
    {[
-     join [any; renaming_prefix [] ["Mod"]]
+     union [any; renaming_subtree [] ["Mod"]]
    ]}
 
    {v
 import Mod (x,y)
    v}
    {[
-     join [only ["x"]; only ["y"]]
+     union [only ["x"]; only ["y"]]
    ]}
 
    {v
 import qualified Mod
    v}
    {[
-     join [renaming_prefix [] ["Mod"]]
+     renaming_subtree [] ["Mod"]
    ]}
 
    {v
 import qualified Mod hiding (x,y)
    v}
    {[
-     renaming_scope [] ["Mod"] @@ meet [hide ["x"]; hide ["y"]]
+     seq [except ["x"]; except ["y"]; renaming_subtree [] ["Mod"]]
    ]}
 
    {2 Racket}
@@ -427,38 +226,38 @@ import qualified Mod hiding (x,y)
 (require (only-in ... id0 [old-id1 new-id1]))
    v}
    {[
-     seq_filter [...; join [only ["id0"]; renaming ["old-id1"] ["new-id1"]]]
+     seq [...; union [only ["id0"]; seq [only ["old-id1"]; renaming ["old-id1"] ["new-id1"]]]]
    ]}
 
    {v
 (require (except-in ... id0 id1]))
    v}
    {[
-     seq_filter [...; except ["id0"]; except ["id1"]]
+     seq [...; except ["id0"]; except ["id1"]]
    ]}
 
    {v
 (require (prefix-in p: ...))
    v}
    {[
-     seq [...; renaming_prefix [] ["p:"]]
+     seq [...; renaming_subtree [] ["p"]]
    ]}
 
    {v
 (require (rename-in ... [old-id0 new-id0] [old-id1 new-id1]))
    v}
    {[
-     seq [...; join [renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]]]
+     seq [...; renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]]
    ]}
 
    {v
 (require (combine-in require-spec0 require-spec1 ...))
    v}
    {[
-     join [require-spec0; require-spec1; ...]
+     union [require-spec0; require-spec1; ...]
    ]}
 
-   The [provide] mechanism can be simulated in a similar way. This library does not directly support the phase levels in Racket (yet).
+   The [provide] mechanism can be simulated in a similar way, and the phases can be done by {!val:Pattern.filter_map}.
 
    {1 What is "Yuujinchou"?}
 

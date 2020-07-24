@@ -29,6 +29,7 @@ val detach_subtree : path -> 'a t -> 'a t * 'a t
 val detach_singleton : path -> 'a t -> 'a option * 'a t
 
 val to_seq : 'a t -> (path * 'a) Seq.t
+val to_seq_values : 'a t -> 'a Seq.t
 val of_seq : ('a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 
 (* val map : ('a -> 'b) -> 'a t -> 'b t *)

@@ -7,33 +7,38 @@ _Yuujinchou_ is an OCaml package of name patterns for implementing import statem
 ```ocaml
 open Yuujinchou
 
-type data = int
+module Data =
+struct
+  type t = int
+  let equal n1 n2 = n1 = n2
+  let merge x y =
+    if equal x y then x
+    else failwith "Inconsistent data assigned to the same path."
+  let shadow _x y = y
+  let compare : t -> t -> int = compare
+end
 
 (** An environment is a mapping from paths to data. *)
-type env = (Pattern.path, data) Hashtbl.t
+type env = Data.t Trie.t
 
 (** [remap pattern env] uses the [pattern] to massage
     the environment [env]. *)
 let remap pattern env =
-  let compiled_pattern = Result.get_ok @@ Action.compile_ pattern in
-  let new_env = Hashtbl.create @@ Hashtbl.length env in
-  begin
-    env |> Hashtbl.iter @@ fun path data ->
-    match Action.run_ compiled_pattern path with
-    | `NoMatch -> ()
-    | `Matched l -> l |> List.iter @@ fun (path, ()) ->
-      match Hashtbl.find_opt new_env path with
-      | None -> Hashtbl.replace new_env path data
-      | Some data' ->
-        if data <> data' then
-          failwith "Inconsistent data assigned to the same path."
-  end;
-  new_env
+  match Action.run Data.merge pattern env with
+  | Ok env -> env
+  | Error (Action.BindingNotFound path) ->
+    failwith ("Expected item not found within the subtree rooted at #root." ^ String.concat "." path ^ ".")
 
 (** [import env pattern imported] imports the environment
     [imported] massaged by [pattern] into [env]. *)
 let import env pattern imported =
-  Hashtbl.replace_seq env @@ Hashtbl.to_seq @@ remap pattern imported
+  Trie.union Data.shadow env @@ remap pattern imported
+
+module DataSet = Set.Make (Data)
+
+(** [select env pattern] returns the set of matched data. *)
+let select env pattern =
+  DataSet.of_seq @@ Trie.to_seq_values @@ remap pattern env
 ```
 
 ## Installation

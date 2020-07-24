@@ -1,4 +1,4 @@
-open YuujinchouNew
+open Yuujinchou
 open Pattern
 
 let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
@@ -144,20 +144,20 @@ let test_except_subtree_3 () =
     (Error (BindingNotFound ["x"]))
     (Action.run (+) (except_subtree ["x"]) Trie.empty)
 
-let test_on_subtree_1 () =
+let test_in_subtree_1 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["x"; "z"], 10; ["y"], 20]))
-    (Action.run (+) (on_subtree ["x"] (renaming [] ["z"])) (of_list [["x"], 10; ["y"], 20]))
+    (Action.run (+) (in_subtree ["x"] (renaming [] ["z"])) (of_list [["x"], 10; ["y"], 20]))
 
-let test_on_subtree_2 () =
+let test_in_subtree_2 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30]))
-    (Action.run (+) (on_subtree ["x"] (renaming ["x"] ["w"])) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
+    (Action.run (+) (in_subtree ["x"] (renaming ["x"] ["w"])) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
-let test_on_subtree_3 () =
+let test_in_subtree_3 () =
   Alcotest.(check @@ run_result int) "error"
     (Error (BindingNotFound ["x"]))
-    (Action.run (+) (on_subtree ["x"] any) Trie.empty)
+    (Action.run (+) (in_subtree ["x"] any) Trie.empty)
 
 let test_renaming_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -268,10 +268,10 @@ let () =
       test_case "except_subtree" `Quick test_except_subtree_2;
       test_case "except_subtree" `Quick test_except_subtree_3;
     ];
-    "on_subtree", [
-      test_case "on_subtree" `Quick test_on_subtree_1;
-      test_case "on_subtree" `Quick test_on_subtree_2;
-      test_case "on_subtree" `Quick test_on_subtree_3;
+    "in_subtree", [
+      test_case "in_subtree" `Quick test_in_subtree_1;
+      test_case "in_subtree" `Quick test_in_subtree_2;
+      test_case "in_subtree" `Quick test_in_subtree_3;
     ];
     "renaming", [
       test_case "renaming" `Quick test_renaming_1;

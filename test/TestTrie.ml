@@ -1,4 +1,4 @@
-open YuujinchouNew
+open Yuujinchou
 
 let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   let module M = struct
@@ -7,6 +7,8 @@ let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
     let equal = Trie.equal (Alcotest.equal elem)
   end in
   (module M)
+
+let merge x y = x * y + y
 
 let of_list l = Trie.of_seq (fun _ _ -> failwith "conflicting keys") (List.to_seq l)
 
@@ -47,13 +49,13 @@ let test_equal_2 () =
 
 let test_union () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 10+160; [], 20; ["x"], 40])
-    (Trie.union (+) (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
+    (of_list [["x"; "y"], 10*160+160; [], 20; ["x"], 40])
+    (Trie.union merge (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
 
 let test_union_subtree () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 10; [], 20; ["x"], 40+80; ["x"; "x"; "y"], 1600])
-    (Trie.union_subtree (+) (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
+    (of_list [["x"; "y"], 10; [], 20; ["x"], 40*80+80; ["x"; "x"; "y"], 1600])
+    (Trie.union_subtree merge (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
 
 let test_detach_subtree () =
   Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
