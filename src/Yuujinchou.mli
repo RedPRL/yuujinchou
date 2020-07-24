@@ -26,7 +26,7 @@ import foo as bar
    The code is split into three parts:
 *)
 
-(** The {!module:Trie} module implements a data structure (tries) that supports efficient operators on subtrees for a collection of hierarchical names and their associated data. *)
+(** The {!module:Trie} module implements a data structure (tries) that supports efficient subtree operators on a collection of hierarchical names and their associated data. Currently, only the minimum API to implement the pattern engine is exposed. *)
 module Trie : module type of (Trie)
 
 (** The {!module:Pattern} module defines the patterns. *)
@@ -50,9 +50,9 @@ sig
   type path = string list
 
   (**
-     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [a.b.c] is represented as the following OCaml list:
+     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [x.y.z] is represented as the following OCaml list:
      {[
-       ["a"; "b"; "c"]
+       ["x"; "y"; "z"]
      ]}
   *)
 
