@@ -205,6 +205,17 @@ and children_to_seq prefix_stack children =
 
 let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq Nil) t
 
+let rec node_to_seq_values t () =
+  match t.root with
+  | None -> children_to_seq_values t.children ()
+  | Some data ->
+    Seq.Cons (data, children_to_seq_values t.children)
+
+and children_to_seq_values children =
+  SegMap.to_seq children |> Seq.flat_map @@ fun (_, t) -> node_to_seq_values t
+
+let to_seq_values t = Option.fold ~none:Seq.empty ~some:node_to_seq_values t
+
 let of_seq m = Seq.fold_left (union_singleton m) empty
 
 (** {1 Map} *)

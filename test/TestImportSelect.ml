@@ -33,7 +33,7 @@ module DataSet = Set.Make (Data)
 
 (** [select env pattern] returns the set of matched data. *)
 let select env pattern =
-  DataSet.of_seq @@ Seq.map snd @@ Trie.to_seq @@ remap pattern env
+  DataSet.of_seq @@ Trie.to_seq_values @@ remap pattern env
 
 (** {1 Testing} *)
 
