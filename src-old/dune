@@ -1,5 +1,0 @@
-(library
- (name YuujinchouOld)
- (preprocess
-  (pps ppx_deriving.std))
- (public_name yuujinchou.old))

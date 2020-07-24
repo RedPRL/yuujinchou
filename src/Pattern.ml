@@ -53,7 +53,7 @@ let update_singleton prefix on_target =
 
 let except p = update_singleton p hide
 let except_subtree p = update_subtree p hide
-let on_subtree prefix = update_subtree prefix
+let in_subtree prefix = update_subtree prefix
 
 let rename_and_update_subtree prefix prefix_replacement on_target =
   PatSplit {mode = `Subtree; prefix; prefix_replacement = Some prefix_replacement; on_target; on_others = id}

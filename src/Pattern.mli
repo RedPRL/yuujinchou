@@ -21,17 +21,17 @@ type 'a t =
 val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 
-val none : 'a t
 val any : 'a t
-val wildcard : 'a t
 val root : 'a t
+val wildcard : 'a t
 
 val only : path -> 'a t
 val only_subtree : path -> 'a t
 
+val none : 'a t
 val except : path -> 'a t
 val except_subtree : path -> 'a t
-val on_subtree : path -> 'a t -> 'a t
+val in_subtree : path -> 'a t -> 'a t
 
 val renaming : path -> path -> 'a t
 val renaming_subtree : path -> path -> 'a t
