@@ -51,6 +51,13 @@ val find_root : 'a t -> 'a option
 (** [filter_map_endo f t] applies the function [f] to each value [v] in the trie. If [f v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'] in the returned trie. *)
 val filter_map_endo : ('a -> 'a option) -> 'a t -> 'a t
 
+(** {1 Updating} *)
+
+(** [update_subtree p f t] replaces the subtree [t'] rooted at [p] in [t] with [f t']. It will try to preserve physical equality when [f] returns the trie unchanged. *)
+val update_subtree : path -> ('a t -> 'a t) -> 'a t -> 'a t
+
+(* val update_singleton : path -> ('a option -> 'a option) -> 'a t -> 'a t *)
+
 (** {1 Union} *)
 
 (** [union merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path, it will call the function [merger] to reconcile the values from the two tries. *)
@@ -58,10 +65,9 @@ val union : ('a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
 
 (** [union_subtree merger t1 (path, t2)] is equivalent to [union merger t1 (prefix t2)], but potentially more efficient. *)
 val union_subtree : ('a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
-(* val union_singleton : ('a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t *)
 
-(* val update_subtree : path -> ('a t -> 'a t) -> 'a t -> 'a t *)
-(* val update_singleton : path -> ('a option -> 'a option) -> 'a t -> 'a t *)
+(** [union_singleton merger t binding] is equivalent to [union merger t1 (singleton binding)], but potentially more efficient. *)
+val union_singleton : ('a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t
 
 (** {1 Separation} *)
 

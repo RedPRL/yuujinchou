@@ -41,9 +41,9 @@ let mk_tree root children =
   then empty
   else non_empty {root; children}
 
-let mk_root_node data = {root = Some data; children = SegMap.empty}
+let mk_root_node v = {root = Some v; children = SegMap.empty}
 
-let mk_root root = Option.map mk_root_node root
+let mk_root v = Option.map mk_root_node v
 
 let prefix_node path t : 'a node =
   let f seg t =
@@ -53,11 +53,11 @@ let prefix_node path t : 'a node =
 
 let prefix path = Option.map @@ prefix_node path
 
-let singleton_node (path, data) = prefix_node path @@ mk_root_node data
+let singleton_node (path, v) = prefix_node path @@ mk_root_node v
 
-let singleton (path, data) = non_empty @@ singleton_node (path, data)
+let singleton (path, v) = non_empty @@ singleton_node (path, v)
 
-let root data = non_empty @@ mk_root_node data
+let root v = non_empty @@ mk_root_node v
 
 (** {1 Comparison} *)
 
@@ -108,10 +108,10 @@ let update_node n root children =
 
 let update_node2 n1 n2 root children =
   if phy_eq_option n1.root root && phy_eq_map n1.children children then n1 else update_node n2 root children
-(*
+
 let update_root n root =
   if phy_eq_option n.root root then n else {n with root}
-*)
+
 let update_children n children =
   if phy_eq_map n.children children then n else {n with children}
 
@@ -130,13 +130,30 @@ and update_cont t path k =
   | None -> prefix path @@ k empty
   | Some t -> update_node_cont t path k
 
+let update_subtree path f t = update_cont t path f
+
+(*
+(* TODO preserves physical eq *)
+let update_singleton path f t = update_cont t path @@
+  function
+  | None -> mk_root @@ f None
+  | Some t -> mk_tree (f t.root) t.children
+
+(* TODO preserves physical eq *)
+let update_root f t = update_singleton [] f t
+*)
+
 (** {1 Union} *)
 
-let union_option f x x' =
-  match x, x' with
+let union_option f x y =
+  match x, y with
   | _, None -> x
-  | None, _ -> x'
-  | Some x, Some x' -> Some (f x x')
+  | None, _ -> y
+  | Some x', Some y' ->
+    let fxy = f x' y' in
+    if fxy == x' then x
+    else if fxy == y' then y
+    else Some fxy
 
 let rec union_node m t t' =
   let root = union_option m t.root t'.root in
@@ -154,37 +171,12 @@ let rec union_node m t t' =
 let union m = union_option @@ union_node m
 
 let union_subtree m t (path, t') =
-  match t, t' with
-  | None, _ -> prefix path t'
-  | _, None -> t
-  | Some t, Some t' ->
-    update_node_cont t path @@ function
-    | None -> non_empty t'
-    | Some t -> non_empty @@ union_node m t t'
+  update_cont t path @@ fun t -> union m t t'
 
-(* TODO preserves physical eq *)
-let union_singleton m t (path, data) =
-  match t with
-  | None -> singleton (path, data)
-  | Some t -> update_node_cont t path @@ function
-    | None -> non_empty @@ mk_root_node data
-    | Some t -> non_empty {t with root = union_option m t.root @@ Some data}
-
-(** {1 Updating trees} *)
-
-(*
-(* TODO preserves physical eq *)
-let update_subtree path f t = update_cont t path f
-
-(* TODO preserves physical eq *)
-let update_singleton path f t = update_cont t path @@
-  function
-  | None -> mk_root @@ f None
-  | Some t -> mk_tree (f t.root) t.children
-
-(* TODO preserves physical eq *)
-let update_root f t = update_singleton [] f t
-*)
+let union_singleton m t (path, v) =
+  update_cont t path @@ function
+  | None -> non_empty @@ mk_root_node v
+  | Some n -> non_empty @@ update_root n @@ union_option m n.root @@ Some v
 
 (** {1 Detaching subtrees} *)
 
@@ -216,8 +208,8 @@ let detach_singleton path t = apply_and_update_cont path t @@ function
 let rec node_to_seq prefix t () =
   match t.root with
   | None -> children_to_seq prefix t.children ()
-  | Some data ->
-    Seq.Cons ((prefix >> [], data), children_to_seq prefix t.children)
+  | Some v ->
+    Seq.Cons ((prefix >> [], v), children_to_seq prefix t.children)
 
 and children_to_seq prefix_stack children =
   SegMap.to_seq children |> Seq.flat_map @@ fun (seg, t) ->
@@ -228,8 +220,8 @@ let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq Nil) t
 let rec node_to_seq_values t () =
   match t.root with
   | None -> children_to_seq_values t.children ()
-  | Some data ->
-    Seq.Cons (data, children_to_seq_values t.children)
+  | Some v ->
+    Seq.Cons (v, children_to_seq_values t.children)
 
 and children_to_seq_values children =
   SegMap.to_seq children |> Seq.flat_map @@ fun (_, t) -> node_to_seq_values t
@@ -266,17 +258,17 @@ let filter_map f t = Option.bind t @@ filter_map_node f
 (* TODO preserves physical eq *)
 let filter_map_endo f t = filter_map f t
 
-let rec pp_node pp_data fmt {root; children} =
+let rec pp_node pp_v fmt {root; children} =
   Format.fprintf fmt "@[@[<hv2>{ . =>@ %a@]%a@ @[<hv2>}@]@]"
-    Format.(pp_print_option ~none:(fun fmt () -> pp_print_string fmt "") pp_data) root
-    (pp_children pp_data) children
+    Format.(pp_print_option ~none:(fun fmt () -> pp_print_string fmt "") pp_v) root
+    (pp_children pp_v) children
 
-and pp_children pp_data fmt =
+and pp_children pp_v fmt =
   let f ~key:seg ~data:n =
-    Format.fprintf fmt "@ @[<hv2>; %a =>@ %a@]" Format.pp_print_string seg (pp_node pp_data) n
+    Format.fprintf fmt "@ @[<hv2>; %a =>@ %a@]" Format.pp_print_string seg (pp_node pp_v) n
   in
   SegMap.iter ~f
 
-let pp pp_data = Format.pp_print_option (pp_node pp_data)
+let pp pp_v = Format.pp_print_option (pp_node pp_v)
 
 let physically_equal : 'a t -> 'a t -> bool = phy_eq_option

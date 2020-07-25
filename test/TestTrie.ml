@@ -8,7 +8,7 @@ let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   end in
   (module M)
 
-let cantor x y = (x + y) * (x + y + 1) / 2 + y
+let cantor x y = if x == y then x else (x + y) * (x + y + 1) / 2 + y
 
 let of_list l = Trie.of_seq (fun _ _ -> failwith "conflicting keys") (List.to_seq l)
 
@@ -102,6 +102,17 @@ let test_filter_map_endo () =
     (of_list [[], 30])
     (Trie.filter_map_endo (fun x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
 
+let test_update_subtree () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], cantor 160 10; ["x"], 40])
+    (Trie.update_subtree ["x"] (fun t -> Trie.union_singleton cantor t (["y"], 10)) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_update_subtree_phy_eq () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.update_subtree ["x"] (fun t -> t) t == t)
+
 let test_union () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"; "y"], cantor 10 160; [], 20; ["x"], 40])
@@ -127,6 +138,12 @@ let test_union_phy_eq_3 () =
     true
     (Trie.physically_equal (Trie.find_subtree ["x"] t') sub)
 
+let test_union_phy_eq_4 () =
+  let t = of_list [[], 10] in
+  Alcotest.(check bool) "eq"
+    true
+    (Trie.union cantor t t == t)
+
 let test_union_subtree () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"; "y"], 10; [], 20; ["x"], cantor 40 80; ["x"; "x"; "y"], 1600])
@@ -145,6 +162,18 @@ let test_union_subtree_phy_eq_2 () =
   Alcotest.(check bool) "eq"
     true
     (Trie.physically_equal (Trie.find_subtree ["x"] t') sub)
+
+let test_union_singleton () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], cantor 10 160; [], 20; ["x"], 40])
+    (Trie.union_singleton cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"; "y"], 160))
+
+let test_union_singleton_phy_eq () =
+  let ten = 10 in
+  let t = of_list [["x"; "y"], ten; [], 20] in
+  Alcotest.(check bool) "eq"
+    true
+    (Trie.union_singleton cantor t (["x"; "y"], ten) == t)
 
 let test_detach_subtree () =
   Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
@@ -207,16 +236,25 @@ let () =
     "filter_map_endo", [
       test_case "filter_map_endo" `Quick test_filter_map_endo;
     ];
+    "update_subtree", [
+      test_case "update_subtree" `Quick test_update_subtree;
+      test_case "physical equality" `Quick test_update_subtree_phy_eq;
+    ];
     "union", [
       test_case "union" `Quick test_union;
       test_case "physical equality" `Quick test_union_phy_eq_1;
       test_case "physical equality" `Quick test_union_phy_eq_2;
       test_case "physical equality" `Quick test_union_phy_eq_3;
+      test_case "physical equality" `Quick test_union_phy_eq_4;
     ];
     "union_subtree", [
       test_case "union_subtree" `Quick test_union_subtree;
       test_case "physical equality" `Quick test_union_subtree_phy_eq_1;
       test_case "physical equality" `Quick test_union_subtree_phy_eq_2;
+    ];
+    "union_singleton", [
+      test_case "union_singleton" `Quick test_union_singleton;
+      test_case "physical equality" `Quick test_union_singleton_phy_eq;
     ];
     "detach_subtree", [
       test_case "detach_subtree" `Quick test_detach_subtree;
