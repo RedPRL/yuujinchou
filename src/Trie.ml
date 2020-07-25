@@ -13,12 +13,18 @@ struct
     end)
 
   let filter_map f m =
-    let f ~key:seg ~data:child m =
-      match f child with
+    let f ~key ~data m =
+      match f data with
       | None -> m
-      | Some c -> add ~key:seg ~data:c m
+      | Some data -> add ~key ~data m
     in
     fold ~f m ~init:empty
+
+  let filter_map_endo f m =
+    let f m (key, children) =
+      update ~key ~f:(fun _ -> f children) m
+    in
+    Seq.fold_left f m (to_seq m)
 end
 
 type 'a node = {
@@ -110,6 +116,10 @@ let replace2_nonempty_root_and_children n1 n2 root children =
     n2
   else
     {root; children}
+
+let replace_root_and_children n root children =
+  if phy_eq_option n.root root && phy_eq_map n.children children
+  then non_empty n else mk_tree root children
 
 let replace_root n root =
   if phy_eq_option n.root root then non_empty n else mk_tree root n.children
@@ -236,18 +246,14 @@ let rec map_node f n =
   }
 let map f t = Option.map (map_node f) t
 
-(*
-(* TODO preserves physical eq *)
-let rec filter_node f {root; children} =
-  mk_tree (Option.bind root @@ fun d -> if f d then Some d else None) @@
-  SegMap.filter_map (filter_node f) children
-
-let filter f t = Option.bind t @@ filter_node f
-*)
+let rec filter_node f n =
+  let root = Option.bind n.root @@ fun v -> if f v then Some v else None in
+  let children = SegMap.filter_map_endo (filter_node f) n.children in
+  replace_root_and_children n root children
+let filter f t = replace_tree t @@ Option.bind t @@ filter_node f
 
 let rec filter_map_node f {root; children} =
   mk_tree (Option.bind root f) @@ SegMap.filter_map (filter_map_node f) children
-
 let filter_map f t = Option.bind t @@ filter_map_node f
 
 (* TODO preserves physical eq *)

@@ -47,7 +47,10 @@ val find_root : 'a t -> 'a option
 val map : ('a -> 'b) -> 'a t -> 'b t
 
 (* val map_endo : ('a -> 'a) -> 'a t -> 'a t *)
-(* val filter : ('a -> bool) -> 'a t -> 'a t *)
+
+(** [filter f t] removes the values [v] where [f v] returns [false]. If [f v] returns [true] for every value in [t], the [t] is returned unchanged. *)
+val filter : ('a -> bool) -> 'a t -> 'a t
+
 (* val filter_map : ('a -> 'b option) -> 'a t -> 'b t *)
 
 (** [filter_map_endo f t] applies the function [f] to each value [v] in the trie. If [f v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'] in the returned trie. *)

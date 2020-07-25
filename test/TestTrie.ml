@@ -97,6 +97,38 @@ let test_find_root_3 () =
     None
     (Trie.find_root Trie.empty)
 
+let test_map_1 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 11; [], 21])
+    (Trie.map (fun x -> x + 1) (of_list [["x"; "y"], 10; [], 20]))
+
+let test_map_2 () =
+  Alcotest.(check @@ trie int) "same trie"
+    Trie.empty
+    (Trie.map (fun x -> x + 1) Trie.empty)
+
+let test_filter_1 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"], 20; [], 40])
+    (Trie.filter (fun x -> x > 15) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
+
+let test_filter_2 () =
+  Alcotest.(check @@ trie int) "same trie"
+    Trie.empty
+    (Trie.filter (fun x -> x > 100) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
+
+let test_filter_phy_eq_1 () =
+  let t = Trie.empty in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.filter (fun x -> x > 100) t == t)
+
+let test_filter_phy_eq_2 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.filter (fun _ -> true) t == t)
+
 let test_filter_map_endo () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [[], 30])
@@ -301,6 +333,16 @@ let () =
       test_case "find_root" `Quick test_find_root_1;
       test_case "find_root" `Quick test_find_root_2;
       test_case "find_root" `Quick test_find_root_3;
+    ];
+    "map", [
+      test_case "map" `Quick test_map_1;
+      test_case "map" `Quick test_map_2;
+    ];
+    "filter", [
+      test_case "filter" `Quick test_filter_1;
+      test_case "filter" `Quick test_filter_2;
+      test_case "physical equality" `Quick test_filter_phy_eq_1;
+      test_case "physical equality" `Quick test_filter_phy_eq_2;
     ];
     "filter_map_endo", [
       test_case "filter_map_endo" `Quick test_filter_map_endo;
