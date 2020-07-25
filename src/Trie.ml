@@ -258,12 +258,15 @@ let rec filter_node f n =
   replace_root_and_children n root children
 let filter f t = replace_tree t @@ Option.bind t @@ filter_node f
 
-let rec filter_map_node f {root; children} =
-  mk_tree (Option.bind root f) @@ SegMap.filter_map (filter_map_node f) children
+let rec filter_map_node f n =
+  mk_tree (Option.bind n.root f) @@ SegMap.filter_map (filter_map_node f) n.children
 let filter_map f t = Option.bind t @@ filter_map_node f
 
-(* TODO preserves physical eq *)
-let filter_map_endo f t = filter_map f t
+let rec filter_map_endo_node f n =
+  let root = Option.bind n.root f in
+  let children = SegMap.filter_map_endo (filter_map_endo_node f) n.children in
+  replace_root_and_children n root children
+let filter_map_endo f t = replace_tree t @@ Option.bind t @@ filter_map_endo_node f
 
 let rec pp_node pp_v fmt {root; children} =
   Format.fprintf fmt "@[@[<hv2>{ . =>@ %a@]%a@ @[<hv2>}@]@]"

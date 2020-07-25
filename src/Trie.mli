@@ -46,15 +46,16 @@ val find_root : 'a t -> 'a option
 (** [map f t] applies the function [f] to each value [v] in the trie. *)
 val map : ('a -> 'b) -> 'a t -> 'b t
 
-(** [map_endo f t] is similar to [map f t] except that the domain and the codomain of the function must be the same and the physical equality is preserved when [f] is an identity function. *)
+(** [map_endo f t] is similar to [map f t] except that the domain and the codomain of the function must be the same and if [f v] returns [v] for every value [v] in [t], then [t] is returned unchanged. (That is, the new trie will be phisically equalal to the old one.) See {!val:filter_map_endo}. *)
 val map_endo : ('a -> 'a) -> 'a t -> 'a t
 
-(** [filter f t] removes the values [v] where [f v] returns [false]. If [f v] returns [true] for every value in [t], the [t] is returned unchanged. *)
+(** [filter f t] removes all values [v] such that [f v] returns [false]. If [f v] returns [true] for every value [v] in [t], then [t] is returned unchanged. (That is, the new trie will be phisically equalal to the old one.) *)
 val filter : ('a -> bool) -> 'a t -> 'a t
 
-(* val filter_map : ('a -> 'b option) -> 'a t -> 'b t *)
+(** [filter_map f t] applies the function [f] to each value [v] in the trie. If [f v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v']. *)
+val filter_map : ('a -> 'b option) -> 'a t -> 'b t
 
-(** [filter_map_endo f t] applies the function [f] to each value [v] in the trie. If [f v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'] in the returned trie. *)
+(** [filter_map_endo f t] is similar to [filter_map f t] except that [f] must be of type ['a -> 'a option] and if [f v] returns [Some v] for every value [v] in [t], then [t] is returned unchanged. (That is, the new trie will be phisically equalal to the old one.) See {!val:map_endo} *)
 val filter_map_endo : ('a -> 'a option) -> 'a t -> 'a t
 
 (** {1 Updating} *)

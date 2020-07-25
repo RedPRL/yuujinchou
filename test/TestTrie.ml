@@ -108,14 +108,14 @@ let test_map_2 () =
     (Trie.map (fun x -> x + 1) Trie.empty)
 
 let test_map_endo_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 11; [], 21])
-    (Trie.map (fun x -> x + 1) (of_list [["x"; "y"], 10; [], 20]))
+  Alcotest.(check @@ trie @@ pair unit int) "same trie"
+    (of_list [["x"; "y"], ((), 11); [], ((), 21)])
+    (Trie.map (fun x -> ((), x + 1)) (of_list [["x"; "y"], 10; [], 20]))
 
 let test_map_endo_2 () =
-  Alcotest.(check @@ trie int) "same trie"
+  Alcotest.(check @@ trie @@ pair unit int) "same trie"
     Trie.empty
-    (Trie.map (fun x -> x + 1) Trie.empty)
+    (Trie.map (fun x -> ((), x + 1)) Trie.empty)
 
 let test_map_endo_phy_eq_1 () =
   let t = Trie.empty in
@@ -151,10 +151,37 @@ let test_filter_phy_eq_2 () =
     true
     (Trie.filter (fun _ -> true) t == t)
 
-let test_filter_map_endo () =
+let test_filter_map_1 () =
+  Alcotest.(check @@ trie @@ pair unit int) "same trie"
+    (of_list [[], ((), 30)])
+    (Trie.filter_map (fun x -> if x > 10 then Some ((), 30) else None) (of_list [["x"; "y"], 10; [], 20]))
+
+let test_filter_map_2 () =
+  Alcotest.(check @@ trie @@ pair unit int) "same trie"
+    Trie.empty
+    (Trie.filter_map (fun _ -> None) (of_list [["x"; "y"], 10; [], 20]))
+
+let test_filter_map_endo_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [[], 30])
     (Trie.filter_map_endo (fun x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
+
+let test_filter_map_endo_2 () =
+  Alcotest.(check @@ trie int) "same trie"
+    Trie.empty
+    (Trie.filter_map_endo (fun _ -> None) (of_list [["x"; "y"], 10; [], 20]))
+
+let test_filter_map_endo_phy_eq_1 () =
+  let t = Trie.empty in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.filter_map_endo (fun _ -> None) t == t)
+
+let test_filter_map_endo_phy_eq_2 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.filter_map_endo (fun x -> Some x) t == t)
 
 let test_update_subtree () =
   Alcotest.(check @@ trie int) "same trie"
@@ -372,8 +399,15 @@ let () =
       test_case "physical equality" `Quick test_filter_phy_eq_1;
       test_case "physical equality" `Quick test_filter_phy_eq_2;
     ];
+    "filter_map", [
+      test_case "filter_map" `Quick test_filter_map_1;
+      test_case "filter_map" `Quick test_filter_map_2;
+    ];
     "filter_map_endo", [
-      test_case "filter_map_endo" `Quick test_filter_map_endo;
+      test_case "filter_map_endo" `Quick test_filter_map_endo_1;
+      test_case "filter_map_endo" `Quick test_filter_map_endo_2;
+      test_case "physical equality" `Quick test_filter_map_endo_phy_eq_1;
+      test_case "physical equality" `Quick test_filter_map_endo_phy_eq_2;
     ];
     "update_subtree", [
       test_case "update_subtree" `Quick test_update_subtree;
