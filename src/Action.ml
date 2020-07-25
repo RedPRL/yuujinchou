@@ -30,9 +30,10 @@ let rec run_ m p pat t =
         let singleton, others = Trie.detach_singleton prefix t in
         Trie.mk_root singleton, others
     in
-    let+ target = run_ m (p << prefix) on_target target
-    and+ others = run_ m p on_others others in
-    Trie.union_subtree m others (prefix_replacement, target)
+    let+ target' = run_ m (p << prefix) on_target target
+    and+ others' = run_ m p on_others others in
+    if target == target' && others == others' && prefix = prefix_replacement
+    then t else Trie.union_subtree m others' (prefix_replacement, target')
   | PatSeq pats ->
     let f t pat = Result.bind t (run_ m p pat) in
     List.fold_left ~f ~init:(ret t) pats
