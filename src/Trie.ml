@@ -95,16 +95,38 @@ let find_root t = find_singleton [] t
 
 (** {1 Traversing the trees} *)
 
-(* TODO preserves physical eq *)
-let rec update_node_cont t path k =
-  match path with
-  | [] -> k @@ non_empty t
-  | seg::path ->
-    mk_tree t.root @@ SegMap.update ~key:seg ~f:(fun t -> update_cont t path k) t.children
+let phy_eq_option r1 r2 =
+  match r1, r2 with
+  | None, None -> true
+  | Some r1, Some r2 -> r1 == r2
+  | _ -> false
 
-(* TODO preserves physical eq *)
+let phy_eq_map c1 c2 = c1 == c2
+
+let update_node n root children =
+  if phy_eq_option n.root root && phy_eq_map n.children children then n else {root; children}
+
+let update_node2 n1 n2 root children =
+  if phy_eq_option n1.root root && phy_eq_map n1.children children then n1 else update_node n2 root children
+(*
+let update_root n root =
+  if phy_eq_option n.root root then n else {n with root}
+*)
+let update_children n children =
+  if phy_eq_map n.children children then n else {n with children}
+
+let update_tree t1 t2 =
+  if phy_eq_option t1 t2 then t1 else t2
+
+let rec update_node_cont n path k =
+  match path with
+  | [] -> k @@ non_empty n
+  | seg::path ->
+    non_empty @@ update_children n @@
+    SegMap.update ~key:seg ~f:(fun n -> update_cont n path k) n.children
+
 and update_cont t path k =
-  match t with
+  update_tree t @@ match t with
   | None -> prefix path @@ k empty
   | Some t -> update_node_cont t path k
 
@@ -116,19 +138,21 @@ let union_option f x x' =
   | None, _ -> x'
   | Some x, Some x' -> Some (f x x')
 
-(* TODO preserves physical eq *)
 let rec union_node m t t' =
   let root = union_option m t.root t'.root in
   let children =
-    let f _key t t' = Some (union_node m t t') in
-    SegMap.union ~f t.children t'.children
+    if SegMap.is_empty t.children then
+      t'.children
+    else if SegMap.is_empty t'.children then
+      t.children
+    else
+      let f _key t t' = Some (union_node m t t') in
+      SegMap.union ~f t.children t'.children
   in
-  {root; children}
+  update_node2 t t' root children
 
-(* TODO preserves physical eq *)
 let union m = union_option @@ union_node m
 
-(* TODO preserves physical eq *)
 let union_subtree m t (path, t') =
   match t, t' with
   | None, _ -> prefix path t'
@@ -254,3 +278,5 @@ and pp_children pp_data fmt =
   SegMap.iter ~f
 
 let pp pp_data = Format.pp_print_option (pp_node pp_data)
+
+let physically_equal : 'a t -> 'a t -> bool = phy_eq_option

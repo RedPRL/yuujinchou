@@ -26,11 +26,11 @@ val singleton : path * 'a -> 'a t
 (** [root d] makes a trie with the only binding: the root and its associated value [d]. It is equivalent to [singleton [] d]. *)
 val root : 'a -> 'a t
 
-(** [prefix p t] makes a minimum trie with [t] rooted at [p]. *)
+(** [equal eq t1 t2] checks whether two tries are equal. It the internal representations of tries are physically equal, [equal eq t1 t2] will return [true] without calling [eq]. *)
 val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 (* val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int *)
 
-(** {1 Finding Data} *)
+(** {1 Locating Values} *)
 
 (** [find_subtree p t] returns the subtree rooted at [p]. *)
 val find_subtree : path -> 'a t -> 'a t
@@ -63,7 +63,7 @@ val union_subtree : ('a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
 (* val update_subtree : path -> ('a t -> 'a t) -> 'a t -> 'a t *)
 (* val update_singleton : path -> ('a option -> 'a option) -> 'a t -> 'a t *)
 
-(** {1 Detach} *)
+(** {1 Separation} *)
 
 (** [detach p t] detaches the subtree at [p] from the main trie and returns both the subtree and the remaining trie. If [detach p t] returns [t1, t2], then [union_subtree m t2 (p, t1)] should be equivalent to [t]. *)
 val detach_subtree : path -> 'a t -> 'a t * 'a t
@@ -86,3 +86,8 @@ val of_seq : ('a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 
 (** [pp pp_v t] prints out the content of [t], using the pretty printer [pp_v] on values. *)
 val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
+
+(** {1 Physical Equality} *)
+
+(** This is an internal API for testing whether the library is preserving physical equality as much as possible. If [physically_equal t1 t2] returns [true] then [equal eq t1 t2] must return [true]. Do not rely on this function unless you know the internals of tries. *)
+val physically_equal : 'a t -> 'a t -> bool

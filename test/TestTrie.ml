@@ -8,7 +8,7 @@ let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   end in
   (module M)
 
-let merge x y = x * y + y
+let cantor x y = (x + y) * (x + y + 1) / 2 + y
 
 let of_list l = Trie.of_seq (fun _ _ -> failwith "conflicting keys") (List.to_seq l)
 
@@ -56,6 +56,12 @@ let test_equal_2 () =
     false
     (Trie.equal Alcotest.(equal int) (of_list [["x"; "y"], 100]) (of_list [["x"; "z"], 100]))
 
+let test_equal_phy_eq () =
+  let t = of_list [["x"], 1] in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.equal (fun _ _ -> failwith "not using physical equality") t t)
+
 let test_find_subtree_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [[], 10; ["x"], 20])
@@ -98,13 +104,47 @@ let test_filter_map_endo () =
 
 let test_union () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 10*160+160; [], 20; ["x"], 40])
-    (Trie.union merge (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
+    (of_list [["x"; "y"], cantor 10 160; [], 20; ["x"], 40])
+    (Trie.union cantor (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_union_phy_eq_1 () =
+  let t = of_list [["x"; "y"], 10; [], 20] in
+  Alcotest.(check bool) "eq"
+    true
+    (Trie.union cantor t Trie.empty == t)
+
+let test_union_phy_eq_2 () =
+  let t = of_list [["x"; "y"], 10; [], 20] in
+  Alcotest.(check bool) "eq"
+    true
+    (Trie.union cantor Trie.empty t == t)
+
+let test_union_phy_eq_3 () =
+  let t = of_list [["x"; "y"], 10; [], 20] in
+  let sub, others = Trie.detach_subtree ["x"] t in
+  let t' = Trie.union cantor others (Trie.prefix ["x"] sub) in
+  Alcotest.(check bool) "eq"
+    true
+    (Trie.physically_equal (Trie.find_subtree ["x"] t') sub)
 
 let test_union_subtree () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 10; [], 20; ["x"], 40*80+80; ["x"; "x"; "y"], 1600])
-    (Trie.union_subtree merge (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
+    (of_list [["x"; "y"], 10; [], 20; ["x"], cantor 40 80; ["x"; "x"; "y"], 1600])
+    (Trie.union_subtree cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
+
+let test_union_subtree_phy_eq_1 () =
+  let t = of_list [["x"; "y"], 10; [], 20] in
+  Alcotest.(check bool) "eq"
+    true
+    (Trie.union_subtree cantor t (["x"], Trie.empty) == t)
+
+let test_union_subtree_phy_eq_2 () =
+  let t = of_list [["x"; "y"], 10; [], 20] in
+  let sub, others = Trie.detach_subtree ["x"] t in
+  let t' = Trie.union_subtree cantor others (["x"], sub) in
+  Alcotest.(check bool) "eq"
+    true
+    (Trie.physically_equal (Trie.find_subtree ["x"] t') sub)
 
 let test_detach_subtree () =
   Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
@@ -142,6 +182,7 @@ let () =
     "equal", [
       test_case "equal" `Quick test_equal_1;
       test_case "equal" `Quick test_equal_2;
+      test_case "physical equality" `Quick test_equal_phy_eq;
     ];
     "singleton", [
       test_case "singleton" `Quick test_singleton_1;
@@ -168,9 +209,14 @@ let () =
     ];
     "union", [
       test_case "union" `Quick test_union;
+      test_case "physical equality" `Quick test_union_phy_eq_1;
+      test_case "physical equality" `Quick test_union_phy_eq_2;
+      test_case "physical equality" `Quick test_union_phy_eq_3;
     ];
     "union_subtree", [
       test_case "union_subtree" `Quick test_union_subtree;
+      test_case "physical equality" `Quick test_union_subtree_phy_eq_1;
+      test_case "physical equality" `Quick test_union_subtree_phy_eq_2;
     ];
     "detach_subtree", [
       test_case "detach_subtree" `Quick test_detach_subtree;
