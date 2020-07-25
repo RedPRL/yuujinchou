@@ -258,7 +258,7 @@ import qualified Mod hiding (x,y)
      union [require-spec0; require-spec1; ...]
    ]}
 
-   The [provide] mechanism can be simulated in a similar way, and the phases can be done by {!val:Pattern.filter_map}.
+   The [provide] mechanism can be implemented in a similar way, and the phases can be handled via {!val:Pattern.filter_map}.
 
    {1 What is "Yuujinchou"?}
 

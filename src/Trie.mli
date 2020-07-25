@@ -30,7 +30,7 @@ val root : 'a -> 'a t
 val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 (* val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int *)
 
-(** {1 Locating Values} *)
+(** {1 Finding Values} *)
 
 (** [find_subtree p t] returns the subtree rooted at [p]. *)
 val find_subtree : path -> 'a t -> 'a t
@@ -104,5 +104,5 @@ val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 
 (** {1 Physical Equality} *)
 
-(** This is an internal API for testing whether the library is preserving physical equality as much as possible. If [physically_equal t1 t2] returns [true] then [equal eq t1 t2] must return [true]. Do not rely on this function unless you know the internals of tries. *)
+(** This is an internal API for testing whether the library is preserving physical equality as much as possible. Do not use this function in other situtations. If [physically_equal t1 t2] returns [true] then [equal eq t1 t2] must return [true]. *)
 val physically_equal : 'a t -> 'a t -> bool
