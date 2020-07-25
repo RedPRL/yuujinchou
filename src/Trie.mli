@@ -46,7 +46,8 @@ val find_root : 'a t -> 'a option
 (** [map f t] applies the function [f] to each value [v] in the trie. *)
 val map : ('a -> 'b) -> 'a t -> 'b t
 
-(* val map_endo : ('a -> 'a) -> 'a t -> 'a t *)
+(** [map_endo f t] is similar to [map f t] except that the domain and the codomain of the function must be the same and the physical equality is preserved when [f] is an identity function. *)
+val map_endo : ('a -> 'a) -> 'a t -> 'a t
 
 (** [filter f t] removes the values [v] where [f v] returns [false]. If [f v] returns [true] for every value in [t], the [t] is returned unchanged. *)
 val filter : ('a -> bool) -> 'a t -> 'a t

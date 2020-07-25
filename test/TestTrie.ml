@@ -107,6 +107,28 @@ let test_map_2 () =
     Trie.empty
     (Trie.map (fun x -> x + 1) Trie.empty)
 
+let test_map_endo_1 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 11; [], 21])
+    (Trie.map (fun x -> x + 1) (of_list [["x"; "y"], 10; [], 20]))
+
+let test_map_endo_2 () =
+  Alcotest.(check @@ trie int) "same trie"
+    Trie.empty
+    (Trie.map (fun x -> x + 1) Trie.empty)
+
+let test_map_endo_phy_eq_1 () =
+  let t = Trie.empty in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.map_endo (fun x -> x + 2) t == t)
+
+let test_map_endo_phy_eq_2 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.map_endo (fun x -> x) t == t)
+
 let test_filter_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"], 20; [], 40])
@@ -337,6 +359,12 @@ let () =
     "map", [
       test_case "map" `Quick test_map_1;
       test_case "map" `Quick test_map_2;
+    ];
+    "map_endo", [
+      test_case "map_endo" `Quick test_map_endo_1;
+      test_case "map_endo" `Quick test_map_endo_2;
+      test_case "physical equality" `Quick test_map_endo_phy_eq_1;
+      test_case "physical equality" `Quick test_map_endo_phy_eq_2;
     ];
     "filter", [
       test_case "filter" `Quick test_filter_1;

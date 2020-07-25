@@ -109,13 +109,13 @@ let phy_eq_option r1 r2 =
 
 let phy_eq_map c1 c2 = c1 == c2
 
+let replace_nonempty_root_and_children n root children =
+  if phy_eq_option n.root root && phy_eq_map n.children children
+  then n else {root; children}
+
 let replace2_nonempty_root_and_children n1 n2 root children =
-  if phy_eq_option n1.root root && phy_eq_map n1.children children then
-    n1
-  else if phy_eq_option n2.root root && phy_eq_map n2.children children then
-    n2
-  else
-    {root; children}
+  if phy_eq_option n1.root root && phy_eq_map n1.children children
+  then n1 else replace_nonempty_root_and_children n2 root children
 
 let replace_root_and_children n root children =
   if phy_eq_option n.root root && phy_eq_map n.children children
@@ -245,6 +245,12 @@ let rec map_node f n =
   ; children = SegMap.map ~f:(map_node f) n.children
   }
 let map f t = Option.map (map_node f) t
+
+let rec map_endo_node f n =
+  let root = Option.map f n.root in
+  let children = SegMap.filter_map_endo (fun n -> Some (map_endo_node f n)) n.children in
+  replace_nonempty_root_and_children n root children
+let map_endo f t = replace_tree t @@ Option.map (map_endo_node f) t
 
 let rec filter_node f n =
   let root = Option.bind n.root @@ fun v -> if f v then Some v else None in
