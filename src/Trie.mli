@@ -56,7 +56,11 @@ val filter_map_endo : ('a -> 'a option) -> 'a t -> 'a t
 (** [update_subtree p f t] replaces the subtree [t'] rooted at [p] in [t] with [f t']. It will try to preserve physical equality when [f] returns the trie unchanged. *)
 val update_subtree : path -> ('a t -> 'a t) -> 'a t -> 'a t
 
-(* val update_singleton : path -> ('a option -> 'a option) -> 'a t -> 'a t *)
+(** [update_singleton p f t] replaces the value [v] at [p] in [t] with the result of [f]. If there was no binding at [p], [f None] is evaluated. Otherwise, [f (Some v)] is used. If the result is [None], the old binding at [p] (if any) is removed. Otherwise, if the result is [Some v'], the value at [p] is replaced by [v']. It will try to preserve physical equality when [f] maintains the current status of binding, either returning [None] for [None] or [Some v] for [Some v]. *)
+val update_singleton : path -> ('a option -> 'a option) -> 'a t -> 'a t
+
+(** [update_root f t] updates the value at root with [f]. It is equivalent to [update_singleton [] f t]. *)
+val update_root : ('a option -> 'a option) -> 'a t -> 'a t
 
 (** {1 Union} *)
 

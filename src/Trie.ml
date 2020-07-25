@@ -109,10 +109,10 @@ let update_node n root children =
 let update_node2 n1 n2 root children =
   if phy_eq_option n1.root root && phy_eq_map n1.children children then n1 else update_node n2 root children
 
-let update_root n root =
+let update_node_root n root =
   if phy_eq_option n.root root then n else {n with root}
 
-let update_children n children =
+let update_node_children n children =
   if phy_eq_map n.children children then n else {n with children}
 
 let update_tree t1 t2 =
@@ -122,7 +122,7 @@ let rec update_node_cont n path k =
   match path with
   | [] -> k @@ non_empty n
   | seg::path ->
-    non_empty @@ update_children n @@
+    non_empty @@ update_node_children n @@
     SegMap.update ~key:seg ~f:(fun n -> update_cont n path k) n.children
 
 and update_cont t path k =
@@ -132,16 +132,12 @@ and update_cont t path k =
 
 let update_subtree path f t = update_cont t path f
 
-(*
-(* TODO preserves physical eq *)
 let update_singleton path f t = update_cont t path @@
   function
   | None -> mk_root @@ f None
-  | Some t -> mk_tree (f t.root) t.children
+  | Some n -> non_empty @@ update_node_root n (f n.root)
 
-(* TODO preserves physical eq *)
 let update_root f t = update_singleton [] f t
-*)
 
 (** {1 Union} *)
 
@@ -176,7 +172,7 @@ let union_subtree m t (path, t') =
 let union_singleton m t (path, v) =
   update_cont t path @@ function
   | None -> non_empty @@ mk_root_node v
-  | Some n -> non_empty @@ update_root n @@ union_option m n.root @@ Some v
+  | Some n -> non_empty @@ update_node_root n @@ union_option m n.root @@ Some v
 
 (** {1 Detaching subtrees} *)
 

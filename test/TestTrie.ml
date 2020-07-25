@@ -113,6 +113,60 @@ let test_update_subtree_phy_eq () =
     true
     (Trie.update_subtree ["x"] (fun t -> t) t == t)
 
+let test_update_singleton_1 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 160; ["x"], 80])
+    (Trie.update_singleton ["x"] (fun t -> Some (Option.get t * 2)) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_update_singleton_2 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 160])
+    (Trie.update_singleton ["x"] (fun _ -> None) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_update_singleton_3 () =
+  Alcotest.(check @@ trie int) "same trie"
+    Trie.empty
+    (Trie.update_singleton ["x"] (fun _ -> None) (of_list [["x"], 40]))
+
+let test_update_singleton_phy_eq_1 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.update_singleton ["x"] (fun x -> x) t == t)
+
+let test_update_singleton_phy_eq_2 () =
+  let t = Trie.empty in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.update_singleton ["x"] (fun x -> x) t == t)
+
+let test_update_root_1 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 160; [], 80])
+    (Trie.update_root (fun t -> Some (Option.get t * 2)) (of_list [[], 40; ["x"; "y"], 160]))
+
+let test_update_root_2 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 160])
+    (Trie.update_root (fun _ -> None) (of_list [[], 40; ["x"; "y"], 160]))
+
+let test_update_root_3 () =
+  Alcotest.(check @@ trie int) "same trie"
+    Trie.empty
+    (Trie.update_root (fun _ -> None) (of_list [[], 40]))
+
+let test_update_root_phy_eq_1 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.update_root (fun x -> x) t == t)
+
+let test_update_root_phy_eq_2 () =
+  let t = Trie.empty in
+  Alcotest.(check bool) "true"
+    true
+    (Trie.update_root (fun x -> x) t == t)
+
 let test_union () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"; "y"], cantor 10 160; [], 20; ["x"], 40])
@@ -175,10 +229,20 @@ let test_union_singleton_phy_eq () =
     true
     (Trie.union_singleton cantor t (["x"; "y"], ten) == t)
 
-let test_detach_subtree () =
+let test_detach_subtree_1 () =
   Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
     (of_list [["y"], 10], of_list [[], 20])
     (Trie.detach_subtree ["x"] (of_list [["x"; "y"], 10; [], 20]))
+
+let test_detach_subtree_2 () =
+  Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
+    (of_list [["y"], 10], Trie.empty)
+    (Trie.detach_subtree ["x"] (of_list [["x"], 10]))
+
+let test_detach_subtree_3 () =
+  Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
+    (Trie.empty, of_list [[], 10])
+    (Trie.detach_subtree ["x"] (of_list [[], 10]))
 
 let test_detach_singleton_1 () =
   Alcotest.(check @@ pair (option int) (trie int)) "same trie"
@@ -189,6 +253,11 @@ let test_detach_singleton_2 () =
   Alcotest.(check @@ pair (option int) (trie int)) "same trie"
     (Some 20, of_list [["x"; "y"], 10])
     (Trie.detach_singleton [] (of_list [["x"; "y"], 10; [], 20]))
+
+let test_detach_singleton_3 () =
+  Alcotest.(check @@ pair (option int) (trie int)) "same trie"
+    (Some 10, Trie.empty)
+    (Trie.detach_singleton ["x"; "y"] (of_list [["x"; "y"], 10]))
 
 let () =
   let open Alcotest in
@@ -240,6 +309,20 @@ let () =
       test_case "update_subtree" `Quick test_update_subtree;
       test_case "physical equality" `Quick test_update_subtree_phy_eq;
     ];
+    "update_singleton", [
+      test_case "update_singleton" `Quick test_update_singleton_1;
+      test_case "update_singleton" `Quick test_update_singleton_2;
+      test_case "update_singleton" `Quick test_update_singleton_3;
+      test_case "physical equality" `Quick test_update_singleton_phy_eq_1;
+      test_case "physical equality" `Quick test_update_singleton_phy_eq_2;
+    ];
+    "update_root", [
+      test_case "update_root" `Quick test_update_root_1;
+      test_case "update_root" `Quick test_update_root_2;
+      test_case "update_root" `Quick test_update_root_3;
+      test_case "physical equality" `Quick test_update_root_phy_eq_1;
+      test_case "physical equality" `Quick test_update_root_phy_eq_2;
+    ];
     "union", [
       test_case "union" `Quick test_union;
       test_case "physical equality" `Quick test_union_phy_eq_1;
@@ -257,10 +340,13 @@ let () =
       test_case "physical equality" `Quick test_union_singleton_phy_eq;
     ];
     "detach_subtree", [
-      test_case "detach_subtree" `Quick test_detach_subtree;
+      test_case "detach_subtree" `Quick test_detach_subtree_1;
+      test_case "detach_subtree" `Quick test_detach_subtree_2;
+      test_case "detach_subtree" `Quick test_detach_subtree_3;
     ];
     "detach_singleton", [
       test_case "detach_singleton" `Quick test_detach_singleton_1;
       test_case "detach_singleton" `Quick test_detach_singleton_2;
+      test_case "detach_singleton" `Quick test_detach_singleton_3;
     ];
   ]
