@@ -26,7 +26,7 @@ import foo as bar
    The code is split into three parts:
 *)
 
-(** The {!module:Trie} module implements a data structure (tries) that supports efficient operators on subtrees for a collection of hierarchical names and their associated data. *)
+(** The {!module:Trie} module implements a data structure that maps paths to values and supports efficient subtree operations. *)
 module Trie : module type of (Trie)
 
 (** The {!module:Pattern} module defines the patterns. *)
@@ -50,9 +50,9 @@ sig
   type path = string list
 
   (**
-     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [a.b.c] is represented as the following OCaml list:
+     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [x.y.z] is represented as the following OCaml list:
      {[
-       ["a"; "b"; "c"]
+       ["x"; "y"; "z"]
      ]}
   *)
 
@@ -163,10 +163,11 @@ end
      (** [remap pattern env] uses the [pattern] to massage
          the environment [env]. *)
      let remap pattern env =
+       let pp_path = function [] -> "(root)" | path -> String.concat "." path in
        match Action.run Data.merge pattern env with
        | Ok env -> env
        | Error (Action.BindingNotFound path) ->
-         failwith ("Expected item not found within the subtree rooted at #root." ^ String.concat "." path ^ ".")
+         failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
 
      (** [import env pattern imported] imports the environment
          [imported] massaged by [pattern] into [env]. *)
@@ -257,7 +258,7 @@ import qualified Mod hiding (x,y)
      union [require-spec0; require-spec1; ...]
    ]}
 
-   The [provide] mechanism can be simulated in a similar way, and the phases can be done by {!val:Pattern.filter_map}.
+   The [provide] mechanism can be implemented in a similar way, and the phases can be handled via {!val:Pattern.filter_map}.
 
    {1 What is "Yuujinchou"?}
 

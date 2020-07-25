@@ -1,6 +1,6 @@
 # Yuujinchou: Name Pattern Combinators
 
-_Yuujinchou_ is an OCaml package of name patterns for implementing import statements. Please consult the [documentation](https://favonia.org/yuujinchou/yuujinchou/Yuujinchou).
+_Yuujinchou_ is an OCaml package of name patterns for implementing import statements. Please consult the [generated documentation](https://favonia.org/yuujinchou/yuujinchou/Yuujinchou) for more details.
 
 ## How to Use It
 
@@ -24,10 +24,11 @@ type env = Data.t Trie.t
 (** [remap pattern env] uses the [pattern] to massage
     the environment [env]. *)
 let remap pattern env =
+  let pp_path = function [] -> "(root)" | path -> String.concat "." path in
   match Action.run Data.merge pattern env with
   | Ok env -> env
   | Error (Action.BindingNotFound path) ->
-    failwith ("Expected item not found within the subtree rooted at #root." ^ String.concat "." path ^ ".")
+    failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
 
 (** [import env pattern imported] imports the environment
     [imported] massaged by [pattern] into [env]. *)
