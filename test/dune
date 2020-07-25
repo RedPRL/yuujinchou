@@ -1,3 +1,5 @@
+(alias (name default) (deps)) ; prevent @default from building the tests
+
 (test
  (name TestTrie)
  (modules TestTrie)
