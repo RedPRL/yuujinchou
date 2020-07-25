@@ -37,6 +37,15 @@ let test_prefix_2 () =
     (of_list [["x1"; "x2"; "y"], 10; ["x1"; "x2"; "z"], 20])
     (Trie.prefix ["x1"; "x2"] (of_list [["y"], 10; ["z"], 20]))
 
+let test_singleton_1 () =
+  Alcotest.(check @@ trie int) "same trie" (of_list [[], 100]) (Trie.singleton ([], 100))
+
+let test_singleton_2 () =
+  Alcotest.(check @@ trie int) "same trie" (of_list [["x"], 100]) (Trie.singleton (["x"], 100))
+
+let test_root () =
+  Alcotest.(check @@ trie int) "same trie" (of_list [[], 100]) (Trie.root 100)
+
 let test_equal_1 () =
   Alcotest.(check bool) "true"
     true
@@ -46,6 +55,46 @@ let test_equal_2 () =
   Alcotest.(check bool) "false"
     false
     (Trie.equal Alcotest.(equal int) (of_list [["x"; "y"], 100]) (of_list [["x"; "z"], 100]))
+
+let test_find_subtree_1 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [[], 10; ["x"], 20])
+    (Trie.find_subtree [] (of_list [[], 10; ["x"], 20]))
+
+let test_find_subtree_2 () =
+  Alcotest.(check @@ trie int) "same trie"
+    Trie.empty
+    (Trie.find_subtree ["y"] (of_list [[], 10; ["x"], 20]))
+
+let test_find_singleton_1 () =
+  Alcotest.(check @@ option int) "same answer"
+    (Some 10)
+    (Trie.find_singleton [] (of_list [[], 10; ["x"], 20]))
+
+let test_find_singleton_2 () =
+  Alcotest.(check @@ option int) "same answer"
+    None
+    (Trie.find_singleton ["y"] (of_list [[], 10; ["x"], 20]))
+
+let test_find_root_1 () =
+  Alcotest.(check @@ option int) "same answer"
+    (Some 10)
+    (Trie.find_root (of_list [[], 10; ["x"], 20]))
+
+let test_find_root_2 () =
+  Alcotest.(check @@ option int) "same answer"
+    None
+    (Trie.find_root (of_list [["x"], 20]))
+
+let test_find_root_3 () =
+  Alcotest.(check @@ option int) "same answer"
+    None
+    (Trie.find_root Trie.empty)
+
+let test_filter_map_endo () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [[], 30])
+    (Trie.filter_map_endo (fun x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
 
 let test_union () =
   Alcotest.(check @@ trie int) "same trie"
@@ -72,11 +121,6 @@ let test_detach_singleton_2 () =
     (Some 20, of_list [["x"; "y"], 10])
     (Trie.detach_singleton [] (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_map_endo () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [[], 30])
-    (Trie.filter_map_endo (fun x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
-
 let () =
   let open Alcotest in
   run "Trie" [
@@ -99,6 +143,29 @@ let () =
       test_case "equal" `Quick test_equal_1;
       test_case "equal" `Quick test_equal_2;
     ];
+    "singleton", [
+      test_case "singleton" `Quick test_singleton_1;
+      test_case "singleton" `Quick test_singleton_2;
+    ];
+    "root", [
+      test_case "root" `Quick test_root;
+    ];
+    "find_subtree", [
+      test_case "find_subtree" `Quick test_find_subtree_1;
+      test_case "find_subtree" `Quick test_find_subtree_2;
+    ];
+    "find_singleton", [
+      test_case "find_singleton" `Quick test_find_singleton_1;
+      test_case "find_singleton" `Quick test_find_singleton_2;
+    ];
+    "find_root", [
+      test_case "find_root" `Quick test_find_root_1;
+      test_case "find_root" `Quick test_find_root_2;
+      test_case "find_root" `Quick test_find_root_3;
+    ];
+    "filter_map_endo", [
+      test_case "filter_map_endo" `Quick test_filter_map_endo;
+    ];
     "union", [
       test_case "union" `Quick test_union;
     ];
@@ -111,8 +178,5 @@ let () =
     "detach_singleton", [
       test_case "detach_singleton" `Quick test_detach_singleton_1;
       test_case "detach_singleton" `Quick test_detach_singleton_2;
-    ];
-    "filter_map_endo", [
-      test_case "filter_map_endo" `Quick test_filter_map_endo;
     ];
   ]

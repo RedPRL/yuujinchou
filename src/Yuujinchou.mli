@@ -26,7 +26,7 @@ import foo as bar
    The code is split into three parts:
 *)
 
-(** The {!module:Trie} module implements a data structure (tries) that supports efficient subtree operators on a collection of hierarchical names and their associated data. Currently, only the minimum API to implement the pattern engine is exposed. *)
+(** The {!module:Trie} module implements a data structure (tries) that supports efficient subtree operators on a collection of hierarchical names and their associated data. *)
 module Trie : module type of (Trie)
 
 (** The {!module:Pattern} module defines the patterns. *)

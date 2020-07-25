@@ -57,9 +57,7 @@ let singleton_node (path, data) = prefix_node path @@ mk_root_node data
 
 let singleton (path, data) = non_empty @@ singleton_node (path, data)
 
-(*
 let root data = non_empty @@ mk_root_node data
-*)
 
 (** {1 Comparison} *)
 
@@ -80,7 +78,6 @@ let compare cmp = Option.compare (compare_node cmp)
 
 (** {1 Getting data} *)
 
-(*
 let rec find_node_cont path t k =
   match path with
   | [] -> k t
@@ -95,7 +92,6 @@ let find_singleton path t =
   Option.bind t @@ fun t -> find_node_cont path t @@ fun t -> t.root
 
 let find_root t = find_singleton [] t
-*)
 
 (** {1 Traversing the trees} *)
 

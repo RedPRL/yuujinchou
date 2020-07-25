@@ -1,6 +1,6 @@
 (** {1 Types} *)
 
-(** The type of hierarchical names. The name [x.y.z] is represented by the OCaml list ["x"; "y"; "z"]. *)
+(** The type of hierarchical names. The name [x.y.z] is represented by the OCaml list [["x"; "y"; "z"]]. *)
 type path = string list
 
 (** The abstract type of a trie. *)
@@ -14,21 +14,32 @@ val empty : 'a t
 (** Check whether the trie is empty. *)
 val is_empty : 'a t -> bool
 
-(** Make a trie with its root associated with the provided value. [mk_root None] will make an empty trie and [mk_root (Some v)] will make a trie with the value [v]. *)
+(** Make a trie with only one binding: the root associated with the provided value. [mk_root None] will make an empty trie and [mk_root (Some v)] will make a trie with the value [v]. If thi input is always [Some v], use {!val:root}. *)
 val mk_root : 'a option -> 'a t
 
 (** [prefix p t] makes a minimum trie with [t] rooted at [p]. *)
 val prefix : path -> 'a t -> 'a t
-(* val singleton : path * 'a -> 'a t *)
-(* val root : 'a -> 'a t *)
+
+(** [strington (p, d)] makes a trie with the only binding: [p] and its associated value [d]. *)
+val singleton : path * 'a -> 'a t
+
+(** [root d] makes a trie with the only binding: the root and its associated value [d]. It is equivalent to [singleton [] d]. *)
+val root : 'a -> 'a t
 
 (** [prefix p t] makes a minimum trie with [t] rooted at [p]. *)
 val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 (* val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int *)
 
-(* (** {1 Finding Data} *) *)
-(* val find_subtree : path -> 'a t -> 'a t *)
-(* val find_singleton : path -> 'a t -> 'a option *)
+(** {1 Finding Data} *)
+
+(** [find_subtree p t] returns the subtree rooted at [p]. *)
+val find_subtree : path -> 'a t -> 'a t
+
+(** [find_singleton p t] returns the value at [p]. *)
+val find_singleton : path -> 'a t -> 'a option
+
+(** [find_root t] returns the value at the root. This is equivalent to [find_singleton [] t]. *)
+val find_root : 'a t -> 'a option
 
 (** {1 Mapping and Filtering} *)
 
