@@ -43,7 +43,9 @@ val find_root : 'a t -> 'a option
 
 (** {1 Mapping and Filtering} *)
 
-(* val map : ('a -> 'b) -> 'a t -> 'b t *)
+(** [map f t] applies the function [f] to each value [v] in the trie. *)
+val map : ('a -> 'b) -> 'a t -> 'b t
+
 (* val map_endo : ('a -> 'a) -> 'a t -> 'a t *)
 (* val filter : ('a -> bool) -> 'a t -> 'a t *)
 (* val filter_map : ('a -> 'b option) -> 'a t -> 'b t *)

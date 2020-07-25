@@ -45,11 +45,11 @@ let mk_root_node v = {root = Some v; children = SegMap.empty}
 
 let mk_root v = Option.map mk_root_node v
 
-let prefix_node path t : 'a node =
-  let f seg t =
-    {root = None; children = SegMap.singleton seg t}
+let prefix_node path n : 'a node =
+  let f seg n =
+    {root = None; children = SegMap.singleton seg n}
   in
-  List.fold_right ~f path ~init:t
+  List.fold_right ~f path ~init:n
 
 let prefix path = Option.map @@ prefix_node path
 
@@ -78,18 +78,18 @@ let compare cmp = Option.compare (compare_node cmp)
 
 (** {1 Getting data} *)
 
-let rec find_node_cont path t k =
+let rec find_node_cont path n k =
   match path with
-  | [] -> k t
+  | [] -> k n
   | seg::path ->
-    Option.bind (SegMap.find_opt seg t.children) @@ fun t ->
+    Option.bind (SegMap.find_opt seg n.children) @@ fun t ->
     find_node_cont path t k
 
 let find_subtree path t =
-  Option.bind t @@ fun t -> find_node_cont path t non_empty
+  Option.bind t @@ fun n -> find_node_cont path n non_empty
 
 let find_singleton path t =
-  Option.bind t @@ fun t -> find_node_cont path t @@ fun t -> t.root
+  Option.bind t @@ fun n -> find_node_cont path n @@ fun n -> n.root
 
 let find_root t = find_singleton [] t
 
@@ -161,7 +161,7 @@ let rec union_node m n n' =
     else if SegMap.is_empty n'.children then
       n.children
     else
-      let f _key t t' = Some (union_node m t t') in
+      let f _key n n' = Some (union_node m n n') in
       SegMap.union ~f n.children n'.children
   in
   replace2_nonempty_root_and_children n n' root children
@@ -179,19 +179,19 @@ let union_singleton m t (path, v) =
 (** {1 Detaching subtrees} *)
 
 (* TODO preserves physical eq *)
-let rec apply_and_update_node_cont path t k =
+let rec apply_and_update_node_cont path n k =
   match path with
-  | [] -> k @@ non_empty t
+  | [] -> k @@ non_empty n
   | seg::path ->
-    let ans, new_child = apply_and_update_cont path (SegMap.find_opt seg t.children) k in
-    let children = SegMap.update ~key:seg ~f:(Fun.const new_child) t.children in
-    ans, mk_tree t.root children
+    let ans, new_child = apply_and_update_cont path (SegMap.find_opt seg n.children) k in
+    let children = SegMap.update ~key:seg ~f:(Fun.const new_child) n.children in
+    ans, replace_children n children
 
 (* TODO preserves physical eq *)
 and apply_and_update_cont path t (k : 'a t -> 'b * 'a t) : 'b * 'a t =
   match t with
   | None -> let ans, t = k empty in ans, prefix path t
-  | Some t -> apply_and_update_node_cont path t k
+  | Some n -> apply_and_update_node_cont path n k
 
 (* TODO preserves physical eq *)
 let detach_subtree path t = apply_and_update_cont path t @@ fun t -> t, empty
@@ -199,30 +199,30 @@ let detach_subtree path t = apply_and_update_cont path t @@ fun t -> t, empty
 (* TODO preserves physical eq *)
 let detach_singleton path t = apply_and_update_cont path t @@ function
   | None -> None, empty
-  | Some t -> t.root, mk_tree None t.children
+  | Some n -> n.root, replace_root n None
 
 (** {1 Conversion from/to Seq} *)
 
-let rec node_to_seq prefix t () =
-  match t.root with
-  | None -> children_to_seq prefix t.children ()
+let rec node_to_seq prefix n () =
+  match n.root with
+  | None -> children_to_seq prefix n.children ()
   | Some v ->
-    Seq.Cons ((prefix >> [], v), children_to_seq prefix t.children)
+    Seq.Cons ((prefix >> [], v), children_to_seq prefix n.children)
 
 and children_to_seq prefix_stack children =
-  SegMap.to_seq children |> Seq.flat_map @@ fun (seg, t) ->
-  node_to_seq (Snoc (prefix_stack, seg)) t
+  SegMap.to_seq children |> Seq.flat_map @@ fun (seg, n) ->
+  node_to_seq (Snoc (prefix_stack, seg)) n
 
 let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq Nil) t
 
-let rec node_to_seq_values t () =
-  match t.root with
-  | None -> children_to_seq_values t.children ()
+let rec node_to_seq_values n () =
+  match n.root with
+  | None -> children_to_seq_values n.children ()
   | Some v ->
-    Seq.Cons (v, children_to_seq_values t.children)
+    Seq.Cons (v, children_to_seq_values n.children)
 
 and children_to_seq_values children =
-  SegMap.to_seq children |> Seq.flat_map @@ fun (_, t) -> node_to_seq_values t
+  SegMap.to_seq children |> Seq.flat_map @@ fun (_, n) -> node_to_seq_values n
 
 let to_seq_values t = Option.fold ~none:Seq.empty ~some:node_to_seq_values t
 
@@ -230,14 +230,11 @@ let of_seq m = Seq.fold_left (union_singleton m) empty
 
 (** {1 Map} *)
 
-(*
-let rec map_node f {root; children} =
-  { root = Option.map f root
-  ; children = SegMap.map ~f:(map_node f) children
+let rec map_node f n =
+  { root = Option.map f n.root
+  ; children = SegMap.map ~f:(map_node f) n.children
   }
-
 let map f t = Option.map (map_node f) t
-*)
 
 (*
 (* TODO preserves physical eq *)
