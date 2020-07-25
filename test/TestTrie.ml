@@ -236,7 +236,7 @@ let test_detach_subtree_1 () =
 
 let test_detach_subtree_2 () =
   Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
-    (of_list [["y"], 10], Trie.empty)
+    (of_list [[], 10], Trie.empty)
     (Trie.detach_subtree ["x"] (of_list [["x"], 10]))
 
 let test_detach_subtree_3 () =

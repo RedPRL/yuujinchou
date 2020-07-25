@@ -36,10 +36,10 @@ let non_empty (t : 'a node) : 'a t = Some t
 
 (** {1 Making (non-empty) trees} *)
 
+let is_empty_ root children = Option.is_none root && SegMap.is_empty children
+
 let mk_tree root children =
-  if Option.is_none root && SegMap.is_empty children
-  then empty
-  else non_empty {root; children}
+  if is_empty_ root children then empty else non_empty {root; children}
 
 let mk_root_node v = {root = Some v; children = SegMap.empty}
 
@@ -103,39 +103,41 @@ let phy_eq_option r1 r2 =
 
 let phy_eq_map c1 c2 = c1 == c2
 
-let update_node n root children =
-  if phy_eq_option n.root root && phy_eq_map n.children children then n else {root; children}
+let replace2_nonempty_root_and_children n1 n2 root children =
+  if phy_eq_option n1.root root && phy_eq_map n1.children children then
+    n1
+  else if phy_eq_option n2.root root && phy_eq_map n2.children children then
+    n2
+  else
+    {root; children}
 
-let update_node2 n1 n2 root children =
-  if phy_eq_option n1.root root && phy_eq_map n1.children children then n1 else update_node n2 root children
+let replace_root n root =
+  if phy_eq_option n.root root then non_empty n else mk_tree root n.children
 
-let update_node_root n root =
-  if phy_eq_option n.root root then n else {n with root}
+let replace_children n children =
+  if phy_eq_map n.children children then non_empty n else mk_tree n.root children
 
-let update_node_children n children =
-  if phy_eq_map n.children children then n else {n with children}
-
-let update_tree t1 t2 =
+let replace_tree t1 t2 =
   if phy_eq_option t1 t2 then t1 else t2
 
-let rec update_node_cont n path k =
+let rec update_node_cont n path (k : 'a t -> 'a t) =
   match path with
   | [] -> k @@ non_empty n
   | seg::path ->
-    non_empty @@ update_node_children n @@
+    replace_children n @@
     SegMap.update ~key:seg ~f:(fun n -> update_cont n path k) n.children
 
 and update_cont t path k =
-  update_tree t @@ match t with
+  replace_tree t @@ match t with
   | None -> prefix path @@ k empty
-  | Some t -> update_node_cont t path k
+  | Some n -> update_node_cont n path k
 
 let update_subtree path f t = update_cont t path f
 
 let update_singleton path f t = update_cont t path @@
   function
   | None -> mk_root @@ f None
-  | Some n -> non_empty @@ update_node_root n (f n.root)
+  | Some n -> replace_root n (f n.root)
 
 let update_root f t = update_singleton [] f t
 
@@ -151,18 +153,18 @@ let union_option f x y =
     else if fxy == y' then y
     else Some fxy
 
-let rec union_node m t t' =
-  let root = union_option m t.root t'.root in
+let rec union_node m n n' =
+  let root = union_option m n.root n'.root in
   let children =
-    if SegMap.is_empty t.children then
-      t'.children
-    else if SegMap.is_empty t'.children then
-      t.children
+    if SegMap.is_empty n.children then
+      n'.children
+    else if SegMap.is_empty n'.children then
+      n.children
     else
       let f _key t t' = Some (union_node m t t') in
-      SegMap.union ~f t.children t'.children
+      SegMap.union ~f n.children n'.children
   in
-  update_node2 t t' root children
+  replace2_nonempty_root_and_children n n' root children
 
 let union m = union_option @@ union_node m
 
@@ -172,7 +174,7 @@ let union_subtree m t (path, t') =
 let union_singleton m t (path, v) =
   update_cont t path @@ function
   | None -> non_empty @@ mk_root_node v
-  | Some n -> non_empty @@ update_node_root n @@ union_option m n.root @@ Some v
+  | Some n -> replace_root n @@ union_option m n.root @@ Some v
 
 (** {1 Detaching subtrees} *)
 
