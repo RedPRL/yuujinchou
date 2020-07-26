@@ -19,8 +19,8 @@ let error : Action.error Alcotest.testable =
     let pp = Action.pp_error
     let equal e1 e2 =
       match e1, e2 with
-      | Action.BindingNotFound p1,
-        Action.BindingNotFound p2 -> p1 = p2
+      | Action.Binding_not_found p1,
+        Action.Binding_not_found p2 -> p1 = p2
   end in
   (module M)
 
@@ -38,7 +38,7 @@ let test_none_2 () =
 
 let test_none_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor none Trie.empty)
 
 let test_any_1 () =
@@ -53,7 +53,7 @@ let test_any_2 () =
 
 let test_any_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor any Trie.empty)
 
 let test_any_phy_eq () =
@@ -69,12 +69,12 @@ let test_wildcard_1 () =
 
 let test_wildcard_2 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor wildcard (of_list [[], 10]))
 
 let test_wildcard_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor wildcard Trie.empty)
 
 let test_wildcard_phy_eq () =
@@ -85,7 +85,7 @@ let test_wildcard_phy_eq () =
 
 let test_root_1 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor root (of_list [["x"], 10]))
 
 let test_root_2 () =
@@ -95,7 +95,7 @@ let test_root_2 () =
 
 let test_root_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor root Trie.empty)
 
 let test_root_phy_eq () =
@@ -111,12 +111,12 @@ let test_only_1 () =
 
 let test_only_2 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (only ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20]))
 
 let test_only_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (only ["x"]) Trie.empty)
 
 let test_only_phy_eq () =
@@ -137,7 +137,7 @@ let test_only_subtree_2 () =
 
 let test_only_subtree_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (only_subtree ["x"]) Trie.empty)
 
 let test_only_subtree_phy_eq () =
@@ -153,12 +153,12 @@ let test_except_1 () =
 
 let test_except_2 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (except ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20]))
 
 let test_except_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (except ["x"]) Trie.empty)
 
 let test_except_subtree_1 () =
@@ -173,7 +173,7 @@ let test_except_subtree_2 () =
 
 let test_except_subtree_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (except_subtree ["x"]) Trie.empty)
 
 let test_in_subtree_1 () =
@@ -188,7 +188,7 @@ let test_in_subtree_2 () =
 
 let test_in_subtree_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (in_subtree ["x"] any) Trie.empty)
 
 let test_in_subtree_phy_eq () =
@@ -204,12 +204,12 @@ let test_renaming_1 () =
 
 let test_renaming_2 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (renaming ["x"] ["z"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
 let test_renaming_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (renaming ["x"] ["z"]) Trie.empty)
 
 let test_renaming_phy_eq () =
@@ -230,7 +230,7 @@ let test_renaming_subtree_2 () =
 
 let test_renaming_subtree_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (renaming_subtree ["x"] ["z"]) Trie.empty)
 
 let test_renaming_subtree_phy_eq_1 () =
@@ -252,17 +252,17 @@ let test_seq_1 () =
 
 let test_seq_2 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor (seq [none; any]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
 let test_seq_3 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound []))
+    (Error (Binding_not_found []))
     (Action.run cantor (seq [none; none]) Trie.empty)
 
 let test_seq_4 () =
   Alcotest.(check @@ run_result int) "error"
-    (Error (BindingNotFound ["x"]))
+    (Error (Binding_not_found ["x"]))
     (Action.run cantor (seq [renaming ["x"] ["z"]; only ["x"]]) (of_list [["x"], 10; ["y"], 20]))
 
 let test_seq_phy_eq () =

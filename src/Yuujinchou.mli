@@ -123,8 +123,8 @@ module Action :
 sig
   (** {1 Error Type} *)
 
-  (** The type of errors due to the absense of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [BindingNotFound ["x"; "y"]]. *)
-  type error = BindingNotFound of Pattern.path (** The engine could not find the expected bindings. *)
+  (** The type of errors due to the absense of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [Binding_not_found ["x"; "y"]]. *)
+  type error = Binding_not_found of Pattern.path (** The engine could not find the expected bindings. *)
 
   (** {1 Matching} *)
 
@@ -166,7 +166,7 @@ end
        let pp_path = function [] -> "(root)" | path -> String.concat "." path in
        match Action.run Data.merge pattern env with
        | Ok env -> env
-       | Error (Action.BindingNotFound path) ->
+       | Error (Action.Binding_not_found path) ->
          failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
 
      (** [import env pattern imported] imports the environment
