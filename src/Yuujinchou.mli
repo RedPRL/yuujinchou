@@ -75,7 +75,7 @@ sig
   (** [only_subtree path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
   val only_subtree : path -> 'a t
 
-  (** [on_subtree path pattern] runs the pattern [pat] against the subtree rooted at [path]. Names that were not in the subtree are kept. *)
+  (** [in_subtree path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. *)
   val in_subtree : path -> 'a t -> 'a t
 
   (** {2 Negation} *)
@@ -83,7 +83,7 @@ sig
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
   val none : 'a t
 
-  (** [except x] drops the binding named [x]. It is an error if there was no [x] from the beginning. *)
+  (** [except x] drops the binding at [x]. It is an error if there was no [x] from the beginning. *)
   val except : path -> 'a t
 
   (** [except_subtree p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to [in_subtree p none]. *)
@@ -91,10 +91,10 @@ sig
 
   (** {2 Renaming} *)
 
-  (** [renaming x x'] renames the name [x] into [x']. It is an error if there was no [x] from the beginning. *)
+  (** [renaming x x'] renames the binding at [x] to [x']. Note that such renaming does not affect names {i under} [x]. See {!val:renaming_subtree} for comparison. It is an error if there was no [x] from the beginning. *)
   val renaming : path -> path -> 'a t
 
-  (** [renaming_subtree path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty. *)
+  (** [renaming_subtree path path'] relocates the subtree rooted at [path] to [path']. If you only want to move the root, not the entire subtree, see {!val:renaming}. It is an error if the subtree was empty (nothing to move). *)
   val renaming_subtree : path -> path -> 'a t
 
   (** {2 Associated Data} *)
@@ -121,6 +121,8 @@ end
 (** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
+  (** The engine tries to preserve physical equality whenever feasible. For example, if the trie [t] has a binding at [x], the pattern [renaming ["x"] ["x"]] on [t] will return the same [t]. *)
+
   (** {1 Error Type} *)
 
   (** The type of errors due to the absence of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [Binding_not_found ["x"; "y"]]. The path is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]] but the engine would never know the true intension. *)
