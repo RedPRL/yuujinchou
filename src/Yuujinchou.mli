@@ -123,12 +123,12 @@ module Action :
 sig
   (** {1 Error Type} *)
 
-  (** The type of errors due to the absense of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [Binding_not_found ["x"; "y"]]. *)
-  type error = Binding_not_found of Pattern.path (** The engine could not find the expected bindings. *)
+  (** The type of errors due to the absence of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [Binding_not_found ["x"; "y"]]. The path is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]] but the engine would never know the true intension. *)
+  type error = Binding_not_found of Pattern.path (** The engine could not find the expected binding(s). *)
 
   (** {1 Matching} *)
 
-  (** [run merger pattern trie] runs the [pattern] on the [trie]
+  (** [run merger pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
 
       @param merger The resolver for two conflicting bindings sharing the same name. Patterns such as [Pattern.renaming] and [Pattern.union] could lead to conflicting bindings, and [merger x y] should return the resolution of [x] and [y].
   *)
