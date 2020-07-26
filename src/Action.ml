@@ -5,14 +5,14 @@ open ResultMonad.Syntax
 
 type path = Pattern.path
 
-type error = BindingNotFound of path
+type error = Binding_not_found of path
 
 let run_act p act t =
   match act with
-  | ActFilterMap f -> ret @@ Trie.filter_map_endo f t
-  | ActSwitch switch ->
+  | A_filter_map f -> ret @@ Trie.filter_map_endo f t
+  | A_switch switch ->
     if Trie.is_empty t then
-      fail (BindingNotFound (p >> []))
+      fail (Binding_not_found (p >> []))
     else
       match switch with
       | `Keep -> ret t
@@ -20,8 +20,8 @@ let run_act p act t =
 
 let rec run_ m p pat t =
   match pat with
-  | PatAct act -> run_act p act t
-  | PatSplit {mode; prefix; prefix_replacement; on_target; on_others} ->
+  | P_act act -> run_act p act t
+  | P_split {mode; prefix; prefix_replacement; on_target; on_others} ->
     let prefix_replacement = Option.value ~default:prefix prefix_replacement in
     let target, others =
       match mode with
@@ -34,10 +34,10 @@ let rec run_ m p pat t =
     and+ others' = run_ m p on_others others in
     if target == target' && others == others' && prefix = prefix_replacement
     then t else Trie.union_subtree m others' (prefix_replacement, target')
-  | PatSeq pats ->
+  | P_seq pats ->
     let f t pat = Result.bind t (run_ m p pat) in
     List.fold_left ~f ~init:(ret t) pats
-  | PatUnion pats ->
+  | P_union pats ->
     let+ ts = ResultMonad.map (fun pat -> run_ m p pat t) pats in
     List.fold_left ~f:(Trie.union m) ~init:Trie.empty ts
 
@@ -45,4 +45,4 @@ let run m = run_ m Nil
 
 let pp_error fmt =
   function
-  | BindingNotFound path -> Format.fprintf fmt "@[<hov 1>(not-found@ %s)@]" (String.concat ~sep:"." path)
+  | Binding_not_found path -> Format.fprintf fmt "@[<hov 1>(not-found@ %s)@]" (String.concat ~sep:"." path)

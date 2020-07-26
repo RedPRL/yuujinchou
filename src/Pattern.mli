@@ -3,20 +3,20 @@ type path = string list
 type switch = [`Keep | `Hide]
 
 type 'a act =
-  | ActSwitch of switch
-  | ActFilterMap of ('a -> 'a option)
+  | A_switch of switch
+  | A_filter_map of ('a -> 'a option)
 
 type 'a t =
-  | PatAct of 'a act
-  | PatSplit of
+  | P_act of 'a act
+  | P_split of
       { mode : [`Subtree | `Node]
       ; prefix : path
       ; prefix_replacement : path option
       ; on_target : 'a t
       ; on_others : 'a t
       }
-  | PatSeq of 'a t list
-  | PatUnion of 'a t list
+  | P_seq of 'a t list
+  | P_union of 'a t list
 
 val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
