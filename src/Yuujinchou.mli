@@ -34,6 +34,16 @@ module Pattern :
 sig
   (** {1 Pattern Type } *)
 
+  (** The type of hierarchical names. *)
+  type path = string list
+
+  (**
+     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [x.y.z] is represented as the following OCaml list:
+     {[
+       ["x"; "y"; "z"]
+     ]}
+  *)
+
   (** The type of patterns, parametrized by the type of associated data. *)
   type 'a t
 
@@ -43,18 +53,6 @@ sig
 
   (** Checking equality. Note that patterns created by {!val:filter_map} are not comparable to each other because they take a function. *)
   val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-
-  (** {2 Hierarchical Names} *)
-
-  (** The type of names. *)
-  type path = string list
-
-  (**
-     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [x.y.z] is represented as the following OCaml list:
-     {[
-       ["x"; "y"; "z"]
-     ]}
-  *)
 
   (** {1 Pattern Builders} *)
 
