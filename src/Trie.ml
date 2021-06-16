@@ -38,16 +38,16 @@ let empty : 'a t = None
 
 let is_empty : 'a t -> bool = Option.is_none
 
-let non_empty (t : 'a node) : 'a t = Some t
+let[@inline] non_empty (t : 'a node) : 'a t = Some t
 
 (** {1 Making (non-empty) trees} *)
 
-let is_empty_ root children = Option.is_none root && SegMap.is_empty children
+let[@inline] is_empty_ root children = Option.is_none root && SegMap.is_empty children
 
 let mk_tree root children =
   if is_empty_ root children then empty else non_empty {root; children}
 
-let mk_root_node v = {root = Some v; children = SegMap.empty}
+let[@inline] mk_root_node v = {root = Some v; children = SegMap.empty}
 
 let mk_root v = Option.map mk_root_node v
 
@@ -57,13 +57,13 @@ let prefix_node path n : 'a node =
   in
   List.fold_right ~f path ~init:n
 
-let prefix path = Option.map @@ prefix_node path
+let[@inline] prefix path = Option.map @@ prefix_node path
 
-let singleton_node (path, v) = prefix_node path @@ mk_root_node v
+let[@inline] singleton_node (path, v) = prefix_node path @@ mk_root_node v
 
-let singleton (path, v) = non_empty @@ singleton_node (path, v)
+let[@inline] singleton (path, v) = non_empty @@ singleton_node (path, v)
 
-let root v = non_empty @@ mk_root_node v
+let[@inline] root v = non_empty @@ mk_root_node v
 
 (** {1 Comparison} *)
 
@@ -163,28 +163,30 @@ let union_option f x y =
     else if fxy == y' then y
     else Some fxy
 
-let rec union_node m n n' =
-  let root = union_option m n.root n'.root in
+let rec union_node ~rev_prefix m n n' =
+  let root = union_option (m ~rev_path:rev_prefix) n.root n'.root in
   let children =
     if SegMap.is_empty n.children then
       n'.children
     else if SegMap.is_empty n'.children then
       n.children
     else
-      let f _key n n' = Some (union_node m n n') in
+      let f key n n' = Some (union_node ~rev_prefix:(key :: rev_prefix) m n n') in
       SegMap.union ~f n.children n'.children
   in
   replace2_nonempty_root_and_children n n' root children
 
-let union m = union_option @@ union_node m
+let union_ ~rev_prefix m = union_option @@ union_node ~rev_prefix m
+
+let[@inline] union m = union_ ~rev_prefix:[] m
 
 let union_subtree m t (path, t') =
-  update_cont t path @@ fun t -> union m t t'
+  update_cont t path @@ fun t -> union_ ~rev_prefix:(List.rev path) m t t'
 
 let union_singleton m t (path, v) =
   update_cont t path @@ function
   | None -> non_empty @@ mk_root_node v
-  | Some n -> replace_root n @@ union_option m n.root @@ Some v
+  | Some n -> replace_root n @@ union_option (m ~rev_path:(List.rev path)) n.root @@ Some v
 
 (** {1 Detaching subtrees} *)
 

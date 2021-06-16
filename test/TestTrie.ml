@@ -8,9 +8,13 @@ let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   end in
   (module M)
 
-let cantor x y = if x == y then x else (x + y) * (x + y + 1) / 2 + y
+let cantor_val x y = if x == y then x else (x + y) * (x + y + 1) / 2 + y
+let cantor ~rev_path:_ x y = cantor_val x y
 
-let of_list l = Trie.of_seq (fun _ _ -> failwith "conflicting keys") (List.to_seq l)
+let of_list l =
+  Trie.of_seq
+    (fun ~rev_path _ _ -> failwith @@ "conflicting keys at " ^ String.concat "." @@ List.rev rev_path)
+    (List.to_seq l)
 
 let test_empty () =
   Alcotest.(check @@ trie int) "same trie" (of_list []) Trie.empty
@@ -185,7 +189,7 @@ let test_filter_map_endo_phy_eq_2 () =
 
 let test_update_subtree () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], cantor 160 10; ["x"], 40])
+    (of_list [["x"; "y"], cantor_val 160 10; ["x"], 40])
     (Trie.update_subtree ["x"] (fun t -> Trie.union_singleton cantor t (["y"], 10)) (of_list [["x"], 40; ["x"; "y"], 160]))
 
 let test_update_subtree_phy_eq () =
@@ -250,7 +254,7 @@ let test_update_root_phy_eq_2 () =
 
 let test_union () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], cantor 10 160; [], 20; ["x"], 40])
+    (of_list [["x"; "y"], cantor_val 10 160; [], 20; ["x"], 40])
     (Trie.union cantor (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
 
 let test_union_phy_eq_1 () =
@@ -281,7 +285,7 @@ let test_union_phy_eq_4 () =
 
 let test_union_subtree () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 10; [], 20; ["x"], cantor 40 80; ["x"; "x"; "y"], 1600])
+    (of_list [["x"; "y"], 10; [], 20; ["x"], cantor_val 40 80; ["x"; "x"; "y"], 1600])
     (Trie.union_subtree cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
 
 let test_union_subtree_phy_eq_1 () =
@@ -300,7 +304,7 @@ let test_union_subtree_phy_eq_2 () =
 
 let test_union_singleton () =
   Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], cantor 10 160; [], 20; ["x"], 40])
+    (of_list [["x"; "y"], cantor_val 10 160; [], 20; ["x"], 40])
     (Trie.union_singleton cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"; "y"], 160))
 
 let test_union_singleton_phy_eq () =

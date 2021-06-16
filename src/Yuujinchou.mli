@@ -130,9 +130,9 @@ sig
 
   (** [run merger pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
 
-      @param merger The resolver for two conflicting bindings sharing the same name. Patterns such as [Pattern.renaming] and [Pattern.union] could lead to conflicting bindings, and [merger x y] should return the resolution of [x] and [y].
+      @param merger The resolver for two conflicting bindings sharing the same name. Patterns such as [Pattern.renaming] and [Pattern.union] could lead to conflicting bindings, and [merger ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
   *)
-  val run : ('a -> 'a -> 'a) -> 'a Pattern.t -> 'a Trie.t -> ('a Trie.t, error) result
+  val run : (rev_path:Pattern.path -> 'a -> 'a -> 'a) -> 'a Pattern.t -> 'a Trie.t -> ('a Trie.t, error) result
 
   (** {1 Pretty Printers} *)
 
