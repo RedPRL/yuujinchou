@@ -71,14 +71,14 @@ val update_root : ('a option -> 'a option) -> 'a t -> 'a t
 
 (** {1 Union} *)
 
-(** [union merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path, it will call the function [merger] to reconcile the values from the two tries. *)
-val union : ('a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
+(** [union merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path, it will call [merger ~rev_path x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the (reversed) path [rev_path]. The path [rev_path] is reversed for efficient traversal. *)
+val union : (rev_path:path -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
 
 (** [union_subtree merger t1 (path, t2)] is equivalent to [union merger t1 (prefix t2)], but potentially more efficient. *)
-val union_subtree : ('a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
+val union_subtree : (rev_path:path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
 
 (** [union_singleton merger t binding] is equivalent to [union merger t1 (singleton binding)], but potentially more efficient. *)
-val union_singleton : ('a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t
+val union_singleton : (rev_path:path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t
 
 (** {1 Separation} *)
 
@@ -97,7 +97,7 @@ val to_seq : 'a t -> (path * 'a) Seq.t
 val to_seq_values : 'a t -> 'a Seq.t
 
 (** [of_seq m s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_subtree}. *)
-val of_seq : ('a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
+val of_seq : (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 
 (** {1 Pretty Printer} *)
 

@@ -9,9 +9,12 @@ let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   end in
   (module M)
 
-let cantor x y = if x == y then x else (x + y) * (x + y + 1) / 2 + y
+let cantor ~rev_path:_ x y = if x == y then x else (x + y) * (x + y + 1) / 2 + y
 
-let of_list l = Trie.of_seq (fun _ _ -> failwith "conflicting keys") (List.to_seq l)
+let of_list l =
+  Trie.of_seq
+    (fun ~rev_path _ _ -> failwith @@ "conflicting keys at " ^ String.concat "." @@ List.rev rev_path)
+    (List.to_seq l)
 
 let error : Action.error Alcotest.testable =
   let module M = struct

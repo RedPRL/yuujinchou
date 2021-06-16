@@ -6,10 +6,11 @@ module Data =
 struct
   type t = int
   let equal n1 n2 = n1 = n2
-  let merge x y =
+  let merge ~rev_path x y =
     if equal x y then x
-    else failwith "Inconsistent data assigned to the same path."
-  let shadow _x y = y
+    else failwith @@
+      "Inconsistent data assigned to the same path " ^ String.concat "." @@ List.rev rev_path
+  let shadow ~rev_path:_ _x y = y
   let compare : t -> t -> int = compare
 end
 
@@ -54,7 +55,10 @@ let data_set : DataSet.t Alcotest.testable =
   end in
   (module M)
 
-let trie_of_list l = Trie.of_seq (fun _ _ -> failwith "conflicting keys") (List.to_seq l)
+let trie_of_list l =
+  Trie.of_seq
+    (fun ~rev_path _ _ -> failwith @@ "conflicting keys at " ^ String.concat "." @@ List.rev rev_path)
+    (List.to_seq l)
 
 let set_of_list l = DataSet.of_seq (List.to_seq l)
 
