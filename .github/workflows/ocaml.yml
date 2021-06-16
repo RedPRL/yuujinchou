@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: avsm/setup-ocaml@v1
+    - uses: ocaml/setup-ocaml@v2
       with:
-        ocaml-version: '4.10.0'
-    - run: opam pin . --with-doc -y
+        ocaml-compiler: ['4.10.0']
+    - run: opam pin . --with-doc --with_test -yes
     - run: echo '::set-env name=opam-build-root::'`opam config var yuujinchou:build`
     - uses: peaceiris/actions-gh-pages@v3
       with:
