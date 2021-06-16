@@ -12,7 +12,7 @@ jobs:
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: '4.10.0'
-    - run: opam pin . --with-doc --with_test -yes
+    - run: opam pin . --with-doc --with_test --yes
     - run: echo '::set-env name=opam-build-root::'`opam config var yuujinchou:build`
       if: ${{ github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && startsWith (github.head_ref, 'doc')) }}
     - uses: peaceiris/actions-gh-pages@v3
