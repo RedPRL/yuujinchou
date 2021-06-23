@@ -23,5 +23,4 @@ let rec iter f =
   | [] -> ret ()
   | x :: xs ->
     let* () = f x in
-    let+ () = iter f xs in
-    ()
+    iter f xs

@@ -27,7 +27,7 @@ import foo as bar
 *)
 
 (** The {!module:Trie} module implements a data structure that maps paths to values and supports efficient subtree operations. *)
-module Trie : module type of (Trie)
+module Trie : module type of Trie
 
 (** The {!module:Pattern} module defines the patterns. *)
 module Pattern :
