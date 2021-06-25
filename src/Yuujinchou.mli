@@ -111,7 +111,7 @@ sig
 
   (** {2 Custom Filters} *)
 
-  (** [custom f] applies a custom filter labelled [f] to the associated data in the tree to change the data or remove the entries. The custom filters are given when running a pattern; see {!val:Action.run_with_custom}. If the result is [None], the binding would be removed from the tree. Otherwise, if the result is [Some x], the content of the binding would be replaced with [x]. *)
+  (** [custom f] applies a custom function labelled [f] to the entire trie; see {!val:Action.run_with_custom}. *)
   val custom : 'custom -> 'custom t
 
   (** {1 Pretty Printers } *)
@@ -127,7 +127,7 @@ sig
 
   (** {1 Matching} *)
 
-  (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
+  (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.custom}.
 
       @param rev_prefix The prefix prepended to any path sent to [union] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
       @param union The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [union ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
@@ -138,15 +138,15 @@ sig
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     unit Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
 
-  (** [run_with_custom ~rev_prefix ~custom ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts a new argument [custom].
+  (** [run_with_custom ~rev_prefix ~custom ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts a new argument [custom] to handle {!val:Pattern.custom}.
 
-      @param custom The customer filter that will be triggered by the pattern {!Pattern.custom}[f]. When the engine encounters {!Pattern.custom}[f], it will call [custom ~rev_path:p f v] for all data [v] at [p] in the trie.
+      @param custom The customer filter that will be triggered by the pattern {!val:Pattern.custom}[f]. When the engine encounters {!Pattern.custom}[f], it will call [custom ~rev_path:p f v] for all data [v] at [p] in the trie.
   *)
   val run_with_custom :
     ?rev_prefix:Pattern.path ->
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
-    custom:(rev_path:Pattern.path -> 'custom -> 'a -> 'a option) ->
-    'custom Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
+    custom:('custom -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path] as 'error) result) ->
+    'custom Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
 
   (** {1 Pretty Printers} *)
 

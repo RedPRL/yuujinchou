@@ -291,7 +291,9 @@ let test_filter_map_1 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["y"], 110]))
     (Action.run_with_custom
-       ~custom:(fun ~rev_path:_ () d -> if d > 20 then Some (d + 80) else None)
+       ~custom:(fun () ~rev_prefix t ->
+           Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
+             (fun ~rev_path:_ d -> if d > 20 then Some (d + 80) else None) t)
        ~union:cantor
        (custom ()) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
@@ -301,7 +303,9 @@ let test_filter_map_phy_eq () =
     true
     (Result.get_ok
        (Action.run_with_custom
-          ~custom:(fun ~rev_path:_ () x -> Some x)
+          ~custom:(fun () ~rev_prefix t ->
+              Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
+                (fun ~rev_path:_ x -> Some x) t)
           ~union:cantor
           (custom ()) t) == t)
 

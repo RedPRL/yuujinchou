@@ -4,9 +4,9 @@ open ResultMonad.Syntax
 
 type path = Pattern.path
 
-let run_act ~custom:(custom : rev_path:path -> 'custom -> 'a -> 'a option) ~rev_prefix act t =
+let run_act ~custom ~rev_prefix act t =
   match act with
-  | A_custom f -> ret @@ Trie.filter_mapi_endo ~rev_prefix (custom f) t
+  | A_custom f -> custom f ~rev_prefix t
   | A_switch switch ->
     if Trie.is_empty t then
       error @@ `BindingNotFound (List.rev rev_prefix)
@@ -41,6 +41,6 @@ let rec run_ ~union ~custom ~rev_prefix pat t =
 
 let run_with_custom ?(rev_prefix=[]) ~union ~custom = run_ ~union ~custom ~rev_prefix
 
-let run ?(rev_prefix=[]) ~union = run_ ~union ~custom:(fun ~rev_path:_ () data -> Some data) ~rev_prefix
+let run ?rev_prefix ~union = run_with_custom ?rev_prefix ~union ~custom:(fun () ~rev_prefix:_ t -> ret t)
 
 let pp_path fmt path = Format.pp_print_string fmt @@ String.concat ~sep:"." path
