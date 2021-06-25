@@ -101,91 +101,109 @@ let test_find_root_3 () =
     None
     (Trie.find_root Trie.empty)
 
-let test_map_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 11; [], 21])
-    (Trie.map (fun x -> x + 1) (of_list [["x"; "y"], 10; [], 20]))
+let test_mapi_1 () =
+  Alcotest.(check @@ trie (pair (list string) int)) "same trie"
+    (of_list [["x"; "y"], (["y"; "x"], 11); [], ([], 21)])
+    (Trie.mapi (fun ~rev_path x -> rev_path, x + 1) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_map_2 () =
+let test_mapi_2 () =
+  Alcotest.(check @@ trie (pair (list string) int)) "same trie"
+    Trie.empty
+    (Trie.mapi (fun ~rev_path x -> rev_path, x + 1) Trie.empty)
+
+let test_mapi_endo_1 () =
+  Alcotest.(check @@ trie @@ pair (list string) int) "same trie"
+    (of_list [["x"; "y"], (["z"; "y"; "x"], 11); [], (["w"], 21)])
+    (Trie.mapi_endo (fun ~rev_path (p, x) -> (List.rev_append p rev_path, x + 1)) (of_list [["x"; "y"], (["z"], 10); [], (["w"], 20)]))
+
+let test_mapi_endo_2 () =
   Alcotest.(check @@ trie int) "same trie"
     Trie.empty
-    (Trie.map (fun x -> x + 1) Trie.empty)
+    (Trie.mapi_endo (fun ~rev_path:_ x -> x + 1) Trie.empty)
 
-let test_map_endo_1 () =
-  Alcotest.(check @@ trie @@ pair unit int) "same trie"
-    (of_list [["x"; "y"], ((), 11); [], ((), 21)])
-    (Trie.map (fun x -> ((), x + 1)) (of_list [["x"; "y"], 10; [], 20]))
-
-let test_map_endo_2 () =
-  Alcotest.(check @@ trie @@ pair unit int) "same trie"
-    Trie.empty
-    (Trie.map (fun x -> ((), x + 1)) Trie.empty)
-
-let test_map_endo_phy_eq_1 () =
+let test_mapi_endo_phy_eq_1 () =
   let t = Trie.empty in
   Alcotest.(check bool) "true"
     true
-    (Trie.map_endo (fun x -> x + 2) t == t)
+    (Trie.mapi_endo (fun ~rev_path:_ x -> x + 2) t == t)
 
-let test_map_endo_phy_eq_2 () =
+let test_mapi_endo_phy_eq_2 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
   Alcotest.(check bool) "true"
     true
-    (Trie.map_endo (fun x -> x) t == t)
+    (Trie.mapi_endo (fun ~rev_path:_ x -> x) t == t)
 
-let test_filter_1 () =
+let test_filteri_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"], 20; [], 40])
-    (Trie.filter (fun x -> x > 15) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
+    (Trie.filteri (fun ~rev_path:_ x -> x > 15) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
 
-let test_filter_2 () =
+let test_filteri_2 () =
   Alcotest.(check @@ trie int) "same trie"
     Trie.empty
-    (Trie.filter (fun x -> x > 100) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
+    (Trie.filteri (fun ~rev_path:_ x -> x > 100) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
 
-let test_filter_phy_eq_1 () =
+let test_filteri_3 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"; "y"], 10])
+    (Trie.filteri (fun ~rev_path _ -> match rev_path with "y"::_ -> true | _ -> false)
+         (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
+
+let test_filteri_4 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"], 20])
+    (Trie.filteri (fun ~rev_path _ -> match rev_path with ["x"] -> true | _ -> false)
+         (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
+
+let test_filteri_phy_eq_1 () =
   let t = Trie.empty in
   Alcotest.(check bool) "true"
     true
-    (Trie.filter (fun x -> x > 100) t == t)
+    (Trie.filteri (fun ~rev_path:_ x -> x > 100) t == t)
 
-let test_filter_phy_eq_2 () =
+let test_filteri_phy_eq_2 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
   Alcotest.(check bool) "true"
     true
-    (Trie.filter (fun _ -> true) t == t)
+    (Trie.filteri (fun ~rev_path:_ _ -> true) t == t)
 
-let test_filter_map_1 () =
-  Alcotest.(check @@ trie @@ pair unit int) "same trie"
-    (of_list [[], ((), 30)])
-    (Trie.filter_map (fun x -> if x > 10 then Some ((), 30) else None) (of_list [["x"; "y"], 10; [], 20]))
+let test_filter_mapi_1 () =
+  Alcotest.(check @@ trie @@ pair (list string) int) "same trie"
+    (of_list [[], ([], 30)])
+    (Trie.filter_mapi (fun ~rev_path x -> if x > 10 then Some (rev_path, 30) else None) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_map_2 () =
+let test_filter_mapi_2 () =
   Alcotest.(check @@ trie @@ pair unit int) "same trie"
     Trie.empty
-    (Trie.filter_map (fun _ -> None) (of_list [["x"; "y"], 10; [], 20]))
+    (Trie.filter_mapi (fun ~rev_path:_ _ -> None) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_map_endo_1 () =
+let test_filter_mapi_endo_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [[], 30])
-    (Trie.filter_map_endo (fun x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
+    (Trie.filter_mapi_endo (fun ~rev_path:_ x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_map_endo_2 () =
+let test_filter_mapi_endo_2 () =
   Alcotest.(check @@ trie int) "same trie"
     Trie.empty
-    (Trie.filter_map_endo (fun _ -> None) (of_list [["x"; "y"], 10; [], 20]))
+    (Trie.filter_mapi_endo (fun ~rev_path:_ _ -> None) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_map_endo_phy_eq_1 () =
+let test_filter_mapi_endo_3 () =
+  Alcotest.(check @@ trie (pair (list string) int)) "same trie"
+    (of_list [["w"], (["b"; "w"], 30)])
+    (Trie.filter_mapi_endo (fun ~rev_path (p, x) -> if x > 10 then Some (List.rev_append p rev_path, 30) else None)
+       (of_list [["x"; "y"], (["a"], 10); ["w"], (["b"], 20)]))
+
+let test_filter_mapi_endo_phy_eq_1 () =
   let t = Trie.empty in
   Alcotest.(check bool) "true"
     true
-    (Trie.filter_map_endo (fun _ -> None) t == t)
+    (Trie.filter_mapi_endo (fun ~rev_path:_ _ -> None) t == t)
 
-let test_filter_map_endo_phy_eq_2 () =
+let test_filter_mapi_endo_phy_eq_2 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
   Alcotest.(check bool) "true"
     true
-    (Trie.filter_map_endo (fun x -> Some x) t == t)
+    (Trie.filter_mapi_endo (fun ~rev_path:_ x -> Some x) t == t)
 
 let test_update_subtree () =
   Alcotest.(check @@ trie int) "same trie"
@@ -388,30 +406,33 @@ let () =
       test_case "find_root" `Quick test_find_root_3;
     ];
     "map", [
-      test_case "map" `Quick test_map_1;
-      test_case "map" `Quick test_map_2;
+      test_case "mapi" `Quick test_mapi_1;
+      test_case "mapi" `Quick test_mapi_2;
     ];
     "map_endo", [
-      test_case "map_endo" `Quick test_map_endo_1;
-      test_case "map_endo" `Quick test_map_endo_2;
-      test_case "physical equality" `Quick test_map_endo_phy_eq_1;
-      test_case "physical equality" `Quick test_map_endo_phy_eq_2;
+      test_case "mapi_endo" `Quick test_mapi_endo_1;
+      test_case "map_endo" `Quick test_mapi_endo_2;
+      test_case "physical equality" `Quick test_mapi_endo_phy_eq_1;
+      test_case "physical equality" `Quick test_mapi_endo_phy_eq_2;
     ];
-    "filter", [
-      test_case "filter" `Quick test_filter_1;
-      test_case "filter" `Quick test_filter_2;
-      test_case "physical equality" `Quick test_filter_phy_eq_1;
-      test_case "physical equality" `Quick test_filter_phy_eq_2;
+    "filteri", [
+      test_case "filteri" `Quick test_filteri_1;
+      test_case "filteri" `Quick test_filteri_2;
+      test_case "filteri" `Quick test_filteri_3;
+      test_case "filteri" `Quick test_filteri_4;
+      test_case "physical equality" `Quick test_filteri_phy_eq_1;
+      test_case "physical equality" `Quick test_filteri_phy_eq_2;
     ];
     "filter_map", [
-      test_case "filter_map" `Quick test_filter_map_1;
-      test_case "filter_map" `Quick test_filter_map_2;
+      test_case "filter_mapi" `Quick test_filter_mapi_1;
+      test_case "filter_mapi" `Quick test_filter_mapi_2;
     ];
     "filter_map_endo", [
-      test_case "filter_map_endo" `Quick test_filter_map_endo_1;
-      test_case "filter_map_endo" `Quick test_filter_map_endo_2;
-      test_case "physical equality" `Quick test_filter_map_endo_phy_eq_1;
-      test_case "physical equality" `Quick test_filter_map_endo_phy_eq_2;
+      test_case "filter_mapi_endo" `Quick test_filter_mapi_endo_1;
+      test_case "filter_mapi_endo" `Quick test_filter_mapi_endo_2;
+      test_case "filter_mapi_endo" `Quick test_filter_mapi_endo_3;
+      test_case "physical equality" `Quick test_filter_mapi_endo_phy_eq_1;
+      test_case "physical equality" `Quick test_filter_mapi_endo_phy_eq_2;
     ];
     "update_subtree", [
       test_case "update_subtree" `Quick test_update_subtree;

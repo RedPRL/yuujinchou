@@ -2,42 +2,45 @@ type path = string list
 
 type switch = [`Keep | `Hide]
 
-type 'a act =
+type 'custom act =
   | A_switch of switch
-  | A_filter_map of ('a -> 'a option)
+  | A_custom of 'custom
 
-type 'a t =
-  | P_act of 'a act
-  | P_split of
-      { mode : [`Subtree | `Node]
-      ; prefix : path
-      ; prefix_replacement : path option
-      ; on_target : 'a t
-      ; on_others : 'a t
-      }
-  | P_seq of 'a t list
-  | P_union of 'a t list
+type 'custom split =
+  { mode : [`Subtree | `Node]
+  ; prefix : path
+  ; prefix_replacement : path option
+  ; on_target : 'custom t
+  ; on_others : 'custom t
+  }
 
-val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
+and 'custom t =
+  | P_act of 'custom act
+  | P_split of 'custom split
+  | P_seq of 'custom t list
+  | P_union of 'custom t list
 
-val any : 'a t
-val root : 'a t
-val wildcard : 'a t
+val equal : ('custom -> 'custom -> bool) -> 'custom t -> 'custom t -> bool
+val pp : (Format.formatter -> 'custom -> unit) -> Format.formatter -> 'custom t -> unit
+val pp_path : Format.formatter -> path -> unit
 
-val only : path -> 'a t
-val only_subtree : path -> 'a t
+val any : 'custom t
+val root : 'custom t
+val wildcard : 'custom t
 
-val none : 'a t
-val except : path -> 'a t
-val except_subtree : path -> 'a t
-val in_subtree : path -> 'a t -> 'a t
+val only : path -> 'custom t
+val only_subtree : path -> 'custom t
 
-val renaming : path -> path -> 'a t
-val renaming_subtree : path -> path -> 'a t
+val none : 'custom t
+val except : path -> 'custom t
+val except_subtree : path -> 'custom t
+val in_subtree : path -> 'custom t -> 'custom t
 
-val seq : 'a t list -> 'a t
+val renaming : path -> path -> 'custom t
+val renaming_subtree : path -> path -> 'custom t
 
-val union : 'a t list -> 'a t
+val seq : 'custom t list -> 'custom t
 
-val filter_map : ('a -> 'a option) -> 'a t
+val union : 'custom t list -> 'custom t
+
+val custom : 'custom -> 'custom t

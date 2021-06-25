@@ -1,26 +1,23 @@
 open StdLabels
-open Bwd
 open Pattern
 open ResultMonad.Syntax
 
 type path = Pattern.path
 
-type error = Binding_not_found of path
-
-let run_act p act t =
+let run_act ~custom:(custom : rev_path:path -> 'custom -> 'a -> 'a option) ~rev_prefix act t =
   match act with
-  | A_filter_map f -> ret @@ Trie.filter_map_endo f t
+  | A_custom f -> ret @@ Trie.filter_mapi_endo ~rev_prefix (custom f) t
   | A_switch switch ->
     if Trie.is_empty t then
-      fail (Binding_not_found (p >> []))
+      error @@ `BindingNotFound (List.rev rev_prefix)
     else
       match switch with
       | `Keep -> ret t
       | `Hide -> ret Trie.empty
 
-let rec run_ m p pat t =
+let rec run_ ~union ~custom ~rev_prefix pat t =
   match pat with
-  | P_act act -> run_act p act t
+  | P_act act -> run_act ~custom ~rev_prefix act t
   | P_split {mode; prefix; prefix_replacement; on_target; on_others} ->
     let prefix_replacement = Option.value ~default:prefix prefix_replacement in
     let target, others =
@@ -30,19 +27,20 @@ let rec run_ m p pat t =
         let singleton, others = Trie.detach_singleton prefix t in
         Trie.mk_root singleton, others
     in
-    let+ target' = run_ m (p << prefix) on_target target
-    and+ others' = run_ m p on_others others in
+    let+ target' = run_ ~union ~custom ~rev_prefix:List.(rev_append prefix rev_prefix) on_target target
+    and+ others' = run_ ~union ~custom ~rev_prefix on_others others in
+    (* test physical equality *)
     if target == target' && others == others' && prefix = prefix_replacement
-    then t else Trie.union_subtree m others' (prefix_replacement, target')
+    then t else Trie.union_subtree union others' (prefix_replacement, target')
   | P_seq pats ->
-    let f t pat = Result.bind t (run_ m p pat) in
+    let f t pat = t >>= run_ ~union ~custom ~rev_prefix pat in
     List.fold_left ~f ~init:(ret t) pats
   | P_union pats ->
-    let+ ts = ResultMonad.map (fun pat -> run_ m p pat t) pats in
-    List.fold_left ~f:(Trie.union m) ~init:Trie.empty ts
+    let+ ts = ResultMonad.map (fun pat -> run_ ~union ~custom ~rev_prefix pat t) pats in
+    List.fold_left ~f:(Trie.union union) ~init:Trie.empty ts
 
-let run m = run_ m Nil
+let run_with_custom ?(rev_prefix=[]) ~union ~custom = run_ ~union ~custom ~rev_prefix
 
-let pp_error fmt =
-  function
-  | Binding_not_found path -> Format.fprintf fmt "@[<hov 1>(not-found@ %s)@]" (String.concat ~sep:"." path)
+let run ?(rev_prefix=[]) ~union = run_ ~union ~custom:(fun ~rev_path:_ () data -> Some data) ~rev_prefix
+
+let pp_path fmt path = Format.pp_print_string fmt @@ String.concat ~sep:"." path
