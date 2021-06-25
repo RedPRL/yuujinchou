@@ -138,9 +138,9 @@ sig
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     ('a, unit) Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
 
-  (** [run_with_custom ~rev_prefix ~custom ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. See {!val:run}.
+  (** [run_with_custom ~rev_prefix ~custom ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts a new argument [custom].
 
-      @param custom The customer filter that will be triggered by the pattern {!Pattern.custom}[f].
+      @param custom The customer filter that will be triggered by the pattern {!Pattern.custom}[f]. When the engine encounters {!Pattern.custom}[f], it will call [custom ~rev_path:p f v] for all data [v] at [p] in the trie.
   *)
   val run_with_custom :
     ?rev_prefix:Pattern.path ->
