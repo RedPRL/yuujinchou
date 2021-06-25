@@ -3,7 +3,7 @@ open Yuujinchou
 let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   let module M = struct
     type t = a Trie.t
-    let pp = Trie.pp (Alcotest.pp elem)
+    let pp = Trie.dump (Alcotest.pp elem)
     let equal = Trie.equal (Alcotest.equal elem)
   end in
   (module M)
