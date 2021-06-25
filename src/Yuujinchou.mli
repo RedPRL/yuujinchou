@@ -48,76 +48,76 @@ sig
      ]}
   *)
 
-  (** The type of patterns, parametrized by the type of associated data and custom filter labels. See {!val:custom}. *)
-  type (+'a, +'custom) t
+  (** The type of patterns, parametrized by the custom filter labels. See {!val:custom}. *)
+  type +'custom t
 
   (**
      The pattern type is abstract---you should build a pattern using the following builders and execute it by {!val:Action.run}.
   *)
 
   (** Checking equality. *)
-  val equal : ('a -> 'a -> bool) -> ('custom -> 'custom -> bool) -> ('a, 'custom) t -> ('a, 'custom) t -> bool
+  val equal : ('custom -> 'custom -> bool) -> 'custom t -> 'custom t -> bool
 
   (** {1 Pattern Builders} *)
 
   (** {2 Basics} *)
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match). *)
-  val any : ('a, 'custom) t
+  val any : 'custom t
 
   (** [root] keeps only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
-  val root : ('a, 'custom) t
+  val root : 'custom t
 
   (** [wildcard] keeps everything {e except} the empty name (the empty list [[]]). It is an error if there was no name is matched. *)
-  val wildcard : ('a, 'custom) t
+  val wildcard : 'custom t
 
   (** [only x] keeps the name [x] and drops everything else. It is an error if there was no binding named [x] in the tree. *)
-  val only : path -> ('a, 'custom) t
+  val only : path -> 'custom t
 
   (** [only_subtree path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only_subtree : path -> ('a, 'custom) t
+  val only_subtree : path -> 'custom t
 
   (** [in_subtree path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. *)
-  val in_subtree : path -> ('a, 'custom) t -> ('a, 'custom) t
+  val in_subtree : path -> 'custom t -> 'custom t
 
   (** {2 Negation} *)
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
-  val none : ('a, 'custom) t
+  val none : 'custom t
 
   (** [except x] drops the binding at [x]. It is an error if there was no [x] from the beginning. *)
-  val except : path -> ('a, 'custom) t
+  val except : path -> 'custom t
 
   (** [except_subtree p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to [in_subtree p none]. *)
-  val except_subtree : path -> ('a, 'custom) t
+  val except_subtree : path -> 'custom t
 
   (** {2 Renaming} *)
 
   (** [renaming x x'] renames the binding at [x] to [x']. Note that such renaming does not affect names {i under} [x]. See {!val:renaming_subtree} for comparison. It is an error if there was no [x] from the beginning. *)
-  val renaming : path -> path -> ('a, 'custom) t
+  val renaming : path -> path -> 'custom t
 
   (** [renaming_subtree path path'] relocates the subtree rooted at [path] to [path']. If you only want to move the root, not the entire subtree, see {!val:renaming}. It is an error if the subtree was empty (nothing to move). *)
-  val renaming_subtree : path -> path -> ('a, 'custom) t
+  val renaming_subtree : path -> path -> 'custom t
 
   (** {2 Sequencing} *)
 
   (** [seq [pat0; pat1; pat2; ...; patn]] runs the patterns [pat0], [pat1], [pat2], ..., [patn] in order. *)
-  val seq : ('a, 'custom) t list -> ('a, 'custom) t
+  val seq : 'custom t list -> 'custom t
 
   (** {2 Union} *)
 
   (** [union [pat0; pat1; pat2; ...; patn]] calculates the union of the results of individual patterns [pat0], [pat1], [pat2], ..., [patn]. *)
-  val union : ('a, 'custom) t list -> ('a, 'custom) t
+  val union : 'custom t list -> 'custom t
 
   (** {2 Custom Filters} *)
 
   (** [custom f] applies a custom filter labelled [f] to the associated data in the tree to change the data or remove the entries. The custom filters are given when running a pattern; see {!val:Action.run_with_custom}. If the result is [None], the binding would be removed from the tree. Otherwise, if the result is [Some x], the content of the binding would be replaced with [x]. *)
-  val custom : 'custom -> ('a, 'custom) t
+  val custom : 'custom -> 'custom t
 
   (** {1 Pretty Printers } *)
 
   (** Pretty printer for {!type:t}. *)
-  val pp : (Format.formatter -> 'a -> unit) -> (Format.formatter -> 'custom -> unit) -> Format.formatter -> ('a, 'custom) t -> unit
+  val pp : (Format.formatter -> 'custom -> unit) -> Format.formatter -> 'custom t -> unit
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
@@ -136,7 +136,7 @@ sig
   val run :
     ?rev_prefix:Pattern.path ->
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
-    ('a, unit) Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
+    unit Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
 
   (** [run_with_custom ~rev_prefix ~custom ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts a new argument [custom].
 
@@ -146,7 +146,7 @@ sig
     ?rev_prefix:Pattern.path ->
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     custom:(rev_path:Pattern.path -> 'custom -> 'a -> 'a option) ->
-    ('a, 'custom) Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
+    'custom Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
 
   (** {1 Pretty Printers} *)
 
