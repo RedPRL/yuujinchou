@@ -241,6 +241,11 @@ let of_seq m = Seq.fold_left (union_singleton m) empty
 
 (** {1 Map} *)
 
+let rec iteri_node ~rev_prefix f n =
+  Option.fold ~none:() ~some:(f ~rev_path:rev_prefix) n.root;
+  SegMap.iter ~f:(fun ~key ~data -> iteri_node ~rev_prefix:(key::rev_prefix) f data) n.children
+let iteri ?(rev_prefix=[]) f t = Option.fold ~none:() ~some:(iteri_node ~rev_prefix f) t
+
 let rec mapi_node ~rev_prefix f n =
   { root = Option.map (f ~rev_path:rev_prefix) n.root
   ; children = SegMap.mapi ~f:(fun key -> mapi_node ~rev_prefix:(key::rev_prefix) f) n.children
@@ -283,23 +288,23 @@ let rec filter_mapi_endo_node ~rev_prefix f n =
 let filter_mapi_endo ?(rev_prefix=[]) f t = replace_tree t @@
   Option.bind t @@ filter_mapi_endo_node ~rev_prefix f
 
-let rec pp_node pp_v fmt {root; children} =
+let rec dump_node dump_v fmt {root; children} =
   Format.fprintf fmt "@[@[<hv2>{";
   begin
     match root with
     | None -> ()
     | Some root ->
-      Format.fprintf fmt " . =>@ %a" pp_v root
+      Format.fprintf fmt " . =>@ %a" dump_v root
   end;
   Format.fprintf fmt "@]%a@ @[<hv2>}@]@]"
-    (pp_children pp_v) children
+    (dump_children dump_v) children
 
-and pp_children pp_v fmt =
+and dump_children dump_v fmt =
   let f ~key:seg ~data:n =
-    Format.fprintf fmt "@ @[<hv2>; %a =>@ %a@]" Format.pp_print_string seg (pp_node pp_v) n
+    Format.fprintf fmt "@ @[<hv2>; %a =>@ %a@]" Format.pp_print_string seg (dump_node dump_v) n
   in
   SegMap.iter ~f
 
-let pp pp_v = Format.pp_print_option (pp_node pp_v)
+let dump dump_v = Format.pp_print_option (dump_node dump_v)
 
 let physically_equal : 'a t -> 'a t -> bool = phy_eq_option

@@ -43,6 +43,12 @@ val find_root : 'a t -> 'a option
 
 (** {1 Mapping and Filtering} *)
 
+(** [iteri ~rev_prefix f t] applies the function [f] to each value [v] in the trie.
+
+    @param rev_prefix The prefix prepended to any path sent to [f], but in reverse. The default is the empty unit path ([[]]).
+*)
+val iteri : ?rev_prefix:path -> (rev_path:path -> 'a -> unit) -> 'a t -> unit
+
 (** [mapi ~rev_prefix f t] applies the function [f] to each value [v] in the trie.
 
     @param rev_prefix The prefix prepended to any path sent to [f], but in reverse. The default is the empty unit path ([[]]).
@@ -117,10 +123,10 @@ val to_seq_values : 'a t -> 'a Seq.t
 (** [of_seq m s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_subtree}. *)
 val of_seq : (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 
-(** {1 Pretty Printer} *)
+(** {1 Ugly Printer} *)
 
-(** [pp pp_v t] prints out the content of [t], using the pretty printer [pp_v] on values. *)
-val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
+(** [dump dump_v t] prints out the content of [t], using the ugly printer [dump_v] on values. *)
+val dump : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 
 (**/**)
 
