@@ -1,11 +1,11 @@
 type path = Pattern.path
 val pp_path : Format.formatter -> path -> unit
 
-val run_with_custom :
+val run_with_hooks :
   ?rev_prefix:path ->
   union:(rev_path:path -> 'a -> 'a -> 'a) ->
-  custom:('custom -> rev_prefix:path -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of path] as 'error) result) ->
-  'custom Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+  hooks:('hook -> rev_prefix:path -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of path] as 'error) result) ->
+  'hook Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
 
 val run :
   ?rev_prefix:path ->

@@ -48,76 +48,76 @@ sig
      ]}
   *)
 
-  (** The type of patterns, parametrized by the custom filter labels. See {!val:custom}. *)
-  type +'custom t
+  (** The type of patterns, parametrized by the type of hook labels. See {!val:hook}. *)
+  type +'hook t
 
   (**
      The pattern type is abstract---you should build a pattern using the following builders and execute it by {!val:Action.run}.
   *)
 
   (** Checking equality. *)
-  val equal : ('custom -> 'custom -> bool) -> 'custom t -> 'custom t -> bool
+  val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
 
   (** {1 Pattern Builders} *)
 
   (** {2 Basics} *)
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match). *)
-  val any : 'custom t
+  val any : 'hook t
 
   (** [root] keeps only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
-  val root : 'custom t
+  val root : 'hook t
 
   (** [wildcard] keeps everything {e except} the empty name (the empty list [[]]). It is an error if there was no name is matched. *)
-  val wildcard : 'custom t
+  val wildcard : 'hook t
 
   (** [only x] keeps the name [x] and drops everything else. It is an error if there was no binding named [x] in the tree. *)
-  val only : path -> 'custom t
+  val only : path -> 'hook t
 
   (** [only_subtree path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only_subtree : path -> 'custom t
+  val only_subtree : path -> 'hook t
 
   (** [in_subtree path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. *)
-  val in_subtree : path -> 'custom t -> 'custom t
+  val in_subtree : path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
-  val none : 'custom t
+  val none : 'hook t
 
   (** [except x] drops the binding at [x]. It is an error if there was no [x] from the beginning. *)
-  val except : path -> 'custom t
+  val except : path -> 'hook t
 
   (** [except_subtree p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to [in_subtree p none]. *)
-  val except_subtree : path -> 'custom t
+  val except_subtree : path -> 'hook t
 
   (** {2 Renaming} *)
 
   (** [renaming x x'] renames the binding at [x] to [x']. Note that such renaming does not affect names {i under} [x]. See {!val:renaming_subtree} for comparison. It is an error if there was no [x] from the beginning. *)
-  val renaming : path -> path -> 'custom t
+  val renaming : path -> path -> 'hook t
 
   (** [renaming_subtree path path'] relocates the subtree rooted at [path] to [path']. If you only want to move the root, not the entire subtree, see {!val:renaming}. It is an error if the subtree was empty (nothing to move). *)
-  val renaming_subtree : path -> path -> 'custom t
+  val renaming_subtree : path -> path -> 'hook t
 
   (** {2 Sequencing} *)
 
   (** [seq [pat0; pat1; pat2; ...; patn]] runs the patterns [pat0], [pat1], [pat2], ..., [patn] in order. *)
-  val seq : 'custom t list -> 'custom t
+  val seq : 'hook t list -> 'hook t
 
   (** {2 Union} *)
 
   (** [union [pat0; pat1; pat2; ...; patn]] calculates the union of the results of individual patterns [pat0], [pat1], [pat2], ..., [patn]. *)
-  val union : 'custom t list -> 'custom t
+  val union : 'hook t list -> 'hook t
 
   (** {2 Custom Filters} *)
 
-  (** [custom f] applies a custom function labelled [f] to the entire trie; see {!val:Action.run_with_custom}. *)
-  val custom : 'custom -> 'custom t
+  (** [hook h] applies a labelled [h] to the entire trie; see {!val:Action.run_with_hooks}. *)
+  val hook : 'hook -> 'hook t
 
   (** {1 Pretty Printers } *)
 
   (** Pretty printer for {!type:t}. *)
-  val pp : (Format.formatter -> 'custom -> unit) -> Format.formatter -> 'custom t -> unit
+  val pp : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
@@ -127,7 +127,7 @@ sig
 
   (** {1 Matching} *)
 
-  (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.custom}.
+  (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.hook}.
 
       @param rev_prefix The prefix prepended to any path sent to [union] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
       @param union The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [union ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
@@ -138,15 +138,15 @@ sig
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     unit Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
 
-  (** [run_with_custom ~rev_prefix ~custom ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts a new argument [custom] to handle {!val:Pattern.custom}.
+  (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts a new argument [hook] to handle the patterns created by {!val:Pattern.hook}.
 
-      @param custom The customer filter that will be triggered by the pattern {!val:Pattern.custom}[f]. When the engine encounters {!Pattern.custom}[f], it will call [custom ~rev_path:p f v] for all data [v] at [p] in the trie.
+      @param hooks The hooks that will be triggered by the pattern {!val:Pattern.hook}[f]. When the engine encounters {!Pattern.hook}[h], it will call [hooks h ~rev_path:p t] on the current trie.
   *)
-  val run_with_custom :
+  val run_with_hooks :
     ?rev_prefix:Pattern.path ->
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
-    custom:('custom -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path] as 'error) result) ->
-    'custom Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path] as 'error) result) ->
+    'hook Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
 
   (** {1 Pretty Printers} *)
 

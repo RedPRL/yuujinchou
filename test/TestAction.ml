@@ -290,24 +290,24 @@ let test_union_phy_eq () =
 let test_filter_map_1 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["y"], 110]))
-    (Action.run_with_custom
-       ~custom:(fun () ~rev_prefix t ->
+    (Action.run_with_hooks
+       ~hooks:(fun () ~rev_prefix t ->
            Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
              (fun ~rev_path:_ d -> if d > 20 then Some (d + 80) else None) t)
        ~union:cantor
-       (custom ()) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
+       (hook ()) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
 let test_filter_map_phy_eq () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
   Alcotest.(check bool) "true"
     true
     (Result.get_ok
-       (Action.run_with_custom
-          ~custom:(fun () ~rev_prefix t ->
+       (Action.run_with_hooks
+          ~hooks:(fun () ~rev_prefix t ->
               Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
                 (fun ~rev_path:_ x -> Some x) t)
           ~union:cantor
-          (custom ()) t) == t)
+          (hook ()) t) == t)
 
 let () =
   let open Alcotest in
