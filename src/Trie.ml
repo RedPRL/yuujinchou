@@ -284,8 +284,14 @@ let filter_mapi_endo ?(rev_prefix=[]) f t = replace_tree t @@
   Option.bind t @@ filter_mapi_endo_node ~rev_prefix f
 
 let rec pp_node pp_v fmt {root; children} =
-  Format.fprintf fmt "@[@[<hv2>{ . =>@ %a@]%a@ @[<hv2>}@]@]"
-    Format.(pp_print_option ~none:(fun fmt () -> pp_print_string fmt "") pp_v) root
+  Format.fprintf fmt "@[@[<hv2>{";
+  begin
+    match root with
+    | None -> ()
+    | Some root ->
+      Format.fprintf fmt " . =>@ %a" pp_v root
+  end;
+  Format.fprintf fmt "@]%a@ @[<hv2>}@]@]"
     (pp_children pp_v) children
 
 and pp_children pp_v fmt =
