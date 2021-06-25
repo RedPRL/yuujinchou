@@ -4,8 +4,8 @@ val pp_path : Format.formatter -> path -> unit
 val run_with_custom :
   ?rev_prefix:path ->
   union:(rev_path:path -> 'a -> 'a -> 'a) ->
-  custom:(rev_path:path -> 'custom -> 'a -> 'a option) ->
-  'custom Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of path]) result
+  custom:('custom -> rev_prefix:path -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of path] as 'error) result) ->
+  'custom Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
 
 val run :
   ?rev_prefix:path ->
