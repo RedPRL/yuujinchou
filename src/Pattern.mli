@@ -2,42 +2,44 @@ type path = string list
 
 type switch = [`Keep | `Hide]
 
-type 'a act =
+type 'custom act =
   | A_switch of switch
-  | A_filter_map of ('a -> 'a option)
+  | A_custom of 'custom
 
-type 'a t =
-  | P_act of 'a act
-  | P_split of
-      { mode : [`Subtree | `Node]
-      ; prefix : path
-      ; prefix_replacement : path option
-      ; on_target : 'a t
-      ; on_others : 'a t
-      }
-  | P_seq of 'a t list
-  | P_union of 'a t list
+type ('a, 'custom) split =
+  { mode : [`Subtree | `Node]
+  ; prefix : path
+  ; prefix_replacement : path option
+  ; on_target : ('a, 'custom) t
+  ; on_others : ('a, 'custom) t
+  }
 
-val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
+and ('a, 'custom) t =
+  | P_act of 'custom act
+  | P_split of ('a, 'custom) split
+  | P_seq of ('a, 'custom) t list
+  | P_union of ('a, 'custom) t list
 
-val any : 'a t
-val root : 'a t
-val wildcard : 'a t
+val equal : ('a -> 'a -> bool) -> ('custom -> 'custom -> bool) -> ('a, 'custom) t -> ('a, 'custom) t -> bool
+val pp : (Format.formatter -> 'a -> unit) -> (Format.formatter -> 'custom -> unit) -> Format.formatter -> ('a, 'custom) t -> unit
 
-val only : path -> 'a t
-val only_subtree : path -> 'a t
+val any : ('a, 'custom) t
+val root : ('a, 'custom) t
+val wildcard : ('a, 'custom) t
 
-val none : 'a t
-val except : path -> 'a t
-val except_subtree : path -> 'a t
-val in_subtree : path -> 'a t -> 'a t
+val only : path -> ('a, 'custom) t
+val only_subtree : path -> ('a, 'custom) t
 
-val renaming : path -> path -> 'a t
-val renaming_subtree : path -> path -> 'a t
+val none : ('a, 'custom) t
+val except : path -> ('a, 'custom) t
+val except_subtree : path -> ('a, 'custom) t
+val in_subtree : path -> ('a, 'custom) t -> ('a, 'custom) t
 
-val seq : 'a t list -> 'a t
+val renaming : path -> path -> ('a, 'custom) t
+val renaming_subtree : path -> path -> ('a, 'custom) t
 
-val union : 'a t list -> 'a t
+val seq : ('a, 'custom) t list -> ('a, 'custom) t
 
-val filter_map : ('a -> 'a option) -> 'a t
+val union : ('a, 'custom) t list -> ('a, 'custom) t
+
+val custom : 'custom -> ('a, 'custom) t

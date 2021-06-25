@@ -21,9 +21,9 @@ type env = Data.t Trie.t
     the environment [env]. *)
 let remap pattern env =
   let pp_path = function [] -> "(root)" | path -> String.concat "." path in
-  match Action.run Data.merge pattern env with
+  match Action.run ~union:Data.merge pattern env with
   | Ok env -> env
-  | Error (Action.Binding_not_found path) ->
+  | Error (`BindingNotFound path) ->
     failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
 
 (** [import env pattern imported] imports the environment

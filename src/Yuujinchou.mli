@@ -17,11 +17,15 @@ import foo as bar
 # putting content of foo under the prefix bar
    v}
 
-   We can view a collection of hierarchical names as a tree, and see these modifiers as tree transformers. I took this aspect seriously and designed a powerful (possibly overkilling) combinator calculus to express such tree transformers---the library you are checking now. It supports renaming, scopes, sequencing, unions, generic filtering.
+   We can view a collection of hierarchical names as a tree, and these modifiers as tree transformers. This package provided a combinator calculus to express such tree transformers. It supports renaming, scopes, sequencing, unions, generic filtering.
+
+   {1  Namespaces in Yuujinchou}
+
+   This package intends to treat a namespace as the prefix of a group of names. That is, there is technically no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
 *)
 
 (**
-   {1 Organization}
+   {1 Modules}
 
    The code is split into three parts:
 *)
@@ -44,76 +48,76 @@ sig
      ]}
   *)
 
-  (** The type of patterns, parametrized by the type of associated data. *)
-  type 'a t
+  (** The type of patterns, parametrized by the type of associated data and custom filter labels. See {!val:custom}. *)
+  type (+'a, +'custom) t
 
   (**
      The pattern type is abstract---you should build a pattern using the following builders and execute it by {!val:Action.run}.
   *)
 
-  (** Checking equality. Note that patterns created by {!val:filter_map} are not comparable to each other because they take a function. *)
-  val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+  (** Checking equality. *)
+  val equal : ('a -> 'a -> bool) -> ('custom -> 'custom -> bool) -> ('a, 'custom) t -> ('a, 'custom) t -> bool
 
   (** {1 Pattern Builders} *)
 
   (** {2 Basics} *)
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match). *)
-  val any : 'a t
+  val any : ('a, 'custom) t
 
   (** [root] keeps only the empty name (the empty list [[]]). It is equivalent to [only []]. *)
-  val root : 'a t
+  val root : ('a, 'custom) t
 
   (** [wildcard] keeps everything {e except} the empty name (the empty list [[]]). It is an error if there was no name is matched. *)
-  val wildcard : 'a t
+  val wildcard : ('a, 'custom) t
 
   (** [only x] keeps the name [x] and drops everything else. It is an error if there was no binding named [x] in the tree. *)
-  val only : path -> 'a t
+  val only : path -> ('a, 'custom) t
 
   (** [only_subtree path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only_subtree : path -> 'a t
+  val only_subtree : path -> ('a, 'custom) t
 
   (** [in_subtree path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. *)
-  val in_subtree : path -> 'a t -> 'a t
+  val in_subtree : path -> ('a, 'custom) t -> ('a, 'custom) t
 
   (** {2 Negation} *)
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
-  val none : 'a t
+  val none : ('a, 'custom) t
 
   (** [except x] drops the binding at [x]. It is an error if there was no [x] from the beginning. *)
-  val except : path -> 'a t
+  val except : path -> ('a, 'custom) t
 
   (** [except_subtree p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to [in_subtree p none]. *)
-  val except_subtree : path -> 'a t
+  val except_subtree : path -> ('a, 'custom) t
 
   (** {2 Renaming} *)
 
   (** [renaming x x'] renames the binding at [x] to [x']. Note that such renaming does not affect names {i under} [x]. See {!val:renaming_subtree} for comparison. It is an error if there was no [x] from the beginning. *)
-  val renaming : path -> path -> 'a t
+  val renaming : path -> path -> ('a, 'custom) t
 
   (** [renaming_subtree path path'] relocates the subtree rooted at [path] to [path']. If you only want to move the root, not the entire subtree, see {!val:renaming}. It is an error if the subtree was empty (nothing to move). *)
-  val renaming_subtree : path -> path -> 'a t
-
-  (** {2 Associated Data} *)
-
-  (** [filter_map f] applies the function [f] to the associated data in the tree. If the result is [None], the binding would be removed from the tree. Otherwise, if the result is [Some x], the content of the binding would be replaced with [x]. *)
-  val filter_map : ('a -> 'a option) -> 'a t
+  val renaming_subtree : path -> path -> ('a, 'custom) t
 
   (** {2 Sequencing} *)
 
   (** [seq [pat0; pat1; pat2; ...; patn]] runs the patterns [pat0], [pat1], [pat2], ..., [patn] in order. *)
-  val seq : 'a t list -> 'a t
+  val seq : ('a, 'custom) t list -> ('a, 'custom) t
 
   (** {2 Union} *)
 
   (** [union [pat0; pat1; pat2; ...; patn]] calculates the union of the results of individual patterns [pat0], [pat1], [pat2], ..., [patn]. *)
-  val union : 'a t list -> 'a t
+  val union : ('a, 'custom) t list -> ('a, 'custom) t
+
+  (** {2 Custom Filters} *)
+
+  (** [custom f] applies a custom filter labelled [f] to the associated data in the tree to change the data or remove the entries. The custom filters are given when running a pattern; see {!val:Action.run_with_custom}. If the result is [None], the binding would be removed from the tree. Otherwise, if the result is [Some x], the content of the binding would be replaced with [x]. *)
+  val custom : 'custom -> ('a, 'custom) t
 
   (** {1 Pretty Printers } *)
 
   (** Pretty printer for {!type:t}. *)
-  val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
+  val pp : (Format.formatter -> 'a -> unit) -> (Format.formatter -> 'custom -> unit) -> Format.formatter -> ('a, 'custom) t -> unit
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
@@ -121,27 +125,37 @@ module Action :
 sig
   (** The engine tries to preserve physical equality whenever feasible. For example, if the trie [t] has a binding at [x], the pattern [renaming ["x"] ["x"]] on [t] will return the same [t]. *)
 
-  (** {1 Error Type} *)
-
-  (** The type of errors due to the absence of expected bindings. For example, the pattern [Pattern.except_subtree ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were no names with the prefix [x.y], then the pattern will result into the error [Binding_not_found ["x"; "y"]]. The path is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]] but the engine would never know the true intension. *)
-  type error = Binding_not_found of Pattern.path (** The engine could not find the expected binding(s). *)
-
   (** {1 Matching} *)
 
-  (** [run merger pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
+  (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
 
-      @param merger The resolver for two conflicting bindings sharing the same name. Patterns such as [Pattern.renaming] and [Pattern.union] could lead to conflicting bindings, and [merger ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
+      @param rev_prefix The prefix prepended to any path sent to [union] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
+      @param union The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [union ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
+
+      @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except_subtree}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intension. *)
+  val run :
+    ?rev_prefix:Pattern.path ->
+    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    ('a, unit) Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
+
+  (** [run_with_custom ~rev_prefix ~custom ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. See {!val:run}.
+
+      @param custom The customer filter that will be triggered by the pattern {!Pattern.custom}[f].
   *)
-  val run : (rev_path:Pattern.path -> 'a -> 'a -> 'a) -> 'a Pattern.t -> 'a Trie.t -> ('a Trie.t, error) result
+  val run_with_custom :
+    ?rev_prefix:Pattern.path ->
+    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    custom:(rev_path:Pattern.path -> 'custom -> 'a -> 'a option) ->
+    ('a, 'custom) Pattern.t -> 'a Trie.t -> ('a Trie.t, [> `BindingNotFound of Pattern.path]) result
 
   (** {1 Pretty Printers} *)
 
-  (** Pretty printer for {!type:error}. *)
-  val pp_error : Format.formatter -> error -> unit
+  (** Pretty printer for {!type:path}. *)
+  val pp_path : Format.formatter -> Pattern.path -> unit
 end
 
 (**
-   {1 How to Use It}
+   {1 Example}
 
    {[
      open Yuujinchou
@@ -150,10 +164,11 @@ end
      struct
        type t = int
        let equal n1 n2 = n1 = n2
-       let merge x y =
+       let merge ~rev_path x y =
          if equal x y then x
-         else failwith "Inconsistent data assigned to the same path."
-       let shadow _x y = y
+         else failwith @@
+           "Inconsistent data assigned to the same path " ^ String.concat "." @@ List.rev rev_path
+       let shadow ~rev_path:_ _x y = y
        let compare : t -> t -> int = compare
      end
 
@@ -164,9 +179,9 @@ end
          the environment [env]. *)
      let remap pattern env =
        let pp_path = function [] -> "(root)" | path -> String.concat "." path in
-       match Action.run Data.merge pattern env with
+       match Action.run ~union:Data.merge pattern env with
        | Ok env -> env
-       | Error (Action.Binding_not_found path) ->
+       | Error (`BindingNotFound path) ->
          failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
 
      (** [import env pattern imported] imports the environment
@@ -183,82 +198,92 @@ end
 *)
 
 (**
-   {1  Namespace?}
-
-   This library intends to treat a namespace as the prefix of a group of names. That is, there is no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
-
-   Note that namespaces (name prefixes of unrelated items) are different from modules (groups of items that are bound together). This library does not provide special support for modules (yet).
-
    {1 Examples from Other Languages}
 
    {2 Haskell}
 
+   - Haskell syntax
    {v
 import Mod -- x is available an both x and Mod.x
    v}
+   Corresponding Yuujinchou pattern
    {[
      union [any; renaming_subtree [] ["Mod"]]
    ]}
 
+   - Haskell syntax
    {v
 import Mod (x,y)
    v}
+   Corresponding Yuujinchou pattern
    {[
      union [only ["x"]; only ["y"]]
    ]}
 
+   - Haskell syntax
    {v
 import qualified Mod
    v}
+   Corresponding Yuujinchou pattern
    {[
      renaming_subtree [] ["Mod"]
    ]}
 
+   - Haskell syntax
    {v
 import qualified Mod hiding (x,y)
    v}
+   Corresponding Yuujinchou pattern
    {[
      seq [except ["x"]; except ["y"]; renaming_subtree [] ["Mod"]]
    ]}
 
    {2 Racket}
 
+   - Racket syntax
    {v
 (require (only-in ... id0 [old-id1 new-id1]))
    v}
+   Corresponding Yuujinchou pattern
    {[
      seq [...; union [only ["id0"]; seq [only ["old-id1"]; renaming ["old-id1"] ["new-id1"]]]]
    ]}
 
+   - Racket syntax
    {v
 (require (except-in ... id0 id1]))
    v}
+   Corresponding Yuujinchou pattern
    {[
      seq [...; except ["id0"]; except ["id1"]]
    ]}
 
+   - Racket syntax
    {v
 (require (prefix-in p: ...))
    v}
+   Corresponding Yuujinchou pattern
    {[
      seq [...; renaming_subtree [] ["p"]]
    ]}
 
+   - Racket syntax
    {v
 (require (rename-in ... [old-id0 new-id0] [old-id1 new-id1]))
    v}
+   Corresponding Yuujinchou pattern
    {[
      seq [...; renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]]
    ]}
 
+   - Racket syntax
    {v
 (require (combine-in require-spec0 require-spec1 ...))
    v}
+   Corresponding Yuujinchou pattern
    {[
      union [require-spec0; require-spec1; ...]
    ]}
-
-   The [provide] mechanism can be implemented in a similar way, and the phases can be handled via {!val:Pattern.filter_map}.
 
    {1 What is "Yuujinchou"?}
 

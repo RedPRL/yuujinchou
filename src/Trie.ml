@@ -1,6 +1,5 @@
 open StdLabels
 open MoreLabels
-open Bwd
 
 type seg = string
 type path = seg list
@@ -12,17 +11,17 @@ struct
       let compare = String.compare
     end)
 
-  let filter_map f m =
+  let filter_mapi f m =
     let f ~key ~data m =
-      match f data with
+      match f ~key data with
       | None -> m
       | Some data -> add ~key ~data m
     in
     fold ~f m ~init:empty
 
-  let filter_map_endo f m =
+  let filter_mapi_endo f m =
     let f m (key, children) =
-      update ~key ~f:(fun _ -> f children) m
+      update ~key ~f:(fun _ -> f ~key children) m
     in
     Seq.fold_left f m (to_seq m)
 end
@@ -178,15 +177,15 @@ let rec union_node ~rev_prefix m n n' =
 
 let union_ ~rev_prefix m = union_option @@ union_node ~rev_prefix m
 
-let[@inline] union m = union_ ~rev_prefix:[] m
+let[@inline] union ?(rev_prefix=[]) m = union_ ~rev_prefix m
 
-let union_subtree m t (path, t') =
-  update_cont t path @@ fun t -> union_ ~rev_prefix:(List.rev path) m t t'
+let union_subtree ?(rev_prefix=[]) m t (path, t') =
+  update_cont t path @@ fun t -> union_ ~rev_prefix:(List.rev_append path rev_prefix) m t t'
 
-let union_singleton m t (path, v) =
+let union_singleton ?(rev_prefix=[]) m t (path, v) =
   update_cont t path @@ function
   | None -> non_empty @@ mk_root_node v
-  | Some n -> replace_root n @@ union_option (m ~rev_path:(List.rev path)) n.root @@ Some v
+  | Some n -> replace_root n @@ union_option (m ~rev_path:(List.rev_append path rev_prefix)) n.root @@ Some v
 
 (** {1 Detaching subtrees} *)
 
@@ -215,17 +214,17 @@ let detach_singleton path t = apply_and_update_cont path t @@ function
 
 (** {1 Conversion from/to Seq} *)
 
-let rec node_to_seq prefix n () =
+let rec node_to_seq ~rev_prefix n () =
   match n.root with
-  | None -> children_to_seq prefix n.children ()
+  | None -> children_to_seq ~rev_prefix n.children ()
   | Some v ->
-    Seq.Cons ((prefix >> [], v), children_to_seq prefix n.children)
+    Seq.Cons ((List.rev rev_prefix, v), children_to_seq ~rev_prefix n.children)
 
-and children_to_seq prefix_stack children =
+and children_to_seq ~rev_prefix children =
   SegMap.to_seq children |> Seq.flat_map @@ fun (seg, n) ->
-  node_to_seq (Snoc (prefix_stack, seg)) n
+  node_to_seq ~rev_prefix:(seg :: rev_prefix) n
 
-let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq Nil) t
+let to_seq t = Option.fold ~none:Seq.empty ~some:(node_to_seq ~rev_prefix:[]) t
 
 let rec node_to_seq_values n () =
   match n.root with
@@ -242,33 +241,47 @@ let of_seq m = Seq.fold_left (union_singleton m) empty
 
 (** {1 Map} *)
 
-let rec map_node f n =
-  { root = Option.map f n.root
-  ; children = SegMap.map ~f:(map_node f) n.children
+let rec mapi_node ~rev_prefix f n =
+  { root = Option.map (f ~rev_path:rev_prefix) n.root
+  ; children = SegMap.mapi ~f:(fun key -> mapi_node ~rev_prefix:(key::rev_prefix) f) n.children
   }
-let map f t = Option.map (map_node f) t
+let mapi ?(rev_prefix=[]) f t = Option.map (mapi_node ~rev_prefix f) t
 
-let rec map_endo_node f n =
-  let root = Option.map f n.root in
-  let children = SegMap.filter_map_endo (fun n -> Some (map_endo_node f n)) n.children in
+let rec mapi_endo_node ~rev_prefix f n =
+  let root = Option.map (f ~rev_path:rev_prefix) n.root in
+  let children = SegMap.filter_mapi_endo
+      (fun ~key:(key:string) n -> Some (mapi_endo_node ~rev_prefix:(key::rev_prefix) f n))
+      n.children
+  in
   replace_nonempty_root_and_children n root children
-let map_endo f t = replace_tree t @@ Option.map (map_endo_node f) t
+let mapi_endo ?(rev_prefix=[]) f t = replace_tree t @@ Option.map (mapi_endo_node ~rev_prefix f) t
 
-let rec filter_node f n =
-  let root = Option.bind n.root @@ fun v -> if f v then Some v else None in
-  let children = SegMap.filter_map_endo (filter_node f) n.children in
+let rec filteri_node ~rev_prefix f n =
+  let root = Option.bind n.root @@
+    fun v -> if f ~rev_path:rev_prefix v then Some v else None in
+  let children =
+    SegMap.filter_mapi_endo
+      (fun ~key -> filteri_node ~rev_prefix:(key::rev_prefix) f)
+      n.children
+  in
   replace_root_and_children n root children
-let filter f t = replace_tree t @@ Option.bind t @@ filter_node f
+let filteri ?(rev_prefix=[]) f t = replace_tree t @@ Option.bind t @@ filteri_node ~rev_prefix f
 
-let rec filter_map_node f n =
-  mk_tree (Option.bind n.root f) @@ SegMap.filter_map (filter_map_node f) n.children
-let filter_map f t = Option.bind t @@ filter_map_node f
+let rec filter_mapi_node ~rev_prefix f n =
+  mk_tree (Option.bind n.root @@ f ~rev_path:rev_prefix) @@
+  SegMap.filter_mapi (fun ~key -> filter_mapi_node ~rev_prefix:(key::rev_prefix) f) n.children
+let filter_mapi ?(rev_prefix=[]) f t = Option.bind t @@ filter_mapi_node ~rev_prefix f
 
-let rec filter_map_endo_node f n =
-  let root = Option.bind n.root f in
-  let children = SegMap.filter_map_endo (filter_map_endo_node f) n.children in
+let rec filter_mapi_endo_node ~rev_prefix f n =
+  let root = Option.bind n.root (f ~rev_path:rev_prefix) in
+  let children =
+    SegMap.filter_mapi_endo
+      (fun ~key -> filter_mapi_endo_node ~rev_prefix:(key::rev_prefix) f)
+      n.children
+  in
   replace_root_and_children n root children
-let filter_map_endo f t = replace_tree t @@ Option.bind t @@ filter_map_endo_node f
+let filter_mapi_endo ?(rev_prefix=[]) f t = replace_tree t @@
+  Option.bind t @@ filter_mapi_endo_node ~rev_prefix f
 
 let rec pp_node pp_v fmt {root; children} =
   Format.fprintf fmt "@[@[<hv2>{ . =>@ %a@]%a@ @[<hv2>}@]@]"

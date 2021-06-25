@@ -1,1 +1,1 @@
-(* This file is intentially blank. *)
+(* This file is intentionally blank to detect unused declarations. *)
