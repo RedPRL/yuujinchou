@@ -9,23 +9,24 @@
 
    {v
 open import M renaming (a to b) public
--- renaming a to b, and then re-exporting the content
+-- (Agda) renaming a to b, and then re-exporting the content
    v}
+
+   Another way to address this is to place the imported content under some namespace. For example, in Python,
 
    {v
-import foo as bar
-# putting content of foo under the prefix bar
+import math # Python: the sqrt function is available as  `math.sqrt`.
    v}
 
-   We can view a collection of hierarchical names as a tree, and these modifiers as tree transformers. This package provided a combinator calculus to express such tree transformers. It supports renaming, scopes, sequencing, unions, generic filtering.
+   The goal of the Yuujinchou library is to provide a calculus that covers all common uses. If we view the collection of hierarchical names as a trie, then these name modifiers are trie transformers. Currently, it supports renaming, scopes, sequencing, unions, and custom hooks for more advanced patterns.
 
-   {1  Namespaces in Yuujinchou}
+   {2 Notes on Namespaces}
 
-   This package intends to treat a namespace as the prefix of a group of names. That is, there is technically no namespace [a], but only a group of unrelated names that happen to have the prefix [a].
+   This package intends to treat a namespace as the prefix of a group of names; there is no namespace [a], but a group of unrelated names that happen to have the prefix [a]. This is different from many designs which attempt to group a collection of bindings as a module. It is possible that such a design is unnecessarily limited unless one wishes to implement parametric signature polymorphism (without row polymorphism).
 *)
 
 (**
-   {1 Modules}
+   {1 Modules in this Package}
 
    The code is split into three parts:
 *)
