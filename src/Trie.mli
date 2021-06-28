@@ -123,7 +123,7 @@ val to_seq_values : 'a t -> 'a Seq.t
 (** [of_seq m s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_subtree}. *)
 val of_seq : (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 
-(** {1 Ugly Printer} *)
+(** {1 Printer} *)
 
 (** [dump dump_v t] prints out the content of [t], using the ugly printer [dump_v] on values. *)
 val dump : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
