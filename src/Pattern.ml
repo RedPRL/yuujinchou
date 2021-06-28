@@ -11,12 +11,6 @@ type 'hooks act =
   | A_switch of switch
   | A_hook of 'hooks
 
-let dump_act dump_hook fmt =
-  function
-  | A_switch `Use -> Format.pp_print_string fmt "'use"
-  | A_switch `Hide -> Format.pp_print_string fmt "'hide"
-  | A_hook f -> Format.fprintf fmt "@[<1>(hook@ %a)@]" dump_hook f
-
 let act_use = A_switch `Use
 let act_hide = A_switch `Hide
 
@@ -95,31 +89,3 @@ let rec equal equal_hook p1 p2 =
   | P_seq ps1, P_seq ps2 | P_union ps1, P_union ps2 ->
     begin try List.for_all2 ~f:(equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
   | _ -> false
-
-let dump_split_mode fmt =
-  function
-  | `Subtree -> Format.pp_print_string fmt "'subtree"
-  | `Node -> Format.pp_print_string fmt "'node"
-
-let dump_prefix fmt =
-  function
-  | (prefix, None) -> pp_path fmt prefix
-  | (prefix, Some replacement) ->
-    Format.fprintf fmt "@[<1>(replace@ %a@ %a)@]" pp_path prefix pp_path replacement
-
-let rec dump_patterns dump_hook fmt =
-  List.iter ~f:(Format.fprintf fmt "@ %a" (dump dump_hook))
-
-and dump dump_hook fmt =
-  function
-  | P_act act -> Format.fprintf fmt "@[<1>(act@ %a)@]" (dump_act dump_hook) act
-  | P_split {mode; prefix; prefix_replacement; on_target; on_others} ->
-    Format.fprintf fmt "@[<1>(split@ %a@ %a@ %a@ %a)@]"
-      dump_split_mode mode
-      dump_prefix (prefix, prefix_replacement)
-      (dump dump_hook) on_target
-      (dump dump_hook) on_others
-  | P_seq ps ->
-    Format.fprintf fmt "@[<1>(seq%a)@]" (dump_patterns dump_hook) ps
-  | P_union ps ->
-    Format.fprintf fmt "@[<1>(union%a)@]" (dump_patterns dump_hook) ps

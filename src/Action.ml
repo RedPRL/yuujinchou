@@ -28,7 +28,7 @@ let rec run_ ~union ~hooks ~rev_prefix pat t =
       | `Subtree -> Trie.detach_subtree prefix t
       | `Node ->
         let singleton, others = Trie.detach_singleton prefix t in
-        Trie.mk_root singleton, others
+        Trie.root_opt singleton, others
     in
     let+ target' = run_ ~union ~hooks ~rev_prefix:List.(rev_append prefix rev_prefix) on_target target
     and+ others' = run_ ~union ~hooks ~rev_prefix on_others others in

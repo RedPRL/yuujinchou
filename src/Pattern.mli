@@ -1,5 +1,7 @@
 type path = string list
 
+val pp_path : Format.formatter -> path -> unit
+
 type switch = [`Use | `Hide]
 
 type 'hook act =
@@ -21,8 +23,6 @@ and 'hook t =
   | P_union of 'hook t list
 
 val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
-val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit
-val pp_path : Format.formatter -> path -> unit
 
 val any : 'hook t
 val root : 'hook t
