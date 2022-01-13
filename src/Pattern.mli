@@ -9,8 +9,7 @@ type 'hook act =
   | A_hook of 'hook
 
 type 'hook split =
-  { mode : [`Subtree | `Node]
-  ; prefix : path
+  { prefix : path
   ; prefix_replacement : path option
   ; on_target : 'hook t
   ; on_others : 'hook t
@@ -25,19 +24,14 @@ and 'hook t =
 val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
 
 val any : 'hook t
-val root : 'hook t
-val wildcard : 'hook t
 
 val only : path -> 'hook t
-val only_subtree : path -> 'hook t
 
 val none : 'hook t
 val except : path -> 'hook t
-val except_subtree : path -> 'hook t
-val in_subtree : path -> 'hook t -> 'hook t
+val in_ : path -> 'hook t -> 'hook t
 
 val renaming : path -> path -> 'hook t
-val renaming_subtree : path -> path -> 'hook t
 
 val seq : 'hook t list -> 'hook t
 

@@ -77,7 +77,7 @@ let test_import_3 () =
     (trie_of_list [["x"; "y"], 100; ["z"], 200; ["x"; "z"], 30; ["x"; "w"], 300])
     (import
        (trie_of_list [["x"; "y"], 10; ["z"], 20; ["x"; "z"], 30])
-       Pattern.(seq [renaming_subtree [] ["x"]; renaming ["x";"z"] ["z"]])
+       Pattern.(seq [renaming [] ["x"]; renaming ["x";"z"] ["z"]])
        (trie_of_list [["y"], 100; ["z"], 200; ["w"], 300])
     )
 

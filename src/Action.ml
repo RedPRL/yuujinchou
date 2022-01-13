@@ -21,15 +21,9 @@ let run_act ~hooks ~rev_prefix act t =
 let rec run_ ~union ~hooks ~rev_prefix pat t =
   match pat with
   | P_act act -> run_act ~hooks ~rev_prefix act t
-  | P_split {mode; prefix; prefix_replacement; on_target; on_others} ->
+  | P_split {prefix; prefix_replacement; on_target; on_others} ->
     let prefix_replacement = Option.value ~default:prefix prefix_replacement in
-    let target, others =
-      match mode with
-      | `Subtree -> Trie.detach_subtree prefix t
-      | `Node ->
-        let singleton, others = Trie.detach_singleton prefix t in
-        Trie.root_opt singleton, others
-    in
+    let target, others = Trie.detach_subtree prefix t in
     let+ target' = run_ ~union ~hooks ~rev_prefix:List.(rev_append prefix rev_prefix) on_target target
     and+ others' = run_ ~union ~hooks ~rev_prefix on_others others in
     (* test physical equality *)

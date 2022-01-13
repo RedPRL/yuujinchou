@@ -62,57 +62,15 @@ let test_any_phy_eq () =
     true
     (Result.get_ok (Action.run ~union:cantor any t) == t)
 
-let test_wildcard_1 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [["x"], 10]))
-    (Action.run ~union:cantor wildcard (of_list [["x"], 10]))
-
-let test_wildcard_2 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound []))
-    (Action.run ~union:cantor wildcard (of_list [[], 10]))
-
-let test_wildcard_3 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound []))
-    (Action.run ~union:cantor wildcard Trie.empty)
-
-let test_wildcard_phy_eq () =
-  let t = of_list [["x"], 10] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor wildcard t) == t)
-
-let test_root_1 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound []))
-    (Action.run ~union:cantor root (of_list [["x"], 10]))
-
-let test_root_2 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [[], 10]))
-    (Action.run ~union:cantor root (of_list [[], 10]))
-
-let test_root_3 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound []))
-    (Action.run ~union:cantor root Trie.empty)
-
-let test_root_phy_eq () =
-  let t = of_list [[], 10] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor root t) == t)
-
 let test_only_1 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["x"], 10]))
     (Action.run ~union:cantor (only ["x"]) (of_list [["x"], 10; ["y"], 20]))
 
 let test_only_2 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound ["x"]))
-    (Action.run ~union:cantor (only ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20]))
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok (of_list [["x"; "y"], 10; ["x"; "x"], 20]))
+    (Action.run ~union:cantor (only ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
 let test_only_3 () =
   Alcotest.(check @@ run_result int) "error"
@@ -125,77 +83,41 @@ let test_only_phy_eq () =
     true
     (Result.get_ok (Action.run ~union:cantor (only ["x"]) t) == t)
 
-let test_only_subtree_1 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [["x"], 10]))
-    (Action.run ~union:cantor (only_subtree ["x"]) (of_list [["x"], 10; ["y"], 20]))
-
-let test_only_subtree_2 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [["x"; "y"], 10; ["x"; "x"], 20]))
-    (Action.run ~union:cantor (only_subtree ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
-
-let test_only_subtree_3 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound ["x"]))
-    (Action.run ~union:cantor (only_subtree ["x"]) Trie.empty)
-
-let test_only_subtree_phy_eq () =
-  let t = of_list [["x"], 10] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (only_subtree ["x"]) t) == t)
-
 let test_except_1 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["y"], 20]))
     (Action.run ~union:cantor (except ["x"]) (of_list [["x"], 10; ["y"], 20]))
 
 let test_except_2 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound ["x"]))
-    (Action.run ~union:cantor (except ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20]))
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok (of_list [["y"], 30]))
+    (Action.run ~union:cantor (except ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
 let test_except_3 () =
   Alcotest.(check @@ run_result int) "error"
     (Error (`BindingNotFound ["x"]))
     (Action.run ~union:cantor (except ["x"]) Trie.empty)
 
-let test_except_subtree_1 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [["y"], 20]))
-    (Action.run ~union:cantor (except_subtree ["x"]) (of_list [["x"], 10; ["y"], 20]))
-
-let test_except_subtree_2 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [["y"], 30]))
-    (Action.run ~union:cantor (except_subtree ["x"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
-
-let test_except_subtree_3 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound ["x"]))
-    (Action.run ~union:cantor (except_subtree ["x"]) Trie.empty)
-
-let test_in_subtree_1 () =
+let test_in_1 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["x"; "z"], 10; ["y"], 20]))
-    (Action.run ~union:cantor (in_subtree ["x"] (renaming [] ["z"])) (of_list [["x"], 10; ["y"], 20]))
+    (Action.run ~union:cantor (in_ ["x"] (renaming [] ["z"])) (of_list [["x"], 10; ["y"], 20]))
 
-let test_in_subtree_2 () =
+let test_in_2 () =
   Alcotest.(check @@ run_result int) "ok"
     (Ok (of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30]))
-    (Action.run ~union:cantor (in_subtree ["x"] (renaming ["x"] ["w"])) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
+    (Action.run ~union:cantor (in_ ["x"] (renaming ["x"] ["w"])) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
-let test_in_subtree_3 () =
+let test_in_3 () =
   Alcotest.(check @@ run_result int) "error"
     (Error (`BindingNotFound ["x"]))
-    (Action.run ~union:cantor (in_subtree ["x"] any) Trie.empty)
+    (Action.run ~union:cantor (in_ ["x"] any) Trie.empty)
 
-let test_in_subtree_phy_eq () =
+let test_in_phy_eq () =
   let t = of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30] in
   Alcotest.(check bool) "true"
     true
-    (Result.get_ok (Action.run ~union:cantor (in_subtree ["x"] (renaming ["x"] ["x"])) t) == t)
+    (Result.get_ok (Action.run ~union:cantor (in_ ["x"] (renaming ["x"] ["x"])) t) == t)
 
 let test_renaming_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -203,8 +125,8 @@ let test_renaming_1 () =
     (Action.run ~union:cantor (renaming ["x"] ["z"]) (of_list [["x"], 10; ["y"], 20]))
 
 let test_renaming_2 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound ["x"]))
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok (of_list [["z"; "y"], 10; ["z"; "x"], 20; ["y"], 30]))
     (Action.run ~union:cantor (renaming ["x"] ["z"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
 let test_renaming_3 () =
@@ -212,38 +134,17 @@ let test_renaming_3 () =
     (Error (`BindingNotFound ["x"]))
     (Action.run ~union:cantor (renaming ["x"] ["z"]) Trie.empty)
 
-let test_renaming_phy_eq () =
+let test_renaming_phy_eq_1 () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
   Alcotest.(check bool) "true"
     true
-    (Result.get_ok (Action.run ~union:cantor (renaming ["x"; "w"] ["x"; "w"]) t) == t)
+    (Result.get_ok (Action.run ~union:cantor (renaming ["x"] ["x"]) t) == t)
 
-let test_renaming_subtree_1 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [["z"], 10; ["y"], 20]))
-    (Action.run ~union:cantor (renaming_subtree ["x"] ["z"]) (of_list [["x"], 10; ["y"], 20]))
-
-let test_renaming_subtree_2 () =
-  Alcotest.(check @@ run_result int) "ok"
-    (Ok (of_list [["z"; "y"], 10; ["z"; "x"], 20; ["y"], 30]))
-    (Action.run ~union:cantor (renaming_subtree ["x"] ["z"]) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
-
-let test_renaming_subtree_3 () =
-  Alcotest.(check @@ run_result int) "error"
-    (Error (`BindingNotFound ["x"]))
-    (Action.run ~union:cantor (renaming_subtree ["x"] ["z"]) Trie.empty)
-
-let test_renaming_subtree_phy_eq_1 () =
+let test_renaming_phy_eq_2 () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
   Alcotest.(check bool) "true"
     true
-    (Result.get_ok (Action.run ~union:cantor (renaming_subtree ["x"] ["x"]) t) == t)
-
-let test_renaming_subtree_phy_eq_2 () =
-  let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (renaming_subtree ["x"; "y"] ["x"; "y"]) t) == t)
+    (Result.get_ok (Action.run ~union:cantor (renaming ["x"; "y"] ["x"; "y"]) t) == t)
 
 let test_seq_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -323,58 +224,29 @@ let () =
       test_case "any" `Quick test_any_3;
       test_case "physical equality" `Quick test_any_phy_eq;
     ];
-    "wildcard", [
-      test_case "wildcard" `Quick test_wildcard_1;
-      test_case "wildcard" `Quick test_wildcard_2;
-      test_case "wildcard" `Quick test_wildcard_3;
-      test_case "physical equality" `Quick test_wildcard_phy_eq;
-    ];
-    "root", [
-      test_case "root" `Quick test_root_1;
-      test_case "root" `Quick test_root_2;
-      test_case "root" `Quick test_root_3;
-      test_case "physical equality" `Quick test_root_phy_eq;
-    ];
     "only", [
       test_case "only" `Quick test_only_1;
       test_case "only" `Quick test_only_2;
       test_case "only" `Quick test_only_3;
       test_case "physical equality" `Quick test_only_phy_eq;
     ];
-    "only_subtree", [
-      test_case "only_subtree" `Quick test_only_subtree_1;
-      test_case "only_subtree" `Quick test_only_subtree_2;
-      test_case "only_subtree" `Quick test_only_subtree_3;
-      test_case "physical equality" `Quick test_only_subtree_phy_eq;
-    ];
     "except", [
       test_case "except" `Quick test_except_1;
       test_case "except" `Quick test_except_2;
       test_case "except" `Quick test_except_3;
     ];
-    "except_subtree", [
-      test_case "except_subtree" `Quick test_except_subtree_1;
-      test_case "except_subtree" `Quick test_except_subtree_2;
-      test_case "except_subtree" `Quick test_except_subtree_3;
-    ];
-    "in_subtree", [
-      test_case "in_subtree" `Quick test_in_subtree_1;
-      test_case "in_subtree" `Quick test_in_subtree_2;
-      test_case "in_subtree" `Quick test_in_subtree_3;
-      test_case "physical equality" `Quick test_in_subtree_phy_eq;
+    "in_", [
+      test_case "in_" `Quick test_in_1;
+      test_case "in_" `Quick test_in_2;
+      test_case "in_" `Quick test_in_3;
+      test_case "physical equality" `Quick test_in_phy_eq;
     ];
     "renaming", [
       test_case "renaming" `Quick test_renaming_1;
       test_case "renaming" `Quick test_renaming_2;
       test_case "renaming" `Quick test_renaming_3;
-      test_case "physical equality" `Quick test_renaming_phy_eq;
-    ];
-    "renaming_subtree", [
-      test_case "renaming_subtree" `Quick test_renaming_subtree_1;
-      test_case "renaming_subtree" `Quick test_renaming_subtree_2;
-      test_case "renaming_subtree" `Quick test_renaming_subtree_3;
-      test_case "physical equality" `Quick test_renaming_subtree_phy_eq_1;
-      test_case "physical equality" `Quick test_renaming_subtree_phy_eq_2;
+      test_case "physical equality" `Quick test_renaming_phy_eq_1;
+      test_case "physical equality" `Quick test_renaming_phy_eq_2;
     ];
     "seq", [
       test_case "seq" `Quick test_seq_1;

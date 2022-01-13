@@ -66,39 +66,24 @@ sig
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match). *)
   val any : 'hook t
 
-  (** [root] keeps only the empty name (the empty list [[]]). It is equivalent to {!val:only}[[]]. *)
-  val root : 'hook t
-
-  (** [wildcard] keeps everything {e except} the empty name (the empty list [[]]). It is an error if there was no name is matched. *)
-  val wildcard : 'hook t
-
-  (** [only x] keeps the name [x] and drops everything else. It is an error if there was no binding named [x] in the tree. *)
+  (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
   val only : path -> 'hook t
 
-  (** [only_subtree path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only_subtree : path -> 'hook t
-
-  (** [in_subtree path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_subtree ["x"]]{!val:root} will keep [y] (if existing), while {!val:only_subtree}[["x"]] will drop [y]. *)
-  val in_subtree : path -> 'hook t -> 'hook t
+  (** [in_ path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in ["x"]]{!val:root} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
+  val in_ : path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
   val none : 'hook t
 
-  (** [except x] drops the binding at [x]. It is an error if there was no [x] from the beginning. *)
+  (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in}[p none]. *)
   val except : path -> 'hook t
-
-  (** [except_subtree p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_subtree}[p none]. *)
-  val except_subtree : path -> 'hook t
 
   (** {2 Renaming} *)
 
-  (** [renaming x x'] renames the binding at [x] to [x']. Note that such renaming does not affect names {i under} [x]. See {!val:renaming_subtree} for comparison. It is an error if there was no [x] from the beginning. *)
+  (** [renaming path path'] relocates the subtree rooted at [path] to [path']. If you only want to move the root, not the entire subtree, see {!val:renaming}. It is an error if the subtree was empty (nothing to move). *)
   val renaming : path -> path -> 'hook t
-
-  (** [renaming_subtree path path'] relocates the subtree rooted at [path] to [path']. If you only want to move the root, not the entire subtree, see {!val:renaming}. It is an error if the subtree was empty (nothing to move). *)
-  val renaming_subtree : path -> path -> 'hook t
 
   (** {2 Sequencing} *)
 
@@ -130,9 +115,9 @@ sig
 
   (** The type of the result. The error [`BindingNotFound] is imprecise---[`BindingNotFound path]
       can mean that the engine was expecting a binding right at [path] or under [path].
-      For example, both {!val:Pattern.only_subtree}[["x"]] and {!val:Pattern.only}[["x"]] could
+      For example, both {!val:Pattern.only}[["x"]] and {!val:Pattern.only}[["x"]] could
       return the same error [`BindingNotFound ["x"]], but it means "no bindings have the prefix [x]"
-      for {!val:Pattern.only_subtree} and "no binding at [x]" for {!val:Pattern.only_subtree}.
+      for {!val:Pattern.only} and "no binding at [x]" for {!val:Pattern.only}.
   *)
   type nonrec ('a, 'error) result = ('a Trie.t, [> `BindingNotFound of Pattern.path] as 'error) result
 
@@ -141,7 +126,7 @@ sig
       @param rev_prefix The prefix prepended to any path sent to [union] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
       @param union The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [union ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
 
-      @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except_subtree}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intension. *)
+      @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intension. *)
   val run :
     ?rev_prefix:Pattern.path ->
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
@@ -219,7 +204,7 @@ import Mod -- x is available an both x and Mod.x
    v}
    Corresponding Yuujinchou pattern:
    {[
-     Pattern.(union [any; renaming_subtree [] ["Mod"]])
+     Pattern.(union [any; renaming [] ["Mod"]])
    ]}
 
    - Haskell syntax:
@@ -237,7 +222,7 @@ import qualified Mod
    v}
    Corresponding Yuujinchou pattern:
    {[
-     Pattern.renaming_subtree [] ["Mod"]
+     Pattern.renaming [] ["Mod"]
    ]}
 
    - Haskell syntax:
@@ -246,7 +231,7 @@ import qualified Mod hiding (x,y)
    v}
    Corresponding Yuujinchou pattern:
    {[
-     Pattern.(seq [except ["x"]; except ["y"]; renaming_subtree [] ["Mod"]])
+     Pattern.(seq [except ["x"]; except ["y"]; renaming [] ["Mod"]])
    ]}
 
    {2 Racket}
@@ -275,7 +260,7 @@ import qualified Mod hiding (x,y)
    v}
    Corresponding Yuujinchou pattern:
    {[
-     Pattern.(seq [...; renaming_subtree [] ["p"]])
+     Pattern.(seq [...; renaming [] ["p"]])
    ]}
 
    - Racket syntax:
