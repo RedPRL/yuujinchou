@@ -69,7 +69,7 @@ sig
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
   val only : path -> 'hook t
 
-  (** [in_ path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"]]{!val:root} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
+  (** [in_ path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"]]{!val:any} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
   val in_ : path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
@@ -77,12 +77,12 @@ sig
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
   val none : 'hook t
 
-  (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[p none]. *)
+  (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[p]{!val:none}. *)
   val except : path -> 'hook t
 
   (** {2 Renaming} *)
 
-  (** [renaming path path'] relocates the subtree rooted at [path] to [path']. If you only want to move the root, not the entire subtree, see {!val:renaming}. It is an error if the subtree was empty (nothing to move). *)
+  (** [renaming path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty (nothing to move). *)
   val renaming : path -> path -> 'hook t
 
   (** {2 Sequencing} *)
@@ -113,11 +113,7 @@ sig
 
   (** {1 Matching} *)
 
-  (** The type of the result. The error [`BindingNotFound] is imprecise---[`BindingNotFound path]
-      can mean that the engine was expecting a binding right at [path] or under [path].
-      For example, both {!val:Pattern.only}[["x"]] and {!val:Pattern.only}[["x"]] could
-      return the same error [`BindingNotFound ["x"]], but it means "no bindings have the prefix [x]"
-      for {!val:Pattern.only} and "no binding at [x]" for {!val:Pattern.only}.
+  (** The type of the result. The error [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it.
   *)
   type nonrec ('a, 'error) result = ('a Trie.t, [> `BindingNotFound of Pattern.path] as 'error) result
 
@@ -126,7 +122,7 @@ sig
       @param rev_prefix The prefix prepended to any path sent to [union] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
       @param union The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [union ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
 
-      @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intension. *)
+      @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path [p] is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intention. *)
   val run :
     ?rev_prefix:Pattern.path ->
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
