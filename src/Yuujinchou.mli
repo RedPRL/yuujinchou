@@ -69,7 +69,7 @@ sig
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
   val only : path -> 'hook t
 
-  (** [in_ path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in ["x"]]{!val:root} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
+  (** [in_ path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"]]{!val:root} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
   val in_ : path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
@@ -77,7 +77,7 @@ sig
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
   val none : 'hook t
 
-  (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in}[p none]. *)
+  (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[p none]. *)
   val except : path -> 'hook t
 
   (** {2 Renaming} *)
