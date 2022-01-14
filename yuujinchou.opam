@@ -11,7 +11,7 @@ homepage: "https://github.com/RedPRL/yuujinchou"
 bug-reports: "https://github.com/RedPRL/yuujinchou/issues"
 dev-repo: "git+https://github.com/RedPRL/yuujinchou.git"
 depends: [
-  "dune" {>= "2.5"}
+  "dune" {>= "2.7"}
   "ocaml" {>= "4.08.0"}
   "alcotest" {>= "1.2.1" & with-test}
   "odoc" {with-doc}
