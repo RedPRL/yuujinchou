@@ -12,7 +12,7 @@ type 'hook split =
   { prefix : path
   ; prefix_replacement : path option
   ; on_target : 'hook t
-  ; on_others : 'hook t
+  ; keep_others : bool
   }
 
 and 'hook t =
