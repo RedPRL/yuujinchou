@@ -7,34 +7,37 @@ let pp_path = Pattern.pp_path
 
 type nonrec ('a, 'error) result = ('a Trie.t, [> `BindingNotFound of path] as 'error) result
 
-let run_act ~hooks ~rev_prefix act t =
-  match act with
-  | A_hook h -> hooks h ~rev_prefix t
-  | A_switch switch ->
-    if Trie.is_empty t then
-      error @@ `BindingNotFound (List.rev rev_prefix)
-    else
-      match switch with
-      | `Use -> ret t
-      | `Hide -> ret Trie.empty
-
 let rec run_ ~union ~hooks ~rev_prefix pat t =
   match pat with
-  | P_act act -> run_act ~hooks ~rev_prefix act t
-  | P_split {prefix; prefix_replacement; on_target; on_others} ->
-    let prefix_replacement = Option.value ~default:prefix prefix_replacement in
-    let target, others = Trie.detach_subtree prefix t in
-    let+ target' = run_ ~union ~hooks ~rev_prefix:List.(rev_append prefix rev_prefix) on_target target
-    and+ others' = run_ ~union ~hooks ~rev_prefix on_others others in
-    (* test physical equality *)
-    if target == target' && others == others' && prefix = prefix_replacement
-    then t else Trie.union_subtree union others' (prefix_replacement, target')
+  | P_only p ->
+    let t = Trie.find_subtree p t in
+    if Trie.is_empty t then
+      error @@ `BindingNotFound (List.rev_append rev_prefix p)
+    else
+      ret @@ Trie.prefix p t
+  | P_except p ->
+    let t, remaining = Trie.detach_subtree p t in
+    if Trie.is_empty t then
+      error @@ `BindingNotFound (List.rev_append rev_prefix p)
+    else
+      ret remaining
+  | P_in (p, pat) ->
+    let t, remaining = Trie.detach_subtree p t in
+    let* t = run_ ~union ~hooks ~rev_prefix:(List.rev_append p rev_prefix) pat t in
+    ret @@ Trie.union_subtree ~rev_prefix union remaining (p, t)
+  | P_renaming (p1, p2) ->
+    let t, remaining = Trie.detach_subtree p1 t in
+    if Trie.is_empty t then
+      error @@ `BindingNotFound (List.rev_append rev_prefix p1)
+    else
+      ret @@ Trie.union_subtree ~rev_prefix union remaining (p2, t)
   | P_seq pats ->
     let f t pat = t >>= run_ ~union ~hooks ~rev_prefix pat in
     List.fold_left ~f ~init:(ret t) pats
   | P_union pats ->
     let+ ts = ResultMonad.map (fun pat -> run_ ~union ~hooks ~rev_prefix pat t) pats in
     List.fold_left ~f:(Trie.union union) ~init:Trie.empty ts
+  | P_hook h -> hooks h ~rev_prefix t
 
 let run_with_hooks ?(rev_prefix=[]) ~union ~hooks = run_ ~union ~hooks ~rev_prefix
 

@@ -115,7 +115,7 @@ val union_singleton : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> '
 
 (** {1 Separation} *)
 
-(** [detach_subtree p t] detaches the subtree at [p] from the main trie and returns both the subtree and the remaining trie. If [detach p t] returns [t1, t2], then {!val:union_subtree}[m t2 (p, t1)] should be equivalent to [t]. *)
+(** [detach_subtree p t] detaches the subtree at [p] from the main trie and returns both the subtree and the remaining trie (in that order). If [detach p t] returns [t1, t2], then {!val:union_subtree}[m t2 (p, t1)] should be equivalent to [t]. *)
 val detach_subtree : path -> 'a t -> 'a t * 'a t
 
 (** [detach_singleton p t] detaches the binding at [p] from the main trie and returns both the binding and the remaining trie. If [detach p t] returns [b, t'], then {!val:union_subtree}[m t' (p,]{!val:root_opt}[b)] should be equivalent to [t]. *)

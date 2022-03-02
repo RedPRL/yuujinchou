@@ -56,11 +56,11 @@ let test_any_3 () =
     (Error (`BindingNotFound []))
     (Action.run ~union:cantor any Trie.empty)
 
-let test_any_phy_eq () =
+let test_any_4 () =
   let t = of_list [[], 10] in
   Alcotest.(check bool) "true"
     true
-    (Result.get_ok (Action.run ~union:cantor any t) == t)
+    (Trie.equal Int.equal t @@ Result.get_ok (Action.run ~union:cantor any t))
 
 let test_only_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -77,11 +77,11 @@ let test_only_3 () =
     (Error (`BindingNotFound ["x"]))
     (Action.run ~union:cantor (only ["x"]) Trie.empty)
 
-let test_only_phy_eq () =
+let test_only_4 () =
   let t = of_list [["x"], 10] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (only ["x"]) t) == t)
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok t)
+    (Action.run ~union:cantor (only ["x"]) t)
 
 let test_except_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -113,11 +113,11 @@ let test_in_3 () =
     (Error (`BindingNotFound ["x"]))
     (Action.run ~union:cantor (in_ ["x"] any) Trie.empty)
 
-let test_in_phy_eq () =
+let test_in_4 () =
   let t = of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (in_ ["x"] (renaming ["x"] ["x"])) t) == t)
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok t)
+    (Action.run ~union:cantor (in_ ["x"] (renaming ["x"] ["x"])) t)
 
 let test_renaming_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -134,17 +134,17 @@ let test_renaming_3 () =
     (Error (`BindingNotFound ["x"]))
     (Action.run ~union:cantor (renaming ["x"] ["z"]) Trie.empty)
 
-let test_renaming_phy_eq_1 () =
+let test_renaming_4 () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (renaming ["x"] ["x"]) t) == t)
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok t)
+    (Action.run ~union:cantor (renaming ["x"] ["x"]) t)
 
-let test_renaming_phy_eq_2 () =
+let test_renaming_5 () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (renaming ["x"; "y"] ["x"; "y"]) t) == t)
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok t)
+    (Action.run ~union:cantor (renaming ["x"; "y"] ["x"; "y"]) t)
 
 let test_seq_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -166,11 +166,11 @@ let test_seq_4 () =
     (Error (`BindingNotFound ["x"]))
     (Action.run ~union:cantor (seq [renaming ["x"] ["z"]; only ["x"]]) (of_list [["x"], 10; ["y"], 20]))
 
-let test_seq_phy_eq () =
+let test_seq_5 () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (seq [seq []; seq []]) t) == t)
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok t)
+    (Action.run ~union:cantor (seq [seq []; seq []]) t)
 
 let test_union_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -182,11 +182,11 @@ let test_union_2 () =
     (Ok (of_list []))
     (Action.run ~union:cantor (union []) (of_list [["x"], 10; ["y"], 20]))
 
-let test_union_phy_eq () =
+let test_union_3 () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok (Action.run ~union:cantor (union [seq []]) t) == t)
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok t)
+    (Action.run ~union:cantor (union [seq []]) t)
 
 let test_filter_map_1 () =
   Alcotest.(check @@ run_result int) "ok"
@@ -198,17 +198,16 @@ let test_filter_map_1 () =
        ~union:cantor
        (hook ()) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
 
-let test_filter_map_phy_eq () =
+let test_filter_map_2 () =
   let t = of_list [["x"; "y"], 10; ["x"; "w"], 20; ["y"], 30] in
-  Alcotest.(check bool) "true"
-    true
-    (Result.get_ok
-       (Action.run_with_hooks
-          ~hooks:(fun () ~rev_prefix t ->
-              Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
-                (fun ~rev_path:_ x -> Some x) t)
-          ~union:cantor
-          (hook ()) t) == t)
+  Alcotest.(check @@ run_result int) "ok"
+    (Ok t)
+    (Action.run_with_hooks
+       ~hooks:(fun () ~rev_prefix t ->
+           Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
+             (fun ~rev_path:_ x -> Some x) t)
+       ~union:cantor
+       (hook ()) t)
 
 let () =
   let open Alcotest in
@@ -222,13 +221,13 @@ let () =
       test_case "any" `Quick test_any_1;
       test_case "any" `Quick test_any_2;
       test_case "any" `Quick test_any_3;
-      test_case "physical equality" `Quick test_any_phy_eq;
+      test_case "any" `Quick test_any_4;
     ];
     "only", [
       test_case "only" `Quick test_only_1;
       test_case "only" `Quick test_only_2;
       test_case "only" `Quick test_only_3;
-      test_case "physical equality" `Quick test_only_phy_eq;
+      test_case "only" `Quick test_only_4;
     ];
     "except", [
       test_case "except" `Quick test_except_1;
@@ -239,29 +238,29 @@ let () =
       test_case "in_" `Quick test_in_1;
       test_case "in_" `Quick test_in_2;
       test_case "in_" `Quick test_in_3;
-      test_case "physical equality" `Quick test_in_phy_eq;
+      test_case "in_" `Quick test_in_4;
     ];
     "renaming", [
       test_case "renaming" `Quick test_renaming_1;
       test_case "renaming" `Quick test_renaming_2;
       test_case "renaming" `Quick test_renaming_3;
-      test_case "physical equality" `Quick test_renaming_phy_eq_1;
-      test_case "physical equality" `Quick test_renaming_phy_eq_2;
+      test_case "renaming" `Quick test_renaming_4;
+      test_case "renaming" `Quick test_renaming_5;
     ];
     "seq", [
       test_case "seq" `Quick test_seq_1;
       test_case "seq" `Quick test_seq_2;
       test_case "seq" `Quick test_seq_3;
       test_case "seq" `Quick test_seq_4;
-      test_case "physical equality" `Quick test_seq_phy_eq;
+      test_case "seq" `Quick test_seq_5;
     ];
     "union", [
       test_case "union" `Quick test_union_1;
       test_case "union" `Quick test_union_2;
-      test_case "physical equality" `Quick test_union_phy_eq;
+      test_case "union" `Quick test_union_3;
     ];
     "filter_map", [
       test_case "filter_map" `Quick test_filter_map_1;
-      test_case "physical equality" `Quick test_filter_map_phy_eq;
+      test_case "filter_map" `Quick test_filter_map_2;
     ];
   ]
