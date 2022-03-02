@@ -111,27 +111,27 @@ let test_mapi_2 () =
     Trie.empty
     (Trie.mapi (fun ~rev_path x -> rev_path, x + 1) Trie.empty)
 
-let test_mapi_endo_1 () =
+let test_mapi_3 () =
   Alcotest.(check @@ trie @@ pair (list string) int) "same trie"
     (of_list [["x"; "y"], (["z"; "y"; "x"], 11); [], (["w"], 21)])
-    (Trie.mapi_endo (fun ~rev_path (p, x) -> (List.rev_append p rev_path, x + 1)) (of_list [["x"; "y"], (["z"], 10); [], (["w"], 20)]))
+    (Trie.mapi (fun ~rev_path (p, x) -> (List.rev_append p rev_path, x + 1)) (of_list [["x"; "y"], (["z"], 10); [], (["w"], 20)]))
 
-let test_mapi_endo_2 () =
+let test_mapi_4 () =
   Alcotest.(check @@ trie int) "same trie"
     Trie.empty
-    (Trie.mapi_endo (fun ~rev_path:_ x -> x + 1) Trie.empty)
+    (Trie.mapi (fun ~rev_path:_ x -> x + 1) Trie.empty)
 
-let test_mapi_endo_phy_eq_1 () =
+let test_mapi_5 () =
   let t = Trie.empty in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.mapi_endo (fun ~rev_path:_ x -> x + 2) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.mapi (fun ~rev_path:_ x -> x + 2) t)
 
-let test_mapi_endo_phy_eq_2 () =
+let test_mapi_6 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.mapi_endo (fun ~rev_path:_ x -> x) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.mapi (fun ~rev_path:_ x -> x) t)
 
 let test_filteri_1 () =
   Alcotest.(check @@ trie int) "same trie"
@@ -155,17 +155,17 @@ let test_filteri_4 () =
     (Trie.filteri (fun ~rev_path _ -> match rev_path with ["x"] -> true | _ -> false)
          (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
 
-let test_filteri_phy_eq_1 () =
+let test_filteri_5 () =
   let t = Trie.empty in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.filteri (fun ~rev_path:_ x -> x > 100) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.filteri (fun ~rev_path:_ x -> x > 100) t)
 
-let test_filteri_phy_eq_2 () =
+let test_filteri_6 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.filteri (fun ~rev_path:_ _ -> true) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.filteri (fun ~rev_path:_ _ -> true) t)
 
 let test_filter_mapi_1 () =
   Alcotest.(check @@ trie @@ pair (list string) int) "same trie"
@@ -177,44 +177,44 @@ let test_filter_mapi_2 () =
     Trie.empty
     (Trie.filter_mapi (fun ~rev_path:_ _ -> None) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_mapi_endo_1 () =
+let test_filter_mapi_3 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [[], 30])
-    (Trie.filter_mapi_endo (fun ~rev_path:_ x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
+    (Trie.filter_mapi (fun ~rev_path:_ x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_mapi_endo_2 () =
+let test_filter_mapi_4 () =
   Alcotest.(check @@ trie int) "same trie"
     Trie.empty
-    (Trie.filter_mapi_endo (fun ~rev_path:_ _ -> None) (of_list [["x"; "y"], 10; [], 20]))
+    (Trie.filter_mapi (fun ~rev_path:_ _ -> None) (of_list [["x"; "y"], 10; [], 20]))
 
-let test_filter_mapi_endo_3 () =
+let test_filter_mapi_5 () =
   Alcotest.(check @@ trie (pair (list string) int)) "same trie"
     (of_list [["w"], (["b"; "w"], 30)])
-    (Trie.filter_mapi_endo (fun ~rev_path (p, x) -> if x > 10 then Some (List.rev_append p rev_path, 30) else None)
+    (Trie.filter_mapi (fun ~rev_path (p, x) -> if x > 10 then Some (List.rev_append p rev_path, 30) else None)
        (of_list [["x"; "y"], (["a"], 10); ["w"], (["b"], 20)]))
 
-let test_filter_mapi_endo_phy_eq_1 () =
+let test_filter_mapi_6 () =
   let t = Trie.empty in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.filter_mapi_endo (fun ~rev_path:_ _ -> None) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.filter_mapi (fun ~rev_path:_ _ -> None) t)
 
-let test_filter_mapi_endo_phy_eq_2 () =
+let test_filter_mapi_7 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.filter_mapi_endo (fun ~rev_path:_ x -> Some x) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.filter_mapi (fun ~rev_path:_ x -> Some x) t)
 
-let test_update_subtree () =
+let test_update_subtree_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"; "y"], cantor_val 160 10; ["x"], 40])
     (Trie.update_subtree ["x"] (fun t -> Trie.union_singleton cantor t (["y"], 10)) (of_list [["x"], 40; ["x"; "y"], 160]))
 
-let test_update_subtree_phy_eq () =
+let test_update_subtree_2 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.update_subtree ["x"] (fun t -> t) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.update_subtree ["x"] (fun t -> t) t)
 
 let test_update_singleton_1 () =
   Alcotest.(check @@ trie int) "same trie"
@@ -231,17 +231,17 @@ let test_update_singleton_3 () =
     Trie.empty
     (Trie.update_singleton ["x"] (fun _ -> None) (of_list [["x"], 40]))
 
-let test_update_singleton_phy_eq_1 () =
+let test_update_singleton_4 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.update_singleton ["x"] (fun x -> x) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.update_singleton ["x"] (fun x -> x) t)
 
-let test_update_singleton_phy_eq_2 () =
+let test_update_singleton_5 () =
   let t = Trie.empty in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.update_singleton ["x"] (fun x -> x) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.update_singleton ["x"] (fun x -> x) t)
 
 let test_update_root_1 () =
   Alcotest.(check @@ trie int) "same trie"
@@ -258,79 +258,79 @@ let test_update_root_3 () =
     Trie.empty
     (Trie.update_root (fun _ -> None) (of_list [[], 40]))
 
-let test_update_root_phy_eq_1 () =
+let test_update_root_4 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.update_root (fun x -> x) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.update_root (fun x -> x) t)
 
-let test_update_root_phy_eq_2 () =
+let test_update_root_5 () =
   let t = Trie.empty in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.update_root (fun x -> x) t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.update_root (fun x -> x) t)
 
-let test_union () =
+let test_union_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"; "y"], cantor_val 10 160; [], 20; ["x"], 40])
     (Trie.union cantor (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
 
-let test_union_phy_eq_1 () =
+let test_union_2 () =
   let t = of_list [["x"; "y"], 10; [], 20] in
-  Alcotest.(check bool) "eq"
-    true
-    (Trie.union cantor t Trie.empty == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.union cantor t Trie.empty)
 
-let test_union_phy_eq_2 () =
+let test_union_3 () =
   let t = of_list [["x"; "y"], 10; [], 20] in
-  Alcotest.(check bool) "eq"
-    true
-    (Trie.union cantor Trie.empty t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.union cantor Trie.empty t)
 
-let test_union_phy_eq_3 () =
+let test_union_4 () =
   let t = of_list [["x"; "y"], 10; [], 20] in
   let sub, others = Trie.detach_subtree ["x"] t in
   let t' = Trie.union cantor others (Trie.prefix ["x"] sub) in
-  Alcotest.(check bool) "eq"
-    true
-    (Trie.physically_equal (Trie.find_subtree ["x"] t') sub)
+  Alcotest.(check @@ trie int) "same trie"
+    sub
+    (Trie.find_subtree ["x"] t')
 
-let test_union_phy_eq_4 () =
+let test_union_5 () =
   let t = of_list [[], 10] in
-  Alcotest.(check bool) "eq"
-    true
-    (Trie.union cantor t t == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.union cantor t t)
 
-let test_union_subtree () =
+let test_union_subtree_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"; "y"], 10; [], 20; ["x"], cantor_val 40 80; ["x"; "x"; "y"], 1600])
     (Trie.union_subtree cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
 
-let test_union_subtree_phy_eq_1 () =
+let test_union_subtree_2 () =
   let t = of_list [["x"; "y"], 10; [], 20] in
-  Alcotest.(check bool) "eq"
-    true
-    (Trie.union_subtree cantor t (["x"], Trie.empty) == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.union_subtree cantor t (["x"], Trie.empty))
 
-let test_union_subtree_phy_eq_2 () =
+let test_union_subtree_3 () =
   let t = of_list [["x"; "y"], 10; [], 20] in
   let sub, others = Trie.detach_subtree ["x"] t in
   let t' = Trie.union_subtree cantor others (["x"], sub) in
-  Alcotest.(check bool) "eq"
-    true
-    (Trie.physically_equal (Trie.find_subtree ["x"] t') sub)
+  Alcotest.(check @@ trie int) "same trie"
+    sub
+    (Trie.find_subtree ["x"] t')
 
-let test_union_singleton () =
+let test_union_singleton_1 () =
   Alcotest.(check @@ trie int) "same trie"
     (of_list [["x"; "y"], cantor_val 10 160; [], 20; ["x"], 40])
     (Trie.union_singleton cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"; "y"], 160))
 
-let test_union_singleton_phy_eq () =
+let test_union_singleton_2 () =
   let ten = 10 in
   let t = of_list [["x"; "y"], ten; [], 20] in
-  Alcotest.(check bool) "eq"
-    true
-    (Trie.union_singleton cantor t (["x"; "y"], ten) == t)
+  Alcotest.(check @@ trie int) "same trie"
+    t
+    (Trie.union_singleton cantor t (["x"; "y"], ten))
 
 let test_detach_subtree_1 () =
   Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
@@ -408,65 +408,61 @@ let () =
     "map", [
       test_case "mapi" `Quick test_mapi_1;
       test_case "mapi" `Quick test_mapi_2;
-    ];
-    "map_endo", [
-      test_case "mapi_endo" `Quick test_mapi_endo_1;
-      test_case "map_endo" `Quick test_mapi_endo_2;
-      test_case "physical equality" `Quick test_mapi_endo_phy_eq_1;
-      test_case "physical equality" `Quick test_mapi_endo_phy_eq_2;
+      test_case "mapi" `Quick test_mapi_3;
+      test_case "mapi" `Quick test_mapi_4;
+      test_case "mapi" `Quick test_mapi_5;
+      test_case "mapi" `Quick test_mapi_6;
     ];
     "filteri", [
       test_case "filteri" `Quick test_filteri_1;
       test_case "filteri" `Quick test_filteri_2;
       test_case "filteri" `Quick test_filteri_3;
       test_case "filteri" `Quick test_filteri_4;
-      test_case "physical equality" `Quick test_filteri_phy_eq_1;
-      test_case "physical equality" `Quick test_filteri_phy_eq_2;
+      test_case "filteri" `Quick test_filteri_5;
+      test_case "filteri" `Quick test_filteri_6;
     ];
     "filter_map", [
       test_case "filter_mapi" `Quick test_filter_mapi_1;
       test_case "filter_mapi" `Quick test_filter_mapi_2;
-    ];
-    "filter_map_endo", [
-      test_case "filter_mapi_endo" `Quick test_filter_mapi_endo_1;
-      test_case "filter_mapi_endo" `Quick test_filter_mapi_endo_2;
-      test_case "filter_mapi_endo" `Quick test_filter_mapi_endo_3;
-      test_case "physical equality" `Quick test_filter_mapi_endo_phy_eq_1;
-      test_case "physical equality" `Quick test_filter_mapi_endo_phy_eq_2;
+      test_case "filter_mapi" `Quick test_filter_mapi_3;
+      test_case "filter_mapi" `Quick test_filter_mapi_4;
+      test_case "filter_mapi" `Quick test_filter_mapi_5;
+      test_case "filter_mapi" `Quick test_filter_mapi_6;
+      test_case "filter_mapi" `Quick test_filter_mapi_7;
     ];
     "update_subtree", [
-      test_case "update_subtree" `Quick test_update_subtree;
-      test_case "physical equality" `Quick test_update_subtree_phy_eq;
+      test_case "update_subtree" `Quick test_update_subtree_1;
+      test_case "update_subtree" `Quick test_update_subtree_2;
     ];
     "update_singleton", [
       test_case "update_singleton" `Quick test_update_singleton_1;
       test_case "update_singleton" `Quick test_update_singleton_2;
       test_case "update_singleton" `Quick test_update_singleton_3;
-      test_case "physical equality" `Quick test_update_singleton_phy_eq_1;
-      test_case "physical equality" `Quick test_update_singleton_phy_eq_2;
+      test_case "update_singleton" `Quick test_update_singleton_4;
+      test_case "update_singleton" `Quick test_update_singleton_5;
     ];
     "update_root", [
       test_case "update_root" `Quick test_update_root_1;
       test_case "update_root" `Quick test_update_root_2;
       test_case "update_root" `Quick test_update_root_3;
-      test_case "physical equality" `Quick test_update_root_phy_eq_1;
-      test_case "physical equality" `Quick test_update_root_phy_eq_2;
+      test_case "update_root" `Quick test_update_root_4;
+      test_case "update_root" `Quick test_update_root_5;
     ];
     "union", [
-      test_case "union" `Quick test_union;
-      test_case "physical equality" `Quick test_union_phy_eq_1;
-      test_case "physical equality" `Quick test_union_phy_eq_2;
-      test_case "physical equality" `Quick test_union_phy_eq_3;
-      test_case "physical equality" `Quick test_union_phy_eq_4;
+      test_case "union" `Quick test_union_1;
+      test_case "union" `Quick test_union_2;
+      test_case "union" `Quick test_union_3;
+      test_case "union" `Quick test_union_4;
+      test_case "union" `Quick test_union_5;
     ];
     "union_subtree", [
-      test_case "union_subtree" `Quick test_union_subtree;
-      test_case "physical equality" `Quick test_union_subtree_phy_eq_1;
-      test_case "physical equality" `Quick test_union_subtree_phy_eq_2;
+      test_case "union_subtree" `Quick test_union_subtree_1;
+      test_case "union_subtree" `Quick test_union_subtree_2;
+      test_case "union_subtree" `Quick test_union_subtree_3;
     ];
     "union_singleton", [
-      test_case "union_singleton" `Quick test_union_singleton;
-      test_case "physical equality" `Quick test_union_singleton_phy_eq;
+      test_case "union_singleton" `Quick test_union_singleton_1;
+      test_case "union_singleton" `Quick test_union_singleton_2;
     ];
     "detach_subtree", [
       test_case "detach_subtree" `Quick test_detach_subtree_1;

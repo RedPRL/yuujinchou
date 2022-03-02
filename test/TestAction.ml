@@ -193,7 +193,7 @@ let test_filter_map_1 () =
     (Ok (of_list [["y"], 110]))
     (Action.run_with_hooks
        ~hooks:(fun () ~rev_prefix t ->
-           Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
+           Result.ok @@ Trie.filter_mapi ~rev_prefix
              (fun ~rev_path:_ d -> if d > 20 then Some (d + 80) else None) t)
        ~union:cantor
        (hook ()) (of_list [["x"; "y"], 10; ["x"; "x"], 20; ["y"], 30]))
@@ -204,7 +204,7 @@ let test_filter_map_2 () =
     (Ok t)
     (Action.run_with_hooks
        ~hooks:(fun () ~rev_prefix t ->
-           Result.ok @@ Trie.filter_mapi_endo ~rev_prefix
+           Result.ok @@ Trie.filter_mapi ~rev_prefix
              (fun ~rev_path:_ x -> Some x) t)
        ~union:cantor
        (hook ()) t)

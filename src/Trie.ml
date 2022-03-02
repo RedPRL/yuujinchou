@@ -71,16 +71,6 @@ let rec equal_node eq n1 n2 =
 
 let equal eq = Option.equal (equal_node eq)
 
-(*
-let rec compare_node cmp n1 n2 =
-  if n1 == n2 then 0 else
-    match Option.compare cmp n1.root n2.root with
-    | 0 -> SegMap.compare ~cmp:(compare_node cmp) n1.children n2.children
-    | n -> n
-
-let compare cmp = Option.compare (compare_node cmp)
-*)
-
 (** {1 Getting data} *)
 
 let rec find_node_cont path n k =
@@ -100,44 +90,15 @@ let find_root t = find_singleton [] t
 
 (** {1 Traversing the trees} *)
 
-let phy_eq_option r1 r2 =
-  match r1, r2 with
-  | None, None -> true
-  | Some r1, Some r2 -> r1 == r2
-  | _ -> false
-
-let phy_eq_map c1 c2 = c1 == c2
-
-let replace_nonempty_root_and_children n root children =
-  if phy_eq_option n.root root && phy_eq_map n.children children
-  then n else {root; children}
-
-let replace2_nonempty_root_and_children n1 n2 root children =
-  if phy_eq_option n1.root root && phy_eq_map n1.children children
-  then n1 else replace_nonempty_root_and_children n2 root children
-
-let replace_root_and_children n root children =
-  if phy_eq_option n.root root && phy_eq_map n.children children
-  then non_empty n else mk_tree root children
-
-let replace_root n root =
-  if phy_eq_option n.root root then non_empty n else mk_tree root n.children
-
-let replace_children n children =
-  if phy_eq_map n.children children then non_empty n else mk_tree n.root children
-
-let replace_tree t1 t2 =
-  if phy_eq_option t1 t2 then t1 else t2
-
 let rec update_node_cont n path (k : 'a t -> 'a t) =
   match path with
   | [] -> k @@ non_empty n
   | seg::path ->
-    replace_children n @@
+    mk_tree n.root @@
     SegMap.update ~key:seg ~f:(fun n -> update_cont n path k) n.children
 
 and update_cont t path k =
-  replace_tree t @@ match t with
+  match t with
   | None -> prefix path @@ k empty
   | Some n -> update_node_cont n path k
 
@@ -146,7 +107,7 @@ let update_subtree path f t = update_cont t path f
 let update_singleton path f t = update_cont t path @@
   function
   | None -> root_opt @@ f None
-  | Some n -> replace_root n (f n.root)
+  | Some n -> mk_tree (f n.root) n.children
 
 let update_root f t = update_singleton [] f t
 
@@ -156,11 +117,7 @@ let union_option f x y =
   match x, y with
   | _, None -> x
   | None, _ -> y
-  | Some x', Some y' ->
-    let fxy = f x' y' in
-    if fxy == x' then x
-    else if fxy == y' then y
-    else Some fxy
+  | Some x', Some y' -> Some (f x' y')
 
 let rec union_node ~rev_prefix m n n' =
   let root = union_option (m ~rev_path:rev_prefix) n.root n'.root in
@@ -173,7 +130,7 @@ let rec union_node ~rev_prefix m n n' =
       let f key n n' = Some (union_node ~rev_prefix:(key :: rev_prefix) m n n') in
       SegMap.union ~f n.children n'.children
   in
-  replace2_nonempty_root_and_children n n' root children
+  {root; children}
 
 let union_ ~rev_prefix m = union_option @@ union_node ~rev_prefix m
 
@@ -185,32 +142,28 @@ let union_subtree ?(rev_prefix=[]) m t (path, t') =
 let union_singleton ?(rev_prefix=[]) m t (path, v) =
   update_cont t path @@ function
   | None -> non_empty @@ root_opt_node v
-  | Some n -> replace_root n @@ union_option (m ~rev_path:(List.rev_append path rev_prefix)) n.root @@ Some v
+  | Some n -> non_empty {n with root = union_option (m ~rev_path:(List.rev_append path rev_prefix)) n.root @@ Some v}
 
 (** {1 Detaching subtrees} *)
 
-(* TODO preserves physical eq *)
 let rec apply_and_update_node_cont path n k =
   match path with
   | [] -> k @@ non_empty n
   | seg::path ->
     let ans, new_child = apply_and_update_cont path (SegMap.find_opt seg n.children) k in
     let children = SegMap.update ~key:seg ~f:(Fun.const new_child) n.children in
-    ans, replace_children n children
+    ans, mk_tree n.root children
 
-(* TODO preserves physical eq *)
 and apply_and_update_cont path t (k : 'a t -> 'b * 'a t) : 'b * 'a t =
   match t with
   | None -> let ans, t = k empty in ans, prefix path t
   | Some n -> apply_and_update_node_cont path n k
 
-(* TODO preserves physical eq *)
 let detach_subtree path t = apply_and_update_cont path t @@ fun t -> t, empty
 
-(* TODO preserves physical eq *)
 let detach_singleton path t = apply_and_update_cont path t @@ function
   | None -> None, empty
-  | Some n -> n.root, replace_root n None
+  | Some n -> n.root, mk_tree None n.children
 
 (** {1 Conversion from/to Seq} *)
 
@@ -248,15 +201,6 @@ let rec mapi_node ~rev_prefix f n =
   }
 let mapi ?(rev_prefix=[]) f t = Option.map (mapi_node ~rev_prefix f) t
 
-let rec mapi_endo_node ~rev_prefix f n =
-  let root = Option.map (f ~rev_path:rev_prefix) n.root in
-  let children = SegMap.filter_mapi_endo
-      (fun ~key:(key:string) n -> Some (mapi_endo_node ~rev_prefix:(key::rev_prefix) f n))
-      n.children
-  in
-  replace_nonempty_root_and_children n root children
-let mapi_endo ?(rev_prefix=[]) f t = replace_tree t @@ Option.map (mapi_endo_node ~rev_prefix f) t
-
 let rec filteri_node ~rev_prefix f n =
   let root = Option.bind n.root @@
     fun v -> if f ~rev_path:rev_prefix v then Some v else None in
@@ -265,23 +209,10 @@ let rec filteri_node ~rev_prefix f n =
       (fun ~key -> filteri_node ~rev_prefix:(key::rev_prefix) f)
       n.children
   in
-  replace_root_and_children n root children
-let filteri ?(rev_prefix=[]) f t = replace_tree t @@ Option.bind t @@ filteri_node ~rev_prefix f
+  mk_tree root children
+let filteri ?(rev_prefix=[]) f t = Option.bind t @@ filteri_node ~rev_prefix f
 
 let rec filter_mapi_node ~rev_prefix f n =
   mk_tree (Option.bind n.root @@ f ~rev_path:rev_prefix) @@
   SegMap.filter_mapi (fun ~key -> filter_mapi_node ~rev_prefix:(key::rev_prefix) f) n.children
 let filter_mapi ?(rev_prefix=[]) f t = Option.bind t @@ filter_mapi_node ~rev_prefix f
-
-let rec filter_mapi_endo_node ~rev_prefix f n =
-  let root = Option.bind n.root (f ~rev_path:rev_prefix) in
-  let children =
-    SegMap.filter_mapi_endo
-      (fun ~key -> filter_mapi_endo_node ~rev_prefix:(key::rev_prefix) f)
-      n.children
-  in
-  replace_root_and_children n root children
-let filter_mapi_endo ?(rev_prefix=[]) f t = replace_tree t @@
-  Option.bind t @@ filter_mapi_endo_node ~rev_prefix f
-
-let physically_equal : 'a t -> 'a t -> bool = phy_eq_option
