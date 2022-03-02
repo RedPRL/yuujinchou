@@ -2,24 +2,14 @@ type path = string list
 
 val pp_path : Format.formatter -> path -> unit
 
-type switch = [`Use | `Hide]
-
-type 'hook act =
-  | A_switch of switch
-  | A_hook of 'hook
-
-type 'hook split =
-  { prefix : path
-  ; prefix_replacement : path option
-  ; on_target : 'hook t
-  ; keep_others : bool
-  }
-
-and 'hook t =
-  | P_act of 'hook act
-  | P_split of 'hook split
+type 'hook t =
+  | P_only of path
+  | P_except of path
+  | P_in of path * 'hook t
+  | P_renaming of path * path
   | P_seq of 'hook t list
   | P_union of 'hook t list
+  | P_hook of 'hook
 
 val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
 

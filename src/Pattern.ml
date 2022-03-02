@@ -5,70 +5,37 @@ type path = string list
 let pp_path fmt path =
   Format.pp_print_string fmt @@ String.concat ~sep:"." path
 
-type switch = [`Use | `Hide]
-
-type 'hooks act =
-  | A_switch of switch
-  | A_hook of 'hooks
-
-let act_use = A_switch `Use
-let act_hide = A_switch `Hide
-
-type 'hook split =
-  { prefix : path
-  ; prefix_replacement : path option
-  ; on_target : 'hook t
-  ; keep_others : bool
-  }
-
-and 'hook t =
-  | P_act of 'hook act
-  | P_split of 'hook split
+type 'hook t =
+  | P_only of path
+  | P_except of path
+  | P_in of path * 'hook t
+  | P_renaming of path * path
   | P_seq of 'hook t list
   | P_union of 'hook t list
+  | P_hook of 'hook
 
-let hide = P_act act_hide
-let use = P_act act_use
+let any = P_only []
+let none = P_except []
 
-let any = use
-let none = hide
+let only p = P_only p
 
-let[@inline] select_and_update prefix on_target =
-  P_split {prefix; prefix_replacement = None; on_target; keep_others = false}
+let except p = P_except p
+let in_ p pat = P_in (p, pat)
 
-let only p = select_and_update p use
-
-let update prefix on_target =
-  P_split {prefix; prefix_replacement = None; on_target; keep_others = true}
-
-let except p = update p hide
-let in_ prefix = update prefix
-
-let rename_and_update prefix prefix_replacement on_target =
-  P_split {prefix; prefix_replacement = Some prefix_replacement; on_target; keep_others = true}
-
-let renaming p p' = rename_and_update p p' use
+let renaming p p' = P_renaming (p, p')
 
 let seq pats = P_seq pats
 
-let hook f = P_act (A_hook f)
+let hook f = P_hook f
 
 let union l = P_union l
 
-let equal_act equal_hook a1 a2 =
-  match a1, a2 with
-  | A_switch s1, A_switch s2 -> s1 = s2
-  | A_hook f1, A_hook f2 -> equal_hook f1 f2
-  | _ -> false
-
-let rec equal equal_hook p1 p2 =
-  match p1, p2 with
-  | P_act a1, P_act a2 -> equal_act equal_hook a1 a2
-  | P_split s1, P_split s2 ->
-    s1.prefix = s2.prefix &&
-    s1.prefix_replacement = s2.prefix_replacement &&
-    equal equal_hook s1.on_target s2.on_target &&
-    s1.keep_others = s2.keep_others
+let rec equal equal_hook pat1 pat2 =
+  match pat1, pat2 with
+  | P_only p1, P_only p2 | P_except p1, P_except p2 -> p1 = p2
+  | P_renaming (p1, p1'), P_renaming (p2, p2') -> p1 = p2 && p1' = p2'
+  | P_in (p1, pat1), P_in (p2, pat2) -> p1 = p2 && equal equal_hook pat1 pat2
   | P_seq ps1, P_seq ps2 | P_union ps1, P_union ps2 ->
     begin try List.for_all2 ~f:(equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
+  | P_hook h1, P_hook h2 -> equal_hook h1 h2
   | _ -> false
