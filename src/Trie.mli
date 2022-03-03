@@ -26,7 +26,7 @@ val prefix : path -> 'a t -> 'a t
 (** [singleton (p, d)] makes a trie with the only binding: [p] and its associated value [d]. It is equivalent to {!val:prefix}[p @@]{!val:root}[d] *)
 val singleton : path * 'a -> 'a t
 
-(** [equal eq t1 t2] checks whether two tries are equal. If the internal representations of tries are physically equal, [equal eq t1 t2] will immediately return [true] without calling [eq]. *)
+(** [equal eq t1 t2] checks whether two tries are equal. *)
 val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 (* val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int *)
 
@@ -58,13 +58,7 @@ val iteri : ?rev_prefix:path -> (rev_path:path -> 'a -> unit) -> 'a t -> unit
 *)
 val mapi : ?rev_prefix:path -> (rev_path:path -> 'a -> 'b) -> 'a t -> 'b t
 
-(** [mapi_endo ~rev_prefix f t] is similar to {!val:mapi}[f t] except that the domain and the codomain of the function must be the same. The additional benefit of [mapi_endo] over [mapi] is that, if [f v] returns [v] for every value [v] in [t], then [t] is returned unchanged. (That is, the new trie will be physically equal to the old one.) See {!val:filter_map_endo}.
-
-    @param rev_prefix The prefix prepended to any path sent to [f], but in reverse. The default is the empty unit path ([[]]).
-*)
-val mapi_endo : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a) -> 'a t -> 'a t
-
-(** [filteri ~rev_prefix f t] removes all values [v] at path [p] such that [f ~rev_prefix:p v] returns [false]. If [f v] returns [true] for every value [v] in [t], then [t] is returned unchanged. (That is, the new trie will be physically equal to the old one.)
+(** [filteri ~rev_prefix f t] removes all values [v] at path [p] such that [f ~rev_prefix:p v] returns [false].
 
     @param rev_prefix The prefix prepended to any path sent to [f]. The default is the empty unit path ([[]]).
 *)
@@ -76,18 +70,12 @@ val filteri : ?rev_prefix:path -> (rev_path:path -> 'a -> bool) -> 'a t -> 'a t
 *)
 val filter_mapi : ?rev_prefix:path -> (rev_path:path -> 'a -> 'b option) -> 'a t -> 'b t
 
-(** [filter_mapi_endo ~rev_prefix f t] is similar to {!val:filter_mapi}[~rev_prefix f t] except that [f] must be of type [rev_path:path -> 'a -> 'a option]; that is, its domain and codomain agree up to the [option] type. The additional benefit of [filter_mapi_endo] over [filter_mapi] is that if [f ~rev_prefix:p v] returns [Some v] for every value [v] at [p] in [t], then [t] is returned unchanged. (That is, the new trie will be physically equal to the old one.) See {!val:map_endo}
-
-    @param rev_prefix The prefix prepended to any path sent to [f]. The default is the empty unit path ([[]]).
-*)
-val filter_mapi_endo : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a option) -> 'a t -> 'a t
-
 (** {1 Updating} *)
 
-(** [update_subtree p f t] replaces the subtree [t'] rooted at [p] in [t] with [f t']. It will try to preserve physical equality when [f] returns the trie unchanged. *)
+(** [update_subtree p f t] replaces the subtree [t'] rooted at [p] in [t] with [f t']. *)
 val update_subtree : path -> ('a t -> 'a t) -> 'a t -> 'a t
 
-(** [update_singleton p f t] replaces the value [v] at [p] in [t] with the result of [f]. If there was no binding at [p], [f None] is evaluated. Otherwise, [f (Some v)] is used. If the result is [None], the old binding at [p] (if any) is removed. Otherwise, if the result is [Some v'], the value at [p] is replaced by [v']. It will try to preserve physical equality when [f] maintains the current status of binding, either returning [None] for [None] or [Some v] for [Some v]. *)
+(** [update_singleton p f t] replaces the value [v] at [p] in [t] with the result of [f]. If there was no binding at [p], [f None] is evaluated. Otherwise, [f (Some v)] is used. If the result is [None], the old binding at [p] (if any) is removed. Otherwise, if the result is [Some v'], the value at [p] is replaced by [v']. *)
 val update_singleton : path -> ('a option -> 'a option) -> 'a t -> 'a t
 
 (** [update_root f t] updates the value at root with [f]. It is equivalent to {!val:update_singleton}[[] f t]. *)
@@ -143,8 +131,3 @@ val to_seq_values : 'a t -> 'a Seq.t
     @param rev_prefix The prefix prepended to any path sent to [merger], but in reverse. The default is the empty unit path ([[]]).
 *)
 val of_seq : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
-
-(**/**)
-
-(** This is an internal API for testing whether the library is preserving physical equality as much as possible. Do not use this function in other situations. If [physically_equal t1 t2] returns [true] then [equal eq t1 t2] must return [true]. *)
-val physically_equal : 'a t -> 'a t -> bool
