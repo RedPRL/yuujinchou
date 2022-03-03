@@ -216,3 +216,31 @@ let rec filter_mapi_node ~rev_prefix f n =
   mk_tree (Option.bind n.root @@ f ~rev_path:rev_prefix) @@
   SegMap.filter_mapi (fun ~key -> filter_mapi_node ~rev_prefix:(key::rev_prefix) f) n.children
 let filter_mapi ?(rev_prefix=[]) f t = Option.bind t @@ filter_mapi_node ~rev_prefix f
+
+module Result =
+struct
+  open ResultMonad.Syntax
+
+  (** {1 Traversing the trees, with result} *)
+
+  let rec update_node_cont n path (k : 'a t -> ('a t, 'b) result) =
+    match path with
+    | [] -> k @@ non_empty n
+    | seg::path ->
+      let+ t = update_cont (SegMap.find_opt seg n.children) path k in
+      mk_tree n.root @@ SegMap.update ~key:seg ~f:(fun _ -> t) n.children
+
+  and update_cont t path k =
+    match t with
+    | None -> let+ t = k empty in prefix path t
+    | Some n -> update_node_cont n path k
+
+  let update_subtree path f t = update_cont t path f
+
+  let update_singleton path f t = update_cont t path @@
+    function
+    | None -> let+ t = f None in root_opt t
+    | Some n -> let+ r = f n.root in mk_tree r n.children
+
+  let update_root f t = update_singleton [] f t
+end

@@ -131,3 +131,17 @@ val to_seq_values : 'a t -> 'a Seq.t
     @param rev_prefix The prefix prepended to any path sent to [merger], but in reverse. The default is the empty unit path ([[]]).
 *)
 val of_seq : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
+
+module Result :
+sig
+  (** {1 Updating with results} *)
+
+  (** [update_subtree p f t] replaces the subtree [t'] rooted at [p] in [t] with [f t']. *)
+  val update_subtree : path -> ('a t -> ('a t, 'b) result) -> 'a t -> ('a t, 'b) result
+
+  (** [update_singleton p f t] replaces the value [v] at [p] in [t] with the result of [f]. If there was no binding at [p], [f None] is evaluated. Otherwise, [f (Some v)] is used. If the result is [None], the old binding at [p] (if any) is removed. Otherwise, if the result is [Some v'], the value at [p] is replaced by [v']. *)
+  val update_singleton : path -> ('a option -> ('a option, 'b) result) -> 'a t -> ('a t, 'b) result
+
+  (** [update_root f t] updates the value at root with [f]. It is equivalent to {!val:update_singleton}[[] f t]. *)
+  val update_root : ('a option -> ('a option, 'b) result) -> 'a t -> ('a t, 'b) result
+end
