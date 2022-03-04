@@ -178,8 +178,10 @@ sig
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     unit Pattern.t -> 'a Trie.t -> ('a, 'error) result
 
-  (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts a new argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
+  (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts an additional argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
 
+      @param rev_prefix Same as the parameter [rev_prefix] for {!val:run}.
+      @param union Same as the parameter [union] for {!val:run}.
       @param hooks The hooks that will be triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h], it will call [hooks h ~rev_path:p t] on the current trie where [p] is the path (in reverse) and [t] is the subtrie at [p].
   *)
   val run_with_hooks :
