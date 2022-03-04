@@ -132,7 +132,7 @@ val to_seq_values : 'a t -> 'a Seq.t
 *)
 val of_seq : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 
-(** {1 Operations with {!result}} *)
+(** {1 Operations with [result]} *)
 
 module Result :
 sig
