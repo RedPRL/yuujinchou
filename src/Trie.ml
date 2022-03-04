@@ -122,13 +122,8 @@ let union_option f x y =
 let rec union_node ~rev_prefix m n n' =
   let root = union_option (m ~rev_path:rev_prefix) n.root n'.root in
   let children =
-    if SegMap.is_empty n.children then
-      n'.children
-    else if SegMap.is_empty n'.children then
-      n.children
-    else
-      let f key n n' = Some (union_node ~rev_prefix:(key :: rev_prefix) m n n') in
-      SegMap.union ~f n.children n'.children
+    let f key n n' = Some (union_node ~rev_prefix:(key :: rev_prefix) m n n') in
+    SegMap.union ~f n.children n'.children
   in
   {root; children}
 
