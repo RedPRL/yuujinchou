@@ -3,7 +3,8 @@
 
    {1 Introduction}
 
-   This library was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
+   This library was motivated by the name modifiers in the "import" or "include" statements present in all practical programming languages.
+   Here are a few examples of such statements:
 
    {v open import M -- Agda v}
 
@@ -22,17 +23,62 @@ open import M renaming (a to b) public
 import math # Python: the sqrt function is available as  `math.sqrt`.
    v}
 
-   The goal of the Yuujinchou library is to provide a calculus of these modifications. If we view the collection of hierarchical names as a trie, then these name modifiers are trie transformers, and they should be composable. Currently, it supports renaming, scopes, sequencing, unions, and custom hooks for more advanced patterns.
+   Arguably, common designs of these hiding or renaming mechanisms are quite limited. The goal of the Yuujinchou library is to provide a compositional calculus of these modifiers of names, which we call {i name patterns}. Currently, the library supports renaming, scopes, sequencing, unions, and custom hooks for extending the pattern engine.
 
-   {2 Namespaces}
+   {2 Namespaces and Modules}
 
-   This package intends to treat a namespace as the prefix of a group of names; there is no standalone namespace [a], but a group of unrelated names that happen to have the prefix [a]. This is different from many other designs which attempt to group a collection of bindings as a standalone module. In general, explicit grouping only makes sense when a single type is assigned to that group, for example a signature in Standard ML for modules. Otherwise, premature grouping would limit the possible operations on namespaces.
+   This package intends to treat a namespace as the shared prefix of a group of names; there is no standalone namespace [a], but a group of unrelated declarations that happen to have names sharing the prefix [a]. This design is different from many others that attempt to group a collection of bindings as a standalone module.
+
+   In general, the authors believe that explicit grouping only makes sense when a single type is assigned to the entire group, such as a signature in Standard ML for a module. Otherwise, premature grouping would unnecessarily prevent various convenient operations, such as directly injecting a new definition into a namespace.
 *)
 
 (**
-   {1 Modules in this Package}
+   {1 Using the Library}
 
-   The code is split into three parts:
+   {2 Example Code}
+
+   {[
+     open Yuujinchou
+
+     module Data =
+     struct
+       type t = int
+       let equal n1 n2 = n1 = n2
+       let merge ~rev_path x y =
+         if equal x y then x
+         else failwith @@
+           "Inconsistent data assigned to the same path " ^ String.concat "." @@ List.rev rev_path
+       let shadow ~rev_path:_ _x y = y
+       let compare : t -> t -> int = compare
+     end
+
+     (** An environment is a mapping from paths to data. *)
+     type env = Data.t Trie.t
+
+     (** [remap pattern env] uses the [pattern] to massage
+         the environment [env]. *)
+     let remap pattern env =
+       let pp_path = function [] -> "(root)" | path -> String.concat "." path in
+       match Action.run ~union:Data.merge pattern env with
+       | Ok env -> env
+       | Error (`BindingNotFound path) ->
+         failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
+
+     (** [import env pattern imported] imports the environment
+         [imported] massaged by [pattern] into [env]. *)
+     let import env pattern imported =
+       Trie.union Data.shadow env @@ remap pattern imported
+
+     module DataSet = Set.Make (Data)
+
+     (** [select env pattern] returns the set of matched data. *)
+     let select env pattern =
+       DataSet.of_seq @@ Trie.to_seq_values @@ remap pattern env
+   ]}
+
+   {2 Library Organization}
+
+   The library code is split into three parts:
 *)
 
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
@@ -149,54 +195,11 @@ sig
 end
 
 (**
-   {1 Example Code}
+   {2 Implementing Features}
 
-   {[
-     open Yuujinchou
+   This section shows how mechanisms in other languages can be implemented using this package. We use Haskell and Racket as examples.
 
-     module Data =
-     struct
-       type t = int
-       let equal n1 n2 = n1 = n2
-       let merge ~rev_path x y =
-         if equal x y then x
-         else failwith @@
-           "Inconsistent data assigned to the same path " ^ String.concat "." @@ List.rev rev_path
-       let shadow ~rev_path:_ _x y = y
-       let compare : t -> t -> int = compare
-     end
-
-     (** An environment is a mapping from paths to data. *)
-     type env = Data.t Trie.t
-
-     (** [remap pattern env] uses the [pattern] to massage
-         the environment [env]. *)
-     let remap pattern env =
-       let pp_path = function [] -> "(root)" | path -> String.concat "." path in
-       match Action.run ~union:Data.merge pattern env with
-       | Ok env -> env
-       | Error (`BindingNotFound path) ->
-         failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
-
-     (** [import env pattern imported] imports the environment
-         [imported] massaged by [pattern] into [env]. *)
-     let import env pattern imported =
-       Trie.union Data.shadow env @@ remap pattern imported
-
-     module DataSet = Set.Make (Data)
-
-     (** [select env pattern] returns the set of matched data. *)
-     let select env pattern =
-       DataSet.of_seq @@ Trie.to_seq_values @@ remap pattern env
-   ]}
-*)
-
-(**
-   {1 Examples from Other Languages}
-
-   This section shows how import mechanisms can be implemented using this package.
-
-   {2 Haskell}
+   {3 Haskell}
 
    - Haskell syntax:
    {v
@@ -234,7 +237,7 @@ import qualified Mod hiding (x,y)
      Pattern.(seq [except ["x"]; except ["y"]; renaming [] ["Mod"]])
    ]}
 
-   {2 Racket}
+   {3 Racket}
 
    - Racket syntax:
    {v
@@ -262,6 +265,7 @@ import qualified Mod hiding (x,y)
    {[
      Pattern.(seq [...; renaming [] ["p"]])
    ]}
+   Note: Racket does not support hierarchical names, so the prefixing operator in Racket is directly prepending the prefix to the affected names.
 
    - Racket syntax:
    {v
