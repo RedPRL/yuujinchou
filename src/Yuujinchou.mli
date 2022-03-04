@@ -20,7 +20,7 @@ open import M renaming (a to b) public
    Another way to address this is to place the imported content under some namespace. For example, in Python,
 
    {v
-import math # Python: the sqrt function is available as  `math.sqrt`.
+import math # Python: the sqrt function is available as `math.sqrt`.
    v}
 
    Arguably, common designs of these hiding or renaming mechanisms are quite limited. The goal of the Yuujinchou library is to provide a compositional calculus of these modifiers of names, which we call {i name patterns}. Currently, the library supports renaming, scopes, sequencing, unions, and custom hooks for extending the pattern engine.
