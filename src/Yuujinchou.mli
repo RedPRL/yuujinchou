@@ -1,5 +1,9 @@
 (**
-   {b Yuujinchou} is an OCaml package of name patterns. It was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
+   {b Yuujinchou} is an OCaml package of name patterns.
+
+   {1 Introduction}
+
+   This library was motivated by the "import" or "include" statements present in almost all programming languages. Here are a few examples:
 
    {v open import M -- Agda v}
 
@@ -20,9 +24,9 @@ import math # Python: the sqrt function is available as  `math.sqrt`.
 
    The goal of the Yuujinchou library is to provide a calculus of these modifications. If we view the collection of hierarchical names as a trie, then these name modifiers are trie transformers, and they should be composable. Currently, it supports renaming, scopes, sequencing, unions, and custom hooks for more advanced patterns.
 
-   {2 Notes on Namespaces}
+   {2 Namespaces}
 
-   This package intends to treat a namespace as the prefix of a group of names; there is no namespace [a], but a group of unrelated names that happen to have the prefix [a]. This is different from many other designs which attempt to group a collection of bindings as a module. It is possible that such a design is unnecessarily limited unless one wishes to implement parametric signature polymorphism (without row polymorphism).
+   This package intends to treat a namespace as the prefix of a group of names; there is no standalone namespace [a], but a group of unrelated names that happen to have the prefix [a]. This is different from many other designs which attempt to group a collection of bindings as a standalone module. In general, explicit grouping only makes sense when a single type is assigned to that group, for example a signature in Standard ML for modules. Otherwise, premature grouping would limit the possible operations on namespaces.
 *)
 
 (**
@@ -31,7 +35,7 @@ import math # Python: the sqrt function is available as  `math.sqrt`.
    The code is split into three parts:
 *)
 
-(** The {!module:Trie} module implements a data structure that maps paths to values and supports efficient subtree operations. *)
+(** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
 module Trie : module type of Trie
 
 (** The {!module:Pattern} module defines the patterns. *)
