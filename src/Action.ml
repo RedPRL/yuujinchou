@@ -7,30 +7,28 @@ let pp_path = Pattern.pp_path
 
 type nonrec ('a, 'error) result = ('a Trie.t, [> `BindingNotFound of path] as 'error) result
 
+let check_nonempty ~path t =
+  if Trie.is_empty t then
+    error @@ `BindingNotFound path
+  else
+    ret ()
+
 let rec run_ ~union ~hooks ~rev_prefix pat t =
   match pat with
   | P_only p ->
     let t = Trie.find_subtree p t in
-    if Trie.is_empty t then
-      error @@ `BindingNotFound (List.rev_append rev_prefix p)
-    else
-      ret @@ Trie.prefix p t
+    let+ () = check_nonempty ~path:(List.rev_append rev_prefix p) t in
+    Trie.prefix p t
   | P_except p ->
     let t, remaining = Trie.detach_subtree p t in
-    if Trie.is_empty t then
-      error @@ `BindingNotFound (List.rev_append rev_prefix p)
-    else
-      ret remaining
+    let+ () = check_nonempty ~path:(List.rev_append rev_prefix p) t in
+    remaining
   | P_in (p, pat) ->
-    let t, remaining = Trie.detach_subtree p t in
-    let* t = run_ ~union ~hooks ~rev_prefix:(List.rev_append p rev_prefix) pat t in
-    ret @@ Trie.union_subtree ~rev_prefix union remaining (p, t)
+    Trie.Result.update_subtree p (run_ ~union ~hooks ~rev_prefix:(List.rev_append p rev_prefix) pat) t
   | P_renaming (p1, p2) ->
     let t, remaining = Trie.detach_subtree p1 t in
-    if Trie.is_empty t then
-      error @@ `BindingNotFound (List.rev_append rev_prefix p1)
-    else
-      ret @@ Trie.union_subtree ~rev_prefix union remaining (p2, t)
+    let+ () = check_nonempty ~path:(List.rev_append rev_prefix p1) t in
+    Trie.union_subtree ~rev_prefix union remaining (p2, t)
   | P_seq pats ->
     let f t pat = t >>= run_ ~union ~hooks ~rev_prefix pat in
     List.fold_left ~f ~init:(ret t) pats
