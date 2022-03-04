@@ -232,12 +232,17 @@ let test_update_singleton_3 () =
     (Trie.update_singleton ["x"] (fun _ -> None) (of_list [["x"], 40]))
 
 let test_update_singleton_4 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [["x"], 10])
+    (Trie.update_singleton ["x"] (fun _ -> Some 10) Trie.empty)
+
+let test_update_singleton_5 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
   Alcotest.(check @@ trie int) "same trie"
     t
     (Trie.update_singleton ["x"] (fun x -> x) t)
 
-let test_update_singleton_5 () =
+let test_update_singleton_6 () =
   let t = Trie.empty in
   Alcotest.(check @@ trie int) "same trie"
     t
@@ -259,12 +264,17 @@ let test_update_root_3 () =
     (Trie.update_root (fun _ -> None) (of_list [[], 40]))
 
 let test_update_root_4 () =
+  Alcotest.(check @@ trie int) "same trie"
+    (of_list [[], 5])
+    (Trie.update_root (fun _ -> Some 5) Trie.empty)
+
+let test_update_root_5 () =
   let t = of_list [["x"], 40; ["x"; "y"], 160] in
   Alcotest.(check @@ trie int) "same trie"
     t
     (Trie.update_root (fun x -> x) t)
 
-let test_update_root_5 () =
+let test_update_root_6 () =
   let t = Trie.empty in
   Alcotest.(check @@ trie int) "same trie"
     t
@@ -362,6 +372,118 @@ let test_detach_singleton_3 () =
     (Some 10, Trie.empty)
     (Trie.detach_singleton ["x"; "y"] (of_list [["x"; "y"], 10]))
 
+let test_result_update_subtree_1 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok @@ of_list [["x"; "y"], cantor_val 160 10; ["x"], 40])
+    (Trie.Result.update_subtree ["x"] (fun t -> Result.ok @@ Trie.union_singleton cantor t (["y"], 10)) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_result_update_subtree_2 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok t)
+    (Trie.Result.update_subtree ["x"] (fun t -> Result.ok t) t)
+
+let test_result_update_subtree_3 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.error 10)
+    (Trie.Result.update_subtree ["x"] (fun _ -> Result.error 10) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_result_update_subtree_4 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.error 20)
+    (Trie.Result.update_subtree ["x"] (fun _ -> Result.error 20) t)
+
+let test_result_update_singleton_1 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok @@ of_list [["x"; "y"], 160; ["x"], 80])
+    (Trie.Result.update_singleton ["x"] (fun t -> Result.ok @@ Some (Option.get t * 2)) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_result_update_singleton_2 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok @@ of_list [["x"; "y"], 160])
+    (Trie.Result.update_singleton ["x"] (fun _ -> Result.ok None) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_result_update_singleton_3 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok Trie.empty)
+    (Trie.Result.update_singleton ["x"] (fun _ -> Result.ok None) (of_list [["x"], 40]))
+
+let test_result_update_singleton_4 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok @@ of_list [["x"], 10])
+    (Trie.Result.update_singleton ["x"] (fun _ -> Result.ok @@ Some 10) Trie.empty)
+
+let test_result_update_singleton_5 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok t)
+    (Trie.Result.update_singleton ["x"] (fun x -> Result.ok x) t)
+
+let test_result_update_singleton_6 () =
+  let t = Trie.empty in
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok t)
+    (Trie.Result.update_singleton ["x"] (fun x -> Result.ok x) t)
+
+let test_result_update_singleton_7 () =
+  Alcotest.(check @@ result (trie int) (option int)) "same trie"
+    (Result.error (Some 40))
+    (Trie.Result.update_singleton ["x"] (fun t -> Result.error t) (of_list [["x"], 40; ["x"; "y"], 160]))
+
+let test_result_update_singleton_8 () =
+  Alcotest.(check @@ result (trie int) (option int)) "same trie"
+    (Result.error None)
+    (Trie.Result.update_singleton ["x"] (fun t -> Result.error t) Trie.empty)
+
+let test_result_update_root_1 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok @@ of_list [["x"; "y"], 160; [], 80])
+    (Trie.Result.update_root (fun t -> Result.ok @@ Some (Option.get t * 2)) (of_list [[], 40; ["x"; "y"], 160]))
+
+let test_result_update_root_2 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok @@ of_list [["x"; "y"], 160])
+    (Trie.Result.update_root (fun _ -> Result.ok None) (of_list [[], 40; ["x"; "y"], 160]))
+
+let test_result_update_root_3 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok Trie.empty)
+    (Trie.Result.update_root (fun _ -> Result.ok None) (of_list [[], 40]))
+
+let test_result_update_root_4 () =
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok @@ of_list [[], 5])
+    (Trie.Result.update_root (fun _ -> Result.ok @@ Some 5) Trie.empty)
+
+let test_result_update_root_5 () =
+  let t = of_list [["x"], 40; ["x"; "y"], 160] in
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok t)
+    (Trie.Result.update_root (fun x -> Result.ok x) t)
+
+let test_result_update_root_6 () =
+  let t = Trie.empty in
+  Alcotest.(check @@ result (trie int) int) "same trie"
+    (Result.ok t)
+    (Trie.Result.update_root (fun x -> Result.ok x) t)
+
+let test_result_update_root_7 () =
+  Alcotest.(check @@ result (trie int) (option int)) "same trie"
+    (Result.error @@ Some 40)
+    (Trie.Result.update_root (fun t -> Result.error t) (of_list [[], 40; ["x"; "y"], 160]))
+
+let test_result_update_root_8 () =
+  Alcotest.(check @@ result (trie int) (option int)) "same trie"
+    (Result.error @@ Some 40)
+    (Trie.Result.update_root (fun t -> Result.error t) (of_list [[], 40]))
+
+let test_result_update_root_9 () =
+  Alcotest.(check @@ result (trie int) (option int)) "same trie"
+    (Result.error None)
+    (Trie.Result.update_root (fun t -> Result.error t) Trie.empty)
+
+
 let () =
   let open Alcotest in
   run "Trie" [
@@ -440,6 +562,7 @@ let () =
       test_case "update_singleton" `Quick test_update_singleton_3;
       test_case "update_singleton" `Quick test_update_singleton_4;
       test_case "update_singleton" `Quick test_update_singleton_5;
+      test_case "update_singleton" `Quick test_update_singleton_6;
     ];
     "update_root", [
       test_case "update_root" `Quick test_update_root_1;
@@ -447,6 +570,7 @@ let () =
       test_case "update_root" `Quick test_update_root_3;
       test_case "update_root" `Quick test_update_root_4;
       test_case "update_root" `Quick test_update_root_5;
+      test_case "update_root" `Quick test_update_root_6;
     ];
     "union", [
       test_case "union" `Quick test_union_1;
@@ -473,5 +597,32 @@ let () =
       test_case "detach_singleton" `Quick test_detach_singleton_1;
       test_case "detach_singleton" `Quick test_detach_singleton_2;
       test_case "detach_singleton" `Quick test_detach_singleton_3;
+    ];
+    "result_update_subtree", [
+      test_case "result_update_subtree" `Quick test_result_update_subtree_1;
+      test_case "result_update_subtree" `Quick test_result_update_subtree_2;
+      test_case "result_update_subtree" `Quick test_result_update_subtree_3;
+      test_case "result_update_subtree" `Quick test_result_update_subtree_4;
+    ];
+    "result_update_singleton", [
+      test_case "result_update_singleton" `Quick test_result_update_singleton_1;
+      test_case "result_update_singleton" `Quick test_result_update_singleton_2;
+      test_case "result_update_singleton" `Quick test_result_update_singleton_3;
+      test_case "result_update_singleton" `Quick test_result_update_singleton_4;
+      test_case "result_update_singleton" `Quick test_result_update_singleton_5;
+      test_case "result_update_singleton" `Quick test_result_update_singleton_6;
+      test_case "result_update_singleton" `Quick test_result_update_singleton_7;
+      test_case "result_update_singleton" `Quick test_result_update_singleton_8;
+    ];
+    "result_update_root", [
+      test_case "result_update_root" `Quick test_result_update_root_1;
+      test_case "result_update_root" `Quick test_result_update_root_2;
+      test_case "result_update_root" `Quick test_result_update_root_3;
+      test_case "result_update_root" `Quick test_result_update_root_4;
+      test_case "result_update_root" `Quick test_result_update_root_5;
+      test_case "result_update_root" `Quick test_result_update_root_6;
+      test_case "result_update_root" `Quick test_result_update_root_7;
+      test_case "result_update_root" `Quick test_result_update_root_8;
+      test_case "result_update_root" `Quick test_result_update_root_9;
     ];
   ]
