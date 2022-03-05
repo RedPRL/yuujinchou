@@ -7,9 +7,10 @@ struct
   type t = int
   let equal n1 n2 = n1 = n2
   let merge ~rev_path x y =
-    if equal x y then x
-    else failwith @@
-      "Inconsistent data assigned to the same path " ^ String.concat "." @@ List.rev rev_path
+    if equal x y then
+      Result.ok x
+    else
+      Result.error @@ `Inconsistent (List.rev rev_path)
   let shadow ~rev_path:_ _x y = y
   let compare : t -> t -> int = compare
 end
@@ -23,6 +24,8 @@ let remap pattern env =
   let pp_path = function [] -> "(root)" | path -> String.concat "." path in
   match Action.run ~union:Data.merge pattern env with
   | Ok env -> env
+  | Error (`Inconsistent path) ->
+    failwith ("Inconsistent data assigned to the same path " ^ String.concat "." path)
   | Error (`BindingNotFound path) ->
     failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
 

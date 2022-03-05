@@ -45,9 +45,10 @@ import math # Python: the sqrt function is available as `math.sqrt`.
        type t = int
        let equal n1 n2 = n1 = n2
        let merge ~rev_path x y =
-         if equal x y then x
-         else failwith @@
-           "Inconsistent data assigned to the same path " ^ String.concat "." @@ List.rev rev_path
+         if equal x y then
+           Result.ok x
+         else
+           Result.error @@ `Inconsistent (List.rev rev_path)
        let shadow ~rev_path:_ _x y = y
        let compare : t -> t -> int = compare
      end
@@ -61,6 +62,8 @@ import math # Python: the sqrt function is available as `math.sqrt`.
        let pp_path = function [] -> "(root)" | path -> String.concat "." path in
        match Action.run ~union:Data.merge pattern env with
        | Ok env -> env
+       | Error (`Inconsistent path) ->
+         failwith ("Inconsistent data assigned to the same path " ^ String.concat "." path)
        | Error (`BindingNotFound path) ->
          failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
 
@@ -165,7 +168,7 @@ sig
 
   (** The type of the result. The error [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it.
   *)
-  type nonrec ('a, 'error) result = ('a Trie.t, [> `BindingNotFound of Pattern.path] as 'error) result
+  type nonrec ('a, 'error) result = ('a, [> `BindingNotFound of Pattern.path] as 'error) result
 
   (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.hook}.
 
@@ -175,8 +178,8 @@ sig
       @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path [p] is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intention. *)
   val run :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
-    unit Pattern.t -> 'a Trie.t -> ('a, 'error) result
+    union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
+    unit Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
 
   (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts an additional argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
 
@@ -186,9 +189,9 @@ sig
   *)
   val run_with_hooks :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
-    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a, 'error) result) ->
-    'hook Pattern.t -> 'a Trie.t -> ('a, 'error) result
+    union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
+    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a Trie.t, 'error) result) ->
+    'hook Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
 
   (** {1 Pretty Printers} *)
 

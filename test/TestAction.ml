@@ -9,7 +9,7 @@ let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
   end in
   (module M)
 
-let cantor ~rev_path:_ x y = if x == y then x else (x + y) * (x + y + 1) / 2 + y
+let cantor ~rev_path:_ x y = Result.ok @@ if x == y then x else (x + y) * (x + y + 1) / 2 + y
 
 let of_list l =
   Trie.of_seq
