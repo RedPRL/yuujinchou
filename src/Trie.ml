@@ -88,7 +88,7 @@ let find_singleton path t =
 
 let find_root t = find_singleton [] t
 
-(** {1 Traversing the trees} *)
+(** {1 Updating} *)
 
 let rec update_node_cont n path (k : 'a t -> 'a t) =
   match path with
@@ -216,7 +216,11 @@ module Result =
 struct
   open ResultMonad.Syntax
 
-  (** {1 Traversing the trees, with result} *)
+  let munion ~f m1 m2 =
+    let+ s = SeqUtils.mmerge ~f (SegMap.to_seq m1) (SegMap.to_seq m2) in
+    SegMap.of_seq s
+
+  (** {1 Updating} *)
 
   let rec update_node_cont n path (k : 'a t -> ('a t, 'b) result) =
     match path with
@@ -238,4 +242,39 @@ struct
     | Some n -> let+ r = f n.root in mk_tree r n.children
 
   let update_root f t = update_singleton [] f t
+
+  (** {1 Union} *)
+
+  let union_option f x y =
+    match x, y with
+    | _, None -> ret x
+    | None, _ -> ret y
+    | Some x', Some y' ->
+      let+ v = f x' y' in
+      Some v
+
+  let rec union_node ~rev_prefix m n n' =
+    let* root = union_option (m ~rev_path:rev_prefix) n.root n'.root in
+    let* children =
+      let f key n n' =
+        let+ n = union_node ~rev_prefix:(key :: rev_prefix) m n n' in
+        Some n
+      in
+      munion ~f n.children n'.children
+    in
+    ret {root; children}
+
+  let union_ ~rev_prefix m = union_option @@ union_node ~rev_prefix m
+
+  let[@inline] union ?(rev_prefix=[]) m = union_ ~rev_prefix m
+
+  let union_subtree ?(rev_prefix=[]) m t (path, t') =
+    update_cont t path @@ fun t -> union_ ~rev_prefix:(List.rev_append path rev_prefix) m t t'
+
+  let union_singleton ?(rev_prefix=[]) m t (path, v) =
+    update_cont t path @@ function
+    | None -> ret @@ non_empty @@ root_opt_node v
+    | Some n ->
+      let+ r = union_option (m ~rev_path:(List.rev_append path rev_prefix)) n.root @@ Some v in
+      non_empty {n with root = r}
 end
