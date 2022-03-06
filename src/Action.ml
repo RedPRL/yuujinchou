@@ -34,7 +34,7 @@ let rec run_ ~union ~hooks ~rev_prefix pat t =
     List.fold_left ~f ~init:(ret t) pats
   | P_union pats ->
     let+ ts = ResultMonad.map (fun pat -> run_ ~union ~hooks ~rev_prefix pat t) pats in
-    List.fold_left ~f:(Trie.union union) ~init:Trie.empty ts
+    List.fold_left ~f:(Trie.union union ~rev_prefix) ~init:Trie.empty ts
   | P_hook h -> hooks h ~rev_prefix t
 
 let run_with_hooks ?(rev_prefix=[]) ~union ~hooks = run_ ~union ~hooks ~rev_prefix
