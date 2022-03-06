@@ -139,11 +139,31 @@ sig
   (** {1 Updating} *)
 
   (** [update_subtree p f t] replaces the subtree [t'] rooted at [p] in [t] with [f t']. *)
-  val update_subtree : path -> ('a t -> ('a t, 'b) result) -> 'a t -> ('a t, 'b) result
+  val update_subtree : path -> ('a t -> ('a t, 'error) result) -> 'a t -> ('a t, 'error) result
 
   (** [update_singleton p f t] replaces the value [v] at [p] in [t] with the result of [f]. If there was no binding at [p], [f None] is evaluated. Otherwise, [f (Some v)] is used. If the result is [None], the old binding at [p] (if any) is removed. Otherwise, if the result is [Some v'], the value at [p] is replaced by [v']. *)
-  val update_singleton : path -> ('a option -> ('a option, 'b) result) -> 'a t -> ('a t, 'b) result
+  val update_singleton : path -> ('a option -> ('a option, 'error) result) -> 'a t -> ('a t, 'error) result
 
   (** [update_root f t] updates the value at root with [f]. It is equivalent to {!val:update_singleton}[[] f t]. *)
-  val update_root : ('a option -> ('a option, 'b) result) -> 'a t -> ('a t, 'b) result
+  val update_root : ('a option -> ('a option, 'error) result) -> 'a t -> ('a t, 'error) result
+
+  (** {1 Union} *)
+
+  (** [union ~rev_prefix merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will call [merger ~rev_path:p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the (reversed) path [rev_path]. The path [rev_path] is reversed for efficient traversal.
+
+      @param rev_prefix The prefix prepended to any path sent to [merger]. The default is the empty unit path ([[]]).
+  *)
+  val union : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> ('a, 'error) result) -> 'a t -> 'a t -> ('a t, 'error) result
+
+  (** [union_subtree ~rev_prefix merger t1 (path, t2)] is equivalent to {!val:union}[~rev_prefix merger t1 (prefix path t2)], but potentially more efficient.
+
+      @param rev_prefix The prefix prepended to any path sent to [merger]. The default is the empty unit path ([[]]).
+  *)
+  val union_subtree : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> ('a, 'error) result) -> 'a t -> path * 'a t -> ('a t, 'error) result
+
+  (** [union_singleton merger t binding] is equivalent to {!val:union}[merger t1 (singleton binding)], but potentially more efficient.
+
+      @param rev_prefix The prefix prepended to any path sent to [merger]. The default is the empty unit path ([[]]).
+  *)
+  val union_singleton : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> ('a, 'error) result) -> 'a t -> path * 'a -> ('a t, 'error) result
 end

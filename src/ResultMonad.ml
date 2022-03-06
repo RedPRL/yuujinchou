@@ -12,17 +12,24 @@ end
 
 open Syntax
 
-let rec map f =
+let rec map ~f =
   function
   | [] -> ret []
   | x :: xs ->
     let+ y = f x
-    and+ ys = map f xs in
+    and+ ys = map ~f xs in
     y :: ys
 
-let rec iter f =
+let rec iter ~f =
   function
   | [] -> ret ()
   | x :: xs ->
     let* () = f x in
-    iter f xs
+    iter ~f xs
+
+let rec fold_left ~f ~init =
+  function
+  | [] -> ret init
+  | x :: xs ->
+    let* init = f init x in
+    fold_left ~f ~init xs

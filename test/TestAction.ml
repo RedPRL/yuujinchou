@@ -22,7 +22,7 @@ let data : data Alcotest.testable =
   end in
   (module M)
 
-let myunion ~rev_path x y = U (rev_path, x, y)
+let myunion ~rev_path x y = Result.ok @@ U (rev_path, x, y)
 
 let of_list l =
   Trie.of_seq

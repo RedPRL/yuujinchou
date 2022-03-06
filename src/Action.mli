@@ -1,16 +1,14 @@
-type path = Pattern.path
-
-val pp_path : Format.formatter -> path -> unit
-
-type nonrec ('a, 'error) result = ('a Trie.t, [> `BindingNotFound of path] as 'error) result
-
-val run_with_hooks :
-  ?rev_prefix:path ->
-  union:(rev_path:path -> 'a -> 'a -> 'a) ->
-  hooks:('hook -> rev_prefix:path -> 'a Trie.t -> ('a, 'error) result) ->
-  'hook Pattern.t -> 'a Trie.t -> ('a, 'error) result
+type nonrec ('a, 'error) result = ('a, [> `BindingNotFound of Pattern.path] as 'error) result
 
 val run :
-  ?rev_prefix:path ->
-  union:(rev_path:path -> 'a -> 'a -> 'a) ->
-  unit Pattern.t -> 'a Trie.t -> ('a, 'error) result
+  ?rev_prefix:Pattern.path ->
+  union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
+  unit Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+
+val run_with_hooks :
+  ?rev_prefix:Pattern.path ->
+  union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
+  hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a Trie.t, 'error) result) ->
+  'hook Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+
+val pp_path : Format.formatter -> Pattern.path -> unit
