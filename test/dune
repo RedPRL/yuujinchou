@@ -1,7 +1,9 @@
+(rule (copy "../src/Trie.mli" "ListAsTrie.mli"))
+
 (test
  (name TestTrie)
- (modules TestTrie)
- (libraries alcotest yuujinchou))
+ (modules ListAsTrie TestTrie)
+ (libraries qcheck-core qcheck-core.runner yuujinchou))
 
 (test
  (name TestAction)
