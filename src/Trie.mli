@@ -126,9 +126,9 @@ val to_seq_with_reversed_paths : ?rev_prefix:path -> 'a t -> (path * 'a) Seq.t
 (** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is potentially more efficient than {!val:to_seq} because path reversal is skipped. *)
 val to_seq_values : 'a t -> 'a Seq.t
 
-(** [of_seq ~rev_prefix merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_subtree}.
+(** [of_seq ~rev_prefix merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}.
 
-    @param rev_prefix The prefix prepended to any path sent to [merger], but in reverse. The default is the empty unit path ([[]]).
+    @param rev_prefix The prefix prepended to any path sent to [merger], but in reverse. The default is the empty unit path ([[]]). Note that [rev_prefix] does not directly affect the output trie, only the argument to [merger].
 *)
 val of_seq : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
 

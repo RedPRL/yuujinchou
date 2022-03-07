@@ -30,6 +30,7 @@ let hook f = P_hook f
 
 let union l = P_union l
 
+let (=) = List.equal ~eq:String.equal
 let rec equal equal_hook pat1 pat2 =
   match pat1, pat2 with
   | P_only p1, P_only p2 | P_except p1, P_except p2 -> p1 = p2

@@ -1,628 +1,273 @@
+open StdLabels
 open Yuujinchou
-
-let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
-  let module M = struct
-    type t = a Trie.t
-    let pp fmt t = Alcotest.(pp @@ list @@ pair (list string) elem) fmt (List.of_seq @@ Trie.to_seq t)
-    let equal = Trie.equal (Alcotest.equal elem)
-  end in
-  (module M)
-
-let cantor_val x y = if x == y then x else (x + y) * (x + y + 1) / 2 + y
-let cantor ~rev_path:_ x y = cantor_val x y
-
-let of_list l =
-  Trie.of_seq
-    (fun ~rev_path _ _ -> failwith @@ "conflicting keys at " ^ String.concat "." @@ List.rev rev_path)
-    (List.to_seq l)
-
-let test_empty () =
-  Alcotest.(check @@ trie int) "same trie" (of_list []) Trie.empty
-
-let test_is_empty_empty () =
-  Alcotest.(check bool) "empty" true (Trie.is_empty Trie.empty)
-
-let test_is_empty_root () =
-  Alcotest.(check bool) "not empty" false (Trie.is_empty @@ of_list [[], [1]])
-
-let test_root_opt_none () =
-  Alcotest.(check @@ trie int) "same trie" Trie.empty (Trie.root_opt None)
-
-let test_root_opt_some () =
-  Alcotest.(check @@ trie int) "same trie" (of_list [[], 10]) (Trie.root_opt (Some 10))
-
-let test_prefix_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"], 10; ["x"; "y"; "z"], 100])
-    (Trie.prefix ["x"] (of_list [[], 10; ["y"; "z"], 100]))
-
-let test_prefix_2 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x1"; "x2"; "y"], 10; ["x1"; "x2"; "z"], 20])
-    (Trie.prefix ["x1"; "x2"] (of_list [["y"], 10; ["z"], 20]))
-
-let test_singleton_1 () =
-  Alcotest.(check @@ trie int) "same trie" (of_list [[], 100]) (Trie.singleton ([], 100))
-
-let test_singleton_2 () =
-  Alcotest.(check @@ trie int) "same trie" (of_list [["x"], 100]) (Trie.singleton (["x"], 100))
-
-let test_root () =
-  Alcotest.(check @@ trie int) "same trie" (of_list [[], 100]) (Trie.root 100)
-
-let test_equal_1 () =
-  Alcotest.(check bool) "true"
-    true
-    (Trie.equal Alcotest.(equal int) (of_list [["x"; "y"], 100]) (of_list [["x"; "y"], 100]))
-
-let test_equal_2 () =
-  Alcotest.(check bool) "false"
-    false
-    (Trie.equal Alcotest.(equal int) (of_list [["x"; "y"], 100]) (of_list [["x"; "z"], 100]))
-
-let test_equal_phy_eq () =
-  let t = of_list [["x"], 1] in
-  Alcotest.(check bool) "true"
-    true
-    (Trie.equal (fun _ _ -> failwith "not using physical equality") t t)
-
-let test_find_subtree_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [[], 10; ["x"], 20])
-    (Trie.find_subtree [] (of_list [[], 10; ["x"], 20]))
-
-let test_find_subtree_2 () =
-  Alcotest.(check @@ trie int) "same trie"
-    Trie.empty
-    (Trie.find_subtree ["y"] (of_list [[], 10; ["x"], 20]))
-
-let test_find_singleton_1 () =
-  Alcotest.(check @@ option int) "same answer"
-    (Some 10)
-    (Trie.find_singleton [] (of_list [[], 10; ["x"], 20]))
-
-let test_find_singleton_2 () =
-  Alcotest.(check @@ option int) "same answer"
-    None
-    (Trie.find_singleton ["y"] (of_list [[], 10; ["x"], 20]))
-
-let test_find_root_1 () =
-  Alcotest.(check @@ option int) "same answer"
-    (Some 10)
-    (Trie.find_root (of_list [[], 10; ["x"], 20]))
-
-let test_find_root_2 () =
-  Alcotest.(check @@ option int) "same answer"
-    None
-    (Trie.find_root (of_list [["x"], 20]))
-
-let test_find_root_3 () =
-  Alcotest.(check @@ option int) "same answer"
-    None
-    (Trie.find_root Trie.empty)
-
-let test_mapi_1 () =
-  Alcotest.(check @@ trie (pair (list string) int)) "same trie"
-    (of_list [["x"; "y"], (["y"; "x"], 11); [], ([], 21)])
-    (Trie.mapi (fun ~rev_path x -> rev_path, x + 1) (of_list [["x"; "y"], 10; [], 20]))
-
-let test_mapi_2 () =
-  Alcotest.(check @@ trie (pair (list string) int)) "same trie"
-    Trie.empty
-    (Trie.mapi (fun ~rev_path x -> rev_path, x + 1) Trie.empty)
-
-let test_mapi_3 () =
-  Alcotest.(check @@ trie @@ pair (list string) int) "same trie"
-    (of_list [["x"; "y"], (["z"; "y"; "x"], 11); [], (["w"], 21)])
-    (Trie.mapi (fun ~rev_path (p, x) -> (List.rev_append p rev_path, x + 1)) (of_list [["x"; "y"], (["z"], 10); [], (["w"], 20)]))
-
-let test_mapi_4 () =
-  Alcotest.(check @@ trie int) "same trie"
-    Trie.empty
-    (Trie.mapi (fun ~rev_path:_ x -> x + 1) Trie.empty)
-
-let test_mapi_5 () =
-  let t = Trie.empty in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.mapi (fun ~rev_path:_ x -> x + 2) t)
-
-let test_mapi_6 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.mapi (fun ~rev_path:_ x -> x) t)
-
-let test_filteri_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"], 20; [], 40])
-    (Trie.filteri (fun ~rev_path:_ x -> x > 15) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
-
-let test_filteri_2 () =
-  Alcotest.(check @@ trie int) "same trie"
-    Trie.empty
-    (Trie.filteri (fun ~rev_path:_ x -> x > 100) (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
-
-let test_filteri_3 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 10])
-    (Trie.filteri (fun ~rev_path _ -> match rev_path with "y"::_ -> true | _ -> false)
-         (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
-
-let test_filteri_4 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"], 20])
-    (Trie.filteri (fun ~rev_path _ -> match rev_path with ["x"] -> true | _ -> false)
-         (of_list [["x"; "y"], 10; ["x"], 20; [], 40]))
-
-let test_filteri_5 () =
-  let t = Trie.empty in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.filteri (fun ~rev_path:_ x -> x > 100) t)
-
-let test_filteri_6 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.filteri (fun ~rev_path:_ _ -> true) t)
-
-let test_filter_mapi_1 () =
-  Alcotest.(check @@ trie @@ pair (list string) int) "same trie"
-    (of_list [[], ([], 30)])
-    (Trie.filter_mapi (fun ~rev_path x -> if x > 10 then Some (rev_path, 30) else None) (of_list [["x"; "y"], 10; [], 20]))
-
-let test_filter_mapi_2 () =
-  Alcotest.(check @@ trie @@ pair unit int) "same trie"
-    Trie.empty
-    (Trie.filter_mapi (fun ~rev_path:_ _ -> None) (of_list [["x"; "y"], 10; [], 20]))
-
-let test_filter_mapi_3 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [[], 30])
-    (Trie.filter_mapi (fun ~rev_path:_ x -> if x > 10 then Some 30 else None) (of_list [["x"; "y"], 10; [], 20]))
-
-let test_filter_mapi_4 () =
-  Alcotest.(check @@ trie int) "same trie"
-    Trie.empty
-    (Trie.filter_mapi (fun ~rev_path:_ _ -> None) (of_list [["x"; "y"], 10; [], 20]))
-
-let test_filter_mapi_5 () =
-  Alcotest.(check @@ trie (pair (list string) int)) "same trie"
-    (of_list [["w"], (["b"; "w"], 30)])
-    (Trie.filter_mapi (fun ~rev_path (p, x) -> if x > 10 then Some (List.rev_append p rev_path, 30) else None)
-       (of_list [["x"; "y"], (["a"], 10); ["w"], (["b"], 20)]))
-
-let test_filter_mapi_6 () =
-  let t = Trie.empty in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.filter_mapi (fun ~rev_path:_ _ -> None) t)
-
-let test_filter_mapi_7 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.filter_mapi (fun ~rev_path:_ x -> Some x) t)
-
-let test_update_subtree_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], cantor_val 160 10; ["x"], 40])
-    (Trie.update_subtree ["x"] (fun t -> Trie.union_singleton cantor t (["y"], 10)) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_update_subtree_2 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.update_subtree ["x"] (fun t -> t) t)
-
-let test_update_singleton_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 160; ["x"], 80])
-    (Trie.update_singleton ["x"] (fun t -> Some (Option.get t * 2)) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_update_singleton_2 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 160])
-    (Trie.update_singleton ["x"] (fun _ -> None) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_update_singleton_3 () =
-  Alcotest.(check @@ trie int) "same trie"
-    Trie.empty
-    (Trie.update_singleton ["x"] (fun _ -> None) (of_list [["x"], 40]))
-
-let test_update_singleton_4 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"], 10])
-    (Trie.update_singleton ["x"] (fun _ -> Some 10) Trie.empty)
-
-let test_update_singleton_5 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.update_singleton ["x"] (fun x -> x) t)
-
-let test_update_singleton_6 () =
-  let t = Trie.empty in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.update_singleton ["x"] (fun x -> x) t)
-
-let test_update_root_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 160; [], 80])
-    (Trie.update_root (fun t -> Some (Option.get t * 2)) (of_list [[], 40; ["x"; "y"], 160]))
-
-let test_update_root_2 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 160])
-    (Trie.update_root (fun _ -> None) (of_list [[], 40; ["x"; "y"], 160]))
-
-let test_update_root_3 () =
-  Alcotest.(check @@ trie int) "same trie"
-    Trie.empty
-    (Trie.update_root (fun _ -> None) (of_list [[], 40]))
-
-let test_update_root_4 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [[], 5])
-    (Trie.update_root (fun _ -> Some 5) Trie.empty)
-
-let test_update_root_5 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.update_root (fun x -> x) t)
-
-let test_update_root_6 () =
-  let t = Trie.empty in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.update_root (fun x -> x) t)
-
-let test_union_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], cantor_val 10 160; [], 20; ["x"], 40])
-    (Trie.union cantor (of_list [["x"; "y"], 10; [], 20]) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_union_2 () =
-  let t = of_list [["x"; "y"], 10; [], 20] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.union cantor t Trie.empty)
-
-let test_union_3 () =
-  let t = of_list [["x"; "y"], 10; [], 20] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.union cantor Trie.empty t)
-
-let test_union_4 () =
-  let t = of_list [["x"; "y"], 10; [], 20] in
-  let sub, others = Trie.detach_subtree ["x"] t in
-  let t' = Trie.union cantor others (Trie.prefix ["x"] sub) in
-  Alcotest.(check @@ trie int) "same trie"
-    sub
-    (Trie.find_subtree ["x"] t')
-
-let test_union_5 () =
-  let t = of_list [[], 10] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.union cantor t t)
-
-let test_union_subtree_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], 10; [], 20; ["x"], cantor_val 40 80; ["x"; "x"; "y"], 1600])
-    (Trie.union_subtree cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"], of_list [[], 80; ["x"; "y"], 1600]))
-
-let test_union_subtree_2 () =
-  let t = of_list [["x"; "y"], 10; [], 20] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.union_subtree cantor t (["x"], Trie.empty))
-
-let test_union_subtree_3 () =
-  let t = of_list [["x"; "y"], 10; [], 20] in
-  let sub, others = Trie.detach_subtree ["x"] t in
-  let t' = Trie.union_subtree cantor others (["x"], sub) in
-  Alcotest.(check @@ trie int) "same trie"
-    sub
-    (Trie.find_subtree ["x"] t')
-
-let test_union_singleton_1 () =
-  Alcotest.(check @@ trie int) "same trie"
-    (of_list [["x"; "y"], cantor_val 10 160; [], 20; ["x"], 40])
-    (Trie.union_singleton cantor (of_list [["x"; "y"], 10; [], 20; ["x"], 40]) (["x"; "y"], 160))
-
-let test_union_singleton_2 () =
-  let ten = 10 in
-  let t = of_list [["x"; "y"], ten; [], 20] in
-  Alcotest.(check @@ trie int) "same trie"
-    t
-    (Trie.union_singleton cantor t (["x"; "y"], ten))
-
-let test_detach_subtree_1 () =
-  Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
-    (of_list [["y"], 10], of_list [[], 20])
-    (Trie.detach_subtree ["x"] (of_list [["x"; "y"], 10; [], 20]))
-
-let test_detach_subtree_2 () =
-  Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
-    (of_list [[], 10], Trie.empty)
-    (Trie.detach_subtree ["x"] (of_list [["x"], 10]))
-
-let test_detach_subtree_3 () =
-  Alcotest.(check @@ pair (trie int) (trie int)) "same trie"
-    (Trie.empty, of_list [[], 10])
-    (Trie.detach_subtree ["x"] (of_list [[], 10]))
-
-let test_detach_singleton_1 () =
-  Alcotest.(check @@ pair (option int) (trie int)) "same trie"
-    (None, of_list [["x"; "y"], 10; [], 20])
-    (Trie.detach_singleton ["x"] (of_list [["x"; "y"], 10; [], 20]))
-
-let test_detach_singleton_2 () =
-  Alcotest.(check @@ pair (option int) (trie int)) "same trie"
-    (Some 20, of_list [["x"; "y"], 10])
-    (Trie.detach_singleton [] (of_list [["x"; "y"], 10; [], 20]))
-
-let test_detach_singleton_3 () =
-  Alcotest.(check @@ pair (option int) (trie int)) "same trie"
-    (Some 10, Trie.empty)
-    (Trie.detach_singleton ["x"; "y"] (of_list [["x"; "y"], 10]))
-
-let test_result_update_subtree_1 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok @@ of_list [["x"; "y"], cantor_val 160 10; ["x"], 40])
-    (Trie.Result.update_subtree ["x"] (fun t -> Result.ok @@ Trie.union_singleton cantor t (["y"], 10)) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_result_update_subtree_2 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok t)
-    (Trie.Result.update_subtree ["x"] (fun t -> Result.ok t) t)
-
-let test_result_update_subtree_3 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.error 10)
-    (Trie.Result.update_subtree ["x"] (fun _ -> Result.error 10) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_result_update_subtree_4 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.error 20)
-    (Trie.Result.update_subtree ["x"] (fun _ -> Result.error 20) t)
-
-let test_result_update_singleton_1 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok @@ of_list [["x"; "y"], 160; ["x"], 80])
-    (Trie.Result.update_singleton ["x"] (fun t -> Result.ok @@ Some (Option.get t * 2)) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_result_update_singleton_2 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok @@ of_list [["x"; "y"], 160])
-    (Trie.Result.update_singleton ["x"] (fun _ -> Result.ok None) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_result_update_singleton_3 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok Trie.empty)
-    (Trie.Result.update_singleton ["x"] (fun _ -> Result.ok None) (of_list [["x"], 40]))
-
-let test_result_update_singleton_4 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok @@ of_list [["x"], 10])
-    (Trie.Result.update_singleton ["x"] (fun _ -> Result.ok @@ Some 10) Trie.empty)
-
-let test_result_update_singleton_5 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok t)
-    (Trie.Result.update_singleton ["x"] (fun x -> Result.ok x) t)
-
-let test_result_update_singleton_6 () =
-  let t = Trie.empty in
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok t)
-    (Trie.Result.update_singleton ["x"] (fun x -> Result.ok x) t)
-
-let test_result_update_singleton_7 () =
-  Alcotest.(check @@ result (trie int) (option int)) "same trie"
-    (Result.error (Some 40))
-    (Trie.Result.update_singleton ["x"] (fun t -> Result.error t) (of_list [["x"], 40; ["x"; "y"], 160]))
-
-let test_result_update_singleton_8 () =
-  Alcotest.(check @@ result (trie int) (option int)) "same trie"
-    (Result.error None)
-    (Trie.Result.update_singleton ["x"] (fun t -> Result.error t) Trie.empty)
-
-let test_result_update_root_1 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok @@ of_list [["x"; "y"], 160; [], 80])
-    (Trie.Result.update_root (fun t -> Result.ok @@ Some (Option.get t * 2)) (of_list [[], 40; ["x"; "y"], 160]))
-
-let test_result_update_root_2 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok @@ of_list [["x"; "y"], 160])
-    (Trie.Result.update_root (fun _ -> Result.ok None) (of_list [[], 40; ["x"; "y"], 160]))
-
-let test_result_update_root_3 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok Trie.empty)
-    (Trie.Result.update_root (fun _ -> Result.ok None) (of_list [[], 40]))
-
-let test_result_update_root_4 () =
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok @@ of_list [[], 5])
-    (Trie.Result.update_root (fun _ -> Result.ok @@ Some 5) Trie.empty)
-
-let test_result_update_root_5 () =
-  let t = of_list [["x"], 40; ["x"; "y"], 160] in
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok t)
-    (Trie.Result.update_root (fun x -> Result.ok x) t)
-
-let test_result_update_root_6 () =
-  let t = Trie.empty in
-  Alcotest.(check @@ result (trie int) int) "same trie"
-    (Result.ok t)
-    (Trie.Result.update_root (fun x -> Result.ok x) t)
-
-let test_result_update_root_7 () =
-  Alcotest.(check @@ result (trie int) (option int)) "same trie"
-    (Result.error @@ Some 40)
-    (Trie.Result.update_root (fun t -> Result.error t) (of_list [[], 40; ["x"; "y"], 160]))
-
-let test_result_update_root_8 () =
-  Alcotest.(check @@ result (trie int) (option int)) "same trie"
-    (Result.error @@ Some 40)
-    (Trie.Result.update_root (fun t -> Result.error t) (of_list [[], 40]))
-
-let test_result_update_root_9 () =
-  Alcotest.(check @@ result (trie int) (option int)) "same trie"
-    (Result.error None)
-    (Trie.Result.update_root (fun t -> Result.error t) Trie.empty)
-
+module LT = ListAsTrie
+module Q = QCheck2
+
+let cmp_path = List.compare ~cmp:String.compare
+let cmp (p1, _) (p2, _) = cmp_path p1 p2
+
+type data = N of int | M of data * data | P of LT.path * data
+let gen_data = Q.Gen.(map (fun i -> N i) int)
+let seq_to_list s = ListAsTrie.of_seq (fun ~rev_path:_ _ _ -> failwith "Conflicting bindings") s
+let rawlist_to_list l = seq_to_list @@ List.to_seq l
+let list_to_rawlist l = List.of_seq @@ ListAsTrie.to_seq l
+
+let print_path = Q.Print.(list string)
+let rec print_data = function
+  | N i -> Format.sprintf "N %i" i
+  | M (d1, d2) -> Format.sprintf "M (%s, %s)" (print_data d1) (print_data d2)
+  | P (p, d) -> Format.sprintf "P (%s, %s)" (print_path p) (print_data d)
+and print_list l = Q.Print.(contramap list_to_rawlist (list @@ pair print_path print_data)) l
+let print_list' p = Q.Print.(contramap list_to_rawlist (list @@ pair print_path (pair p print_data)))
+
+let gen_path = Q.Gen.(small_list @@ small_string ~gen:printable)
+let gen_list = Q.Gen.map (fun l -> rawlist_to_list @@ List.sort_uniq ~cmp l)
+    Q.Gen.(small_list @@ pair gen_path gen_data)
+let gen_list' g = Q.Gen.map (fun l -> rawlist_to_list @@ List.sort_uniq ~cmp l)
+    Q.Gen.(small_list @@ pair gen_path (pair g gen_data))
+let of_list l = Trie.of_seq (fun ~rev_path:_ _ _ -> failwith "Conflicting bindings") @@ ListAsTrie.to_seq l
+let to_list t = seq_to_list @@ Trie.to_seq t
+
+let bag_create () = ref []
+let bag_push x l = l := x :: !l
+let bag_eq l1 l2 = List.stable_sort ~cmp:compare l1 = List.stable_sort ~cmp:compare l2
+
+let test_empty =
+  Q.Test.make ~count:100 ~name:"empty" Q.Gen.unit
+    (fun () -> to_list Trie.empty = ListAsTrie.empty)
+let test_is_empty =
+  Q.Test.make ~count:100 ~name:"is_empty" gen_list ~print:print_list
+    (fun l -> Trie.is_empty (of_list l) = ListAsTrie.is_empty l)
+let test_root =
+  Q.Test.make ~count:100 ~name:"root" gen_data ~print:print_data
+    (fun x -> to_list (Trie.root x) = ListAsTrie.root x)
+let test_root_opt =
+  Q.Test.make ~count:100 ~name:"root_opt" Q.Gen.(opt gen_data) ~print:Q.Print.(option print_data)
+    (fun x -> to_list (Trie.root_opt x) = ListAsTrie.root_opt x)
+let test_prefix =
+  Q.Test.make ~count:100 ~name:"prefix" Q.Gen.(pair gen_path gen_list) ~print:Q.Print.(pair print_path print_list)
+    (fun (p, l) -> to_list (Trie.prefix p (of_list l)) = ListAsTrie.prefix p l)
+let test_singleton =
+  Q.Test.make ~count:100 ~name:"singleton" Q.Gen.(pair gen_path gen_data) ~print:Q.Print.(pair print_path print_data)
+    (fun (p, x) -> to_list (Trie.singleton (p, x)) = ListAsTrie.singleton (p, x))
+let test_find_subtree =
+  Q.Test.make ~count:100 ~name:"find_subtree" Q.Gen.(pair gen_path gen_list) ~print:Q.Print.(pair print_path print_list)
+    (fun (p, l) -> to_list (Trie.find_subtree p (of_list l)) = ListAsTrie.find_subtree p l)
+let test_find_singleton =
+  Q.Test.make ~count:100 ~name:"find_singleton" Q.Gen.(pair gen_path gen_list) ~print:Q.Print.(pair print_path print_list)
+    (fun (p, l) -> Trie.find_singleton p (of_list l) = ListAsTrie.find_singleton p l)
+let test_find_root =
+  Q.Test.make ~count:100 ~name:"find_root" gen_list ~print:print_list
+    (fun l -> Trie.find_root (of_list l) = ListAsTrie.find_root l)
+let test_iteri =
+  Q.Test.make ~count:100 ~name:"iteri" Q.Gen.(pair (opt gen_path) gen_list) ~print:Q.Print.(pair (option print_path) print_list)
+    (fun (rev_prefix, l) ->
+       let calls1 = bag_create () in
+       let calls2 = bag_create () in
+       Trie.iteri ?rev_prefix (fun ~rev_path x -> bag_push (rev_path, x) calls1) (of_list l);
+       ListAsTrie.iteri ?rev_prefix (fun ~rev_path x -> bag_push (rev_path, x) calls2) l;
+       !calls1 = !calls2)
+let test_mapi =
+  Q.Test.make ~count:100 ~name:"mapi" Q.Gen.(pair (opt gen_path) gen_list) ~print:Q.Print.(pair (option print_path) print_list)
+    (fun (rev_prefix, l) ->
+       to_list (Trie.mapi ?rev_prefix (fun ~rev_path x -> P (rev_path, x)) (of_list l))
+       =
+       ListAsTrie.mapi ?rev_prefix (fun ~rev_path x -> P (rev_path, x)) l;)
+let test_filteri =
+  Q.Test.make ~count:100 ~name:"filteri" Q.Gen.(pair (opt gen_path) (gen_list' bool))
+    ~print:Q.Print.(pair (option print_path) (print_list' bool))
+    (fun (rev_prefix, l) ->
+       let calls1 = bag_create () in
+       let calls2 = bag_create () in
+       to_list (Trie.filteri ?rev_prefix (fun ~rev_path (b, x) -> bag_push (rev_path, b, x) calls1; b) (of_list l))
+       =
+       ListAsTrie.filteri ?rev_prefix (fun ~rev_path (b, x) -> bag_push (rev_path, b, x) calls2; b) l
+       &&
+       bag_eq !calls1 !calls2)
+let test_filter_mapi =
+  Q.Test.make ~count:100 ~name:"filter_mapi" Q.Gen.(pair (opt gen_path) (gen_list' bool))
+    ~print:Q.Print.(pair (option print_path) (print_list' bool))
+    (fun (rev_prefix, l) ->
+       let calls1 = bag_create () in
+       let calls2 = bag_create () in
+       to_list
+         (Trie.filter_mapi ?rev_prefix
+            (fun ~rev_path (b, x) ->
+               bag_push (rev_path, b, x) calls1;
+               if b then None else Some (P (rev_path, x)))
+            (of_list l))
+       =
+       ListAsTrie.filter_mapi ?rev_prefix
+         (fun ~rev_path (b, x) ->
+            bag_push (rev_path, b, x) calls2;
+            if b then None else Some (P (rev_path, x)))
+         l
+       &&
+       bag_eq !calls1 !calls2)
+
+let test_update_subtree =
+  Q.Test.make ~count:100 ~name:"update_subtree" Q.Gen.(triple gen_path gen_list gen_list)
+    ~print:Q.Print.(triple print_path print_list print_list)
+    (fun (p, l1, l2) ->
+       let calls1 = bag_create () in
+       let calls2 = bag_create () in
+       to_list
+         (Trie.update_subtree p
+            (fun t -> bag_push (to_list t) calls1; of_list l2)
+            (of_list l1))
+       =
+       ListAsTrie.update_subtree p
+         (fun t -> bag_push t calls2; l2)
+         l1
+       &&
+       bag_eq !calls1 !calls2)
+let test_update_singleton =
+  Q.Test.make ~count:100 ~name:"update_singleton" Q.Gen.(triple gen_path (opt gen_data) gen_list)
+    ~print:Q.Print.(triple print_path (option print_data) print_list)
+    (fun (p, new_x, l) ->
+       let calls1 = bag_create () in
+       let calls2 = bag_create () in
+       to_list
+         (Trie.update_singleton p
+            (fun x -> bag_push x calls1; new_x)
+            (of_list l))
+       =
+       ListAsTrie.update_singleton p
+         (fun x -> bag_push x calls2; new_x)
+         l
+       &&
+       bag_eq !calls1 !calls2)
+let test_update_root =
+  Q.Test.make ~count:100 ~name:"update_root" Q.Gen.(pair (opt gen_data) gen_list)
+    ~print:Q.Print.(pair (option print_data) print_list)
+    (fun (new_x, l) ->
+       let calls1 = bag_create () in
+       let calls2 = bag_create () in
+       to_list
+         (Trie.update_root
+            (fun x -> bag_push x calls1; new_x)
+            (of_list l))
+       =
+       ListAsTrie.update_root
+         (fun x -> bag_push x calls2; new_x)
+         l
+       &&
+       bag_eq !calls1 !calls2)
+
+let test_union =
+  Q.Test.make ~count:100 ~name:"union" Q.Gen.(triple (opt gen_path) gen_list gen_list)
+    ~print:Q.Print.(triple (option print_path) print_list print_list)
+    (fun (rev_prefix, l1, l2) ->
+       to_list
+         (Trie.union ?rev_prefix
+            (fun ~rev_path x y -> P (rev_path, M (x, y)))
+            (of_list l1) (of_list l2))
+       =
+       ListAsTrie.union ?rev_prefix
+         (fun ~rev_path x y -> P (rev_path, M (x, y)))
+         l1 l2)
+
+let test_union_subtree =
+  Q.Test.make ~count:100 ~name:"union_subtree" Q.Gen.(triple (opt gen_path) gen_list (pair gen_path gen_list))
+    ~print:Q.Print.(triple (option print_path) print_list (pair print_path print_list))
+    (fun (rev_prefix, l1, (pre, l2)) ->
+       to_list
+         (Trie.union_subtree ?rev_prefix
+            (fun ~rev_path x y -> P (rev_path, M (x, y)))
+            (of_list l1) (pre, of_list l2))
+       =
+       ListAsTrie.union_subtree ?rev_prefix
+         (fun ~rev_path x y -> P (rev_path, M (x, y)))
+         l1 (pre, l2))
+
+let test_union_singleton =
+  Q.Test.make ~count:100 ~name:"union_singleton" Q.Gen.(triple (opt gen_path) gen_list (pair gen_path gen_data))
+    ~print:Q.Print.(triple (option print_path) print_list (pair print_path print_data))
+    (fun (rev_prefix, l1, b) ->
+       to_list
+         (Trie.union_singleton ?rev_prefix
+            (fun ~rev_path x y -> P (rev_path, M (x, y)))
+            (of_list l1) b)
+       =
+       ListAsTrie.union_singleton ?rev_prefix
+         (fun ~rev_path x y -> P (rev_path, M (x, y)))
+         l1 b)
+
+let test_detach_subtree =
+  Q.Test.make ~count:100 ~name:"detach_subtree" Q.Gen.(pair gen_path gen_list)
+    ~print:Q.Print.(pair print_path print_list)
+    (fun (p, l) ->
+       (fun (t1, t2) -> to_list t1, to_list t2)
+         (Trie.detach_subtree p (of_list l))
+       =
+       ListAsTrie.detach_subtree p l)
+
+let test_detach_singleton =
+  Q.Test.make ~count:100 ~name:"detach_singleton" Q.Gen.(pair gen_path gen_list)
+    ~print:Q.Print.(pair print_path print_list)
+    (fun (p, l) ->
+       (fun (x, t) -> x, to_list t)
+         (Trie.detach_singleton p (of_list l))
+       =
+       ListAsTrie.detach_singleton p l)
+
+let test_to_seq =
+  Q.Test.make ~count:100 ~name:"to_seq" Q.Gen.(pair (opt gen_path) gen_list)
+    ~print:Q.Print.(pair (option print_path) print_list)
+    (fun (rev_prefix, l) ->
+       List.of_seq (Trie.to_seq ?rev_prefix (of_list l))
+       =
+       List.of_seq (ListAsTrie.to_seq ?rev_prefix l))
+
+let test_to_seq_with_reversed_paths =
+  Q.Test.make ~count:100 ~name:"to_seq_with_reversed_paths" Q.Gen.(pair (opt gen_path) gen_list)
+    ~print:Q.Print.(pair (option print_path) print_list)
+    (fun (rev_prefix, l) ->
+       List.of_seq (Trie.to_seq_with_reversed_paths ?rev_prefix (of_list l))
+       =
+       List.of_seq (ListAsTrie.to_seq_with_reversed_paths ?rev_prefix l))
+
+let test_to_seq_values =
+  Q.Test.make ~count:100 ~name:"to_seq_values" gen_list ~print:print_list
+    (fun l ->
+       List.of_seq (Trie.to_seq_values (of_list l))
+       =
+       List.of_seq (ListAsTrie.to_seq_values l))
+
+let test_of_seq =
+  Q.Test.make ~count:100 ~name:"of_seq" Q.Gen.(pair (opt gen_path) (small_list @@ pair gen_path gen_data))
+    ~print:Q.Print.(pair (option print_path) (list @@ pair print_path print_data))
+    (fun (rev_prefix, l) ->
+       to_list (Trie.of_seq ?rev_prefix (fun ~rev_path x y -> P (rev_path, M (x, y))) (List.to_seq l))
+       =
+       ListAsTrie.of_seq ?rev_prefix (fun ~rev_path x y -> P (rev_path, M (x, y))) (List.to_seq l))
 
 let () =
-  let open Alcotest in
-  run "Trie" [
-    "empty", [
-      test_case "empty" `Quick test_empty;
-    ];
-    "is_empty", [
-      test_case "is_empty" `Quick test_is_empty_empty;
-      test_case "is_empty" `Quick test_is_empty_root;
-    ];
-    "root_opt", [
-      test_case "root_opt" `Quick test_root_opt_none;
-      test_case "root_opt" `Quick test_root_opt_some;
-    ];
-    "prefix", [
-      test_case "prefix" `Quick test_prefix_1;
-      test_case "prefix" `Quick test_prefix_2;
-    ];
-    "equal", [
-      test_case "equal" `Quick test_equal_1;
-      test_case "equal" `Quick test_equal_2;
-      test_case "physical equality" `Quick test_equal_phy_eq;
-    ];
-    "singleton", [
-      test_case "singleton" `Quick test_singleton_1;
-      test_case "singleton" `Quick test_singleton_2;
-    ];
-    "root", [
-      test_case "root" `Quick test_root;
-    ];
-    "find_subtree", [
-      test_case "find_subtree" `Quick test_find_subtree_1;
-      test_case "find_subtree" `Quick test_find_subtree_2;
-    ];
-    "find_singleton", [
-      test_case "find_singleton" `Quick test_find_singleton_1;
-      test_case "find_singleton" `Quick test_find_singleton_2;
-    ];
-    "find_root", [
-      test_case "find_root" `Quick test_find_root_1;
-      test_case "find_root" `Quick test_find_root_2;
-      test_case "find_root" `Quick test_find_root_3;
-    ];
-    "map", [
-      test_case "mapi" `Quick test_mapi_1;
-      test_case "mapi" `Quick test_mapi_2;
-      test_case "mapi" `Quick test_mapi_3;
-      test_case "mapi" `Quick test_mapi_4;
-      test_case "mapi" `Quick test_mapi_5;
-      test_case "mapi" `Quick test_mapi_6;
-    ];
-    "filteri", [
-      test_case "filteri" `Quick test_filteri_1;
-      test_case "filteri" `Quick test_filteri_2;
-      test_case "filteri" `Quick test_filteri_3;
-      test_case "filteri" `Quick test_filteri_4;
-      test_case "filteri" `Quick test_filteri_5;
-      test_case "filteri" `Quick test_filteri_6;
-    ];
-    "filter_map", [
-      test_case "filter_mapi" `Quick test_filter_mapi_1;
-      test_case "filter_mapi" `Quick test_filter_mapi_2;
-      test_case "filter_mapi" `Quick test_filter_mapi_3;
-      test_case "filter_mapi" `Quick test_filter_mapi_4;
-      test_case "filter_mapi" `Quick test_filter_mapi_5;
-      test_case "filter_mapi" `Quick test_filter_mapi_6;
-      test_case "filter_mapi" `Quick test_filter_mapi_7;
-    ];
-    "update_subtree", [
-      test_case "update_subtree" `Quick test_update_subtree_1;
-      test_case "update_subtree" `Quick test_update_subtree_2;
-    ];
-    "update_singleton", [
-      test_case "update_singleton" `Quick test_update_singleton_1;
-      test_case "update_singleton" `Quick test_update_singleton_2;
-      test_case "update_singleton" `Quick test_update_singleton_3;
-      test_case "update_singleton" `Quick test_update_singleton_4;
-      test_case "update_singleton" `Quick test_update_singleton_5;
-      test_case "update_singleton" `Quick test_update_singleton_6;
-    ];
-    "update_root", [
-      test_case "update_root" `Quick test_update_root_1;
-      test_case "update_root" `Quick test_update_root_2;
-      test_case "update_root" `Quick test_update_root_3;
-      test_case "update_root" `Quick test_update_root_4;
-      test_case "update_root" `Quick test_update_root_5;
-      test_case "update_root" `Quick test_update_root_6;
-    ];
-    "union", [
-      test_case "union" `Quick test_union_1;
-      test_case "union" `Quick test_union_2;
-      test_case "union" `Quick test_union_3;
-      test_case "union" `Quick test_union_4;
-      test_case "union" `Quick test_union_5;
-    ];
-    "union_subtree", [
-      test_case "union_subtree" `Quick test_union_subtree_1;
-      test_case "union_subtree" `Quick test_union_subtree_2;
-      test_case "union_subtree" `Quick test_union_subtree_3;
-    ];
-    "union_singleton", [
-      test_case "union_singleton" `Quick test_union_singleton_1;
-      test_case "union_singleton" `Quick test_union_singleton_2;
-    ];
-    "detach_subtree", [
-      test_case "detach_subtree" `Quick test_detach_subtree_1;
-      test_case "detach_subtree" `Quick test_detach_subtree_2;
-      test_case "detach_subtree" `Quick test_detach_subtree_3;
-    ];
-    "detach_singleton", [
-      test_case "detach_singleton" `Quick test_detach_singleton_1;
-      test_case "detach_singleton" `Quick test_detach_singleton_2;
-      test_case "detach_singleton" `Quick test_detach_singleton_3;
-    ];
-    "result_update_subtree", [
-      test_case "result_update_subtree" `Quick test_result_update_subtree_1;
-      test_case "result_update_subtree" `Quick test_result_update_subtree_2;
-      test_case "result_update_subtree" `Quick test_result_update_subtree_3;
-      test_case "result_update_subtree" `Quick test_result_update_subtree_4;
-    ];
-    "result_update_singleton", [
-      test_case "result_update_singleton" `Quick test_result_update_singleton_1;
-      test_case "result_update_singleton" `Quick test_result_update_singleton_2;
-      test_case "result_update_singleton" `Quick test_result_update_singleton_3;
-      test_case "result_update_singleton" `Quick test_result_update_singleton_4;
-      test_case "result_update_singleton" `Quick test_result_update_singleton_5;
-      test_case "result_update_singleton" `Quick test_result_update_singleton_6;
-      test_case "result_update_singleton" `Quick test_result_update_singleton_7;
-      test_case "result_update_singleton" `Quick test_result_update_singleton_8;
-    ];
-    "result_update_root", [
-      test_case "result_update_root" `Quick test_result_update_root_1;
-      test_case "result_update_root" `Quick test_result_update_root_2;
-      test_case "result_update_root" `Quick test_result_update_root_3;
-      test_case "result_update_root" `Quick test_result_update_root_4;
-      test_case "result_update_root" `Quick test_result_update_root_5;
-      test_case "result_update_root" `Quick test_result_update_root_6;
-      test_case "result_update_root" `Quick test_result_update_root_7;
-      test_case "result_update_root" `Quick test_result_update_root_8;
-      test_case "result_update_root" `Quick test_result_update_root_9;
-    ];
-  ]
+  exit @@
+  QCheck_base_runner.run_tests ~colors:true ~verbose:true ~long:true
+    [ test_empty
+    ; test_is_empty
+    ; test_root
+    ; test_root_opt
+    ; test_prefix
+    ; test_singleton
+    ; test_find_subtree
+    ; test_find_singleton
+    ; test_find_root
+    ; test_iteri
+    ; test_mapi
+    ; test_filteri
+    ; test_filter_mapi
+    ; test_update_subtree
+    ; test_update_singleton
+    ; test_update_root
+    ; test_union
+    ; test_union_subtree
+    ; test_union_singleton
+    ; test_detach_subtree
+    ; test_detach_singleton
+    ; test_to_seq
+    ; test_to_seq_with_reversed_paths
+    ; test_to_seq_values
+    ; test_of_seq
+    ]
