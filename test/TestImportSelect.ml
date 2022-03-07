@@ -25,9 +25,9 @@ let remap pattern env =
   match Action.run ~union:Data.merge pattern env with
   | Ok env -> env
   | Error (`Inconsistent path) ->
-    failwith ("Inconsistent data assigned to the same path " ^ String.concat "." path)
+    failwith ("Inconsistent data assigned to the same path " ^ pp_path path)
   | Error (`BindingNotFound path) ->
-    failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path ^ ".")
+    failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path)
 
 (** [import env pattern imported] imports the environment
     [imported] massaged by [pattern] into [env]. *)
