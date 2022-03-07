@@ -229,7 +229,7 @@ struct
     else map Result.error small_int
 
   let test_update_subtree =
-    Q.Test.make ~count ~name:"update_subtree"
+    Q.Test.make ~count ~name:"Result.update_subtree"
       Q.Gen.(triple gen_path (Q.fun1 obs_list (gen_result gen_list)) gen_list)
       ~print:Q.Print.(triple print_path Q.Fn.print print_list)
       (fun (p, Q.Fun (_, f), l) ->
@@ -239,7 +239,7 @@ struct
          ListAsTrie.Result.update_subtree p f l)
 
   let test_update_singleton =
-    Q.Test.make ~count ~name:"update_singleton"
+    Q.Test.make ~count ~name:"Result.update_singleton"
       Q.Gen.(triple gen_path (Q.fun1 Q.Observable.(option int) (gen_result @@ opt int)) gen_list)
       ~print:Q.Print.(triple print_path Q.Fn.print print_list)
       (fun (p, Q.Fun (_, f), l) ->
@@ -249,7 +249,7 @@ struct
          ListAsTrie.Result.update_singleton p f l)
 
   let test_update_root =
-    Q.Test.make ~count ~name:"update_root"
+    Q.Test.make ~count ~name:"Result.update_root"
       Q.Gen.(pair (Q.fun1 Q.Observable.(option int) (gen_result @@ opt int)) gen_list)
       ~print:Q.Print.(pair Q.Fn.print print_list)
       (fun (Q.Fun (_, f), l) ->
@@ -259,7 +259,7 @@ struct
          ListAsTrie.Result.update_root f l)
 
   let test_union =
-    Q.Test.make ~count ~name:"update_union"
+    Q.Test.make ~count ~name:"Result.update_union"
       Q.Gen.(quad (opt gen_path) (Q.fun3 obs_path Q.Observable.int Q.Observable.int (gen_result int)) gen_list gen_list)
       ~print:Q.Print.(quad (option print_path) Q.Fn.print print_list print_list)
       (fun (rev_prefix, Q.Fun (_, f), l1, l2) ->
@@ -269,7 +269,7 @@ struct
          ListAsTrie.Result.union ?rev_prefix (fun ~rev_path -> f rev_path) l1 l2)
 
   let test_union_subtree =
-    Q.Test.make ~count ~name:"update_union_subtree"
+    Q.Test.make ~count ~name:"Result.update_union_subtree"
       Q.Gen.(quad (opt gen_path) (Q.fun3 obs_path Q.Observable.int Q.Observable.int (gen_result int)) gen_list (pair gen_path gen_list))
       ~print:Q.Print.(quad (option print_path) Q.Fn.print print_list (pair print_path print_list))
       (fun (rev_prefix, Q.Fun (_, f), l1, (pre, l2)) ->
@@ -279,7 +279,7 @@ struct
          ListAsTrie.Result.union_subtree ?rev_prefix (fun ~rev_path -> f rev_path) l1 (pre, l2))
 
   let test_union_singleton =
-    Q.Test.make ~count ~name:"update_union_singleton"
+    Q.Test.make ~count ~name:"Result.update_union_singleton"
       Q.Gen.(quad (opt gen_path) (Q.fun3 obs_path Q.Observable.int Q.Observable.int (gen_result int)) gen_list (pair gen_path int))
       ~print:Q.Print.(quad (option print_path) Q.Fn.print print_list (pair print_path int))
       (fun (rev_prefix, Q.Fun (_, f), l1, b2) ->
