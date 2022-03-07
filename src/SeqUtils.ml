@@ -14,10 +14,10 @@ let rec mmerge ~f s1 s2 : ((string * 'a) Seq.t, 'b) result =
       | None -> mmerge ~f s1' s2'
       | Some v ->
         let* s = mmerge ~f s1' s2' in
-        ret @@ fun () -> Cons ((k1, v), s)
+        ret @@ cons (k1, v) s
     else if c < 0 then
       let* s = mmerge ~f s1' s2 in
-      ret @@ fun () -> Cons ((k1, v1), s)
+      ret @@ cons (k1, v1) s
     else
       let* s = mmerge ~f s1 s2' in
-      ret @@ fun () -> Cons ((k2, v2), s)
+      ret @@ cons (k2, v2) s
