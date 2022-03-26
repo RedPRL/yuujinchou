@@ -26,11 +26,13 @@ let remap pattern env =
           match eff with
           | Action.BindingNotFound path -> Option.some @@
             fun (k : (a, _) continuation) ->
-            Format.printf "[Warning]@ Could not find any data within the subtree at %s.@." (string_of_path path);
+            Format.printf "[Warning]@ Could not find any data within the subtree at %s.@."
+              (string_of_path path);
             continue k ()
           | Data.Shadowing (path, old_data, new_data) -> Option.some @@
             fun (k : (a, _) continuation) ->
-            Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@." old_data (string_of_path path) new_data;
+            Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@."
+              old_data (string_of_path path) new_data;
             continue k new_data
           | _ -> None
     }
