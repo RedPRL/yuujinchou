@@ -1,3 +1,17 @@
+# [3.0.0](https://github.com/RedPRL/yuujinchou/compare/2.0.0...3.0.0) (2022-03-26)
+
+
+### Features
+
+* use algebraic effects ([#61](https://github.com/RedPRL/yuujinchou/issues/61)) ([94b6789](https://github.com/RedPRL/yuujinchou/commit/94b67899944581492756fc7d3802e79382b92384))
+
+
+### BREAKING CHANGES
+
+* monads are replaced with effects
+
+
+
 # [2.0.0](https://github.com/RedPRL/yuujinchou/compare/1.0.0...2.0.0) (2022-03-07)
 
 
