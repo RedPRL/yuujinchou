@@ -11,7 +11,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: "4.12"
+          ocaml-compiler: "ocaml-variants.5.0.0+trunk"
+          dune-cache: true
+      - run: opam repo add alpha git+https://github.com/kit-ty-kate/opam-alpha-repository.git
       - run: opam pin . --with-doc --with-test --yes
       - run: echo 'opam-build-root='`opam config var yuujinchou:build` >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && startsWith (github.head_ref, 'doc')) }}

@@ -10,12 +10,10 @@ open Yuujinchou
 module Data =
 struct
   type t = int
+  type _ Effect.t += Shadowing : Pattern.path * t * t -> t Effect.t
   let equal n1 n2 = n1 = n2
   let merge ~rev_path x y =
-    if equal x y then
-      Result.ok x
-    else
-      Result.error @@ `Inconsistent (List.rev rev_path)
+    if equal x y then x else Effect.perform @@ Shadowing (List.rev rev_path, x, y)
   let shadow ~rev_path:_ _x y = y
   let compare : t -> t -> int = compare
 end
@@ -26,13 +24,21 @@ type env = Data.t Trie.t
 (** [remap pattern env] uses the [pattern] to massage
     the environment [env]. *)
 let remap pattern env =
-  let pp_path = function [] -> "(root)" | path -> String.concat "." path in
-  match Action.run ~union:Data.merge pattern env with
-  | Ok env -> env
-  | Error (`Inconsistent path) ->
-    failwith ("Inconsistent data assigned to the same path " ^ pp_path path)
-  | Error (`BindingNotFound path) ->
-    failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path)
+  let open Effect.Deep in
+  let string_of_path = function [] -> "(root)" | path -> String.concat "." path in
+  try_with (Action.run ~union:Data.merge pattern) env
+    { effc = fun (type a) (eff : a Effect.t) ->
+          match eff with
+          | Action.BindingNotFound path -> Option.some @@
+            fun (k : (a, _) continuation) ->
+            Format.printf "[Warning]@ Could not find any data within the subtree at %s.@." (string_of_path path);
+            continue k ()
+          | Data.Shadowing (path, old_data, new_data) -> Option.some @@
+            fun (k : (a, _) continuation) ->
+            Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@." old_data (string_of_path path) new_data;
+            continue k new_data
+          | _ -> None
+    }
 
 (** [import env pattern imported] imports the environment
     [imported] massaged by [pattern] into [env]. *)

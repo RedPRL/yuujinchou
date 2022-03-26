@@ -91,34 +91,3 @@ let to_seq_with_reversed_paths ?(rev_prefix=[]) l =
   Seq.map (fun (p, x) -> List.rev_append p rev_prefix, x) @@ List.to_seq l
 let to_seq_values l = Seq.map snd @@ List.to_seq l
 let of_seq ?(rev_prefix=[]) u s = Seq.fold_left (union_singleton ~rev_prefix u) empty s
-
-module Result =
-struct
-  let update_subtree p f l =
-    let sub, rest = detach_subtree p l in
-    Result.map (fun sub -> List.sort_uniq ~cmp @@ rest @ prefix p sub) (f sub)
-  let update_singleton p f l =
-    let x, rest = detach_singleton p l in
-    Result.map (fun x -> List.sort_uniq ~cmp @@ rest @ (prefix p @@ root_opt x)) (f x)
-  let update_root f l =
-    update_singleton [] f l
-
-  let rec uniquefy_sorted ~rev_prefix ~union =
-    function
-    | [] -> Result.ok []
-    | [b] -> Result.ok [b]
-    | (p1,x1)::(p2,x2)::rest ->
-      if p1 = p2 then
-        Result.bind (union ~rev_path:(List.rev_append p1 rev_prefix) x1 x2) @@ fun x ->
-        uniquefy_sorted ~rev_prefix ~union @@ (p1, x)::rest
-      else
-        Result.bind (uniquefy_sorted ~rev_prefix ~union @@ (p2,x2)::rest) @@ fun rest ->
-        Result.ok @@ (p1,x1)::rest
-
-  let union ?(rev_prefix=[]) u l1 l2 =
-    uniquefy_sorted ~rev_prefix ~union:u @@ List.stable_sort ~cmp @@ l1 @ l2
-  let union_subtree ?rev_prefix u l1 (pre, l2) =
-    union ?rev_prefix u l1 @@ prefix pre l2
-  let union_singleton ?rev_prefix u l1 (p, x) =
-    union ?rev_prefix u l1 @@ singleton (p, x)
-end
