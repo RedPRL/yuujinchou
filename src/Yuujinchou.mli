@@ -166,9 +166,8 @@ sig
 
   (** {1 Matching} *)
 
-  (** The type of the result. The error [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it.
-  *)
-  type nonrec ('a, 'error) result = ('a, [> `BindingNotFound of Pattern.path] as 'error) result
+  (** The type of the result. The effect [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it. *)
+  type _ Effect.t += BindingNotFound : Pattern.path -> unit Effect.t
 
   (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.hook}.
 
@@ -178,8 +177,8 @@ sig
       @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path [p] is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intention. *)
   val run :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
-    unit Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    unit Pattern.t -> 'a Trie.t -> 'a Trie.t
 
   (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts an additional argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
 
@@ -189,9 +188,9 @@ sig
   *)
   val run_with_hooks :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
-    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a Trie.t, 'error) result) ->
-    'hook Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> 'a Trie.t) ->
+    'hook Pattern.t -> 'a Trie.t -> 'a Trie.t
 
   (** {1 Pretty Printers} *)
 
