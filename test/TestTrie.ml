@@ -216,73 +216,6 @@ let test_of_seq =
        =
        ListAsTrie.of_seq ?rev_prefix (fun ~rev_path -> f rev_path) (List.to_seq l))
 
-module Result =
-struct
-
-  let gen_result gen : ('a, int) result Q.Gen.t =
-    let open Q.Gen in
-    bind (int_range 0 19) @@ fun n ->
-    if n < 19
-    then map Result.ok gen
-    else map Result.error small_int
-
-  let test_update_subtree =
-    Q.Test.make ~count ~name:"Result.update_subtree"
-      Q.Gen.(triple gen_path (Q.fun1 obs_list (gen_result gen_list)) gen_list)
-      ~print:Q.Print.(triple print_path Q.Fn.print print_list)
-      (fun (p, Q.Fun (_, f), l) ->
-         Result.map to_list
-           (Trie.Result.update_subtree p (fun t -> Result.map of_list @@ f (to_list t)) (of_list l))
-         =
-         ListAsTrie.Result.update_subtree p f l)
-  let test_update_singleton =
-    Q.Test.make ~count ~name:"Result.update_singleton"
-      Q.Gen.(triple gen_path (Q.fun1 Q.Observable.(option int) (gen_result @@ opt int)) gen_list)
-      ~print:Q.Print.(triple print_path Q.Fn.print print_list)
-      (fun (p, Q.Fun (_, f), l) ->
-         Result.map to_list
-           (Trie.Result.update_singleton p f (of_list l))
-         =
-         ListAsTrie.Result.update_singleton p f l)
-  let test_update_root =
-    Q.Test.make ~count ~name:"Result.update_root"
-      Q.Gen.(pair (Q.fun1 Q.Observable.(option int) (gen_result @@ opt int)) gen_list)
-      ~print:Q.Print.(pair Q.Fn.print print_list)
-      (fun (Q.Fun (_, f), l) ->
-         Result.map to_list
-           (Trie.Result.update_root f (of_list l))
-         =
-         ListAsTrie.Result.update_root f l)
-
-  let test_union =
-    Q.Test.make ~count ~name:"Result.update_union"
-      Q.Gen.(quad (opt gen_path) (Q.fun3 obs_path Q.Observable.int Q.Observable.int (gen_result int)) gen_list gen_list)
-      ~print:Q.Print.(quad (option print_path) Q.Fn.print print_list print_list)
-      (fun (rev_prefix, Q.Fun (_, f), l1, l2) ->
-         Result.map to_list
-           (Trie.Result.union ?rev_prefix (fun ~rev_path -> f rev_path) (of_list l1) (of_list l2))
-         =
-         ListAsTrie.Result.union ?rev_prefix (fun ~rev_path -> f rev_path) l1 l2)
-  let test_union_subtree =
-    Q.Test.make ~count ~name:"Result.update_union_subtree"
-      Q.Gen.(quad (opt gen_path) (Q.fun3 obs_path Q.Observable.int Q.Observable.int (gen_result int)) gen_list (pair gen_path gen_list))
-      ~print:Q.Print.(quad (option print_path) Q.Fn.print print_list (pair print_path print_list))
-      (fun (rev_prefix, Q.Fun (_, f), l1, (pre, l2)) ->
-         Result.map to_list
-           (Trie.Result.union_subtree ?rev_prefix (fun ~rev_path -> f rev_path) (of_list l1) (pre, of_list l2))
-         =
-         ListAsTrie.Result.union_subtree ?rev_prefix (fun ~rev_path -> f rev_path) l1 (pre, l2))
-  let test_union_singleton =
-    Q.Test.make ~count ~name:"Result.update_union_singleton"
-      Q.Gen.(quad (opt gen_path) (Q.fun3 obs_path Q.Observable.int Q.Observable.int (gen_result int)) gen_list (pair gen_path int))
-      ~print:Q.Print.(quad (option print_path) Q.Fn.print print_list (pair print_path int))
-      (fun (rev_prefix, Q.Fun (_, f), l1, b2) ->
-         Result.map to_list
-           (Trie.Result.union_singleton ?rev_prefix (fun ~rev_path -> f rev_path) (of_list l1) b2)
-         =
-         ListAsTrie.Result.union_singleton ?rev_prefix (fun ~rev_path -> f rev_path) l1 b2)
-end
-
 let () =
   exit @@
   QCheck_base_runner.run_tests ~colors:true ~verbose:true ~long:true
@@ -311,10 +244,4 @@ let () =
     ; test_to_seq_with_reversed_paths
     ; test_to_seq_values
     ; test_of_seq
-    ; Result.test_update_subtree
-    ; Result.test_update_singleton
-    ; Result.test_update_root
-    ; Result.test_union
-    ; Result.test_union_subtree
-    ; Result.test_union_singleton
     ]

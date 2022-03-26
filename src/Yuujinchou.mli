@@ -43,12 +43,10 @@ import math # Python: the sqrt function is available as `math.sqrt`.
      module Data =
      struct
        type t = int
+       type _ Effect.t += Shadowing : Pattern.path * t * t -> t Effect.t
        let equal n1 n2 = n1 = n2
        let merge ~rev_path x y =
-         if equal x y then
-           Result.ok x
-         else
-           Result.error @@ `Inconsistent (List.rev rev_path)
+         if equal x y then x else Effect.perform @@ Shadowing (List.rev rev_path, x, y)
        let shadow ~rev_path:_ _x y = y
        let compare : t -> t -> int = compare
      end
@@ -59,13 +57,21 @@ import math # Python: the sqrt function is available as `math.sqrt`.
      (** [remap pattern env] uses the [pattern] to massage
          the environment [env]. *)
      let remap pattern env =
-       let pp_path = function [] -> "(root)" | path -> String.concat "." path in
-       match Action.run ~union:Data.merge pattern env with
-       | Ok env -> env
-       | Error (`Inconsistent path) ->
-         failwith ("Inconsistent data assigned to the same path " ^ pp_path path)
-       | Error (`BindingNotFound path) ->
-         failwith ("Expected binding(s) not found within the subtree at " ^ pp_path path)
+       let open Effect.Deep in
+       let string_of_path = function [] -> "(root)" | path -> String.concat "." path in
+       try_with (Action.run ~union:Data.merge pattern) env
+         { effc = fun (type a) (eff : a Effect.t) ->
+               match eff with
+               | Action.BindingNotFound path -> Option.some @@
+                 fun (k : (a, _) continuation) ->
+                 Format.printf "[Warning]@ Could not find any data within the subtree at %s.@." (string_of_path path);
+                 continue k ()
+               | Data.Shadowing (path, old_data, new_data) -> Option.some @@
+                 fun (k : (a, _) continuation) ->
+                 Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@." old_data (string_of_path path) new_data;
+                 continue k new_data
+               | _ -> None
+         }
 
      (** [import env pattern imported] imports the environment
          [imported] massaged by [pattern] into [env]. *)
@@ -166,9 +172,8 @@ sig
 
   (** {1 Matching} *)
 
-  (** The type of the result. The error [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it.
-  *)
-  type nonrec ('a, 'error) result = ('a, [> `BindingNotFound of Pattern.path] as 'error) result
+  (** The type of the result. The effect [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it. *)
+  type _ Effect.t += BindingNotFound : Pattern.path -> unit Effect.t
 
   (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.hook}.
 
@@ -178,8 +183,8 @@ sig
       @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path [p] is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intention. *)
   val run :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
-    unit Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    unit Pattern.t -> 'a Trie.t -> 'a Trie.t
 
   (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts an additional argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
 
@@ -189,9 +194,9 @@ sig
   *)
   val run_with_hooks :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> ('a, 'error) result) ->
-    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> ('a Trie.t, 'error) result) ->
-    'hook Pattern.t -> 'a Trie.t -> ('a Trie.t, 'error) result
+    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> 'a Trie.t) ->
+    'hook Pattern.t -> 'a Trie.t -> 'a Trie.t
 
   (** {1 Pretty Printers} *)
 
