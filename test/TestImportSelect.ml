@@ -21,7 +21,7 @@ type env = Data.t Trie.t
 let remap pattern env =
   let open Effect.Deep in
   let string_of_path = function [] -> "(root)" | path -> String.concat "." path in
-  try_with (Action.run ~union:Data.merge pattern) env
+  try_with (Action.run ~merger:Data.merge pattern) env
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
           | Action.BindingNotFound path -> Option.some @@

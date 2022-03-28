@@ -172,26 +172,26 @@ sig
   (** The type of the result. The effect [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it. *)
   type _ Effect.t += BindingNotFound : Pattern.path -> unit Effect.t
 
-  (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.hook}.
+  (** [run ~rev_prefix ~merger pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.hook}.
 
-      @param rev_prefix The prefix prepended to any path sent to [union] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
-      @param union The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [union ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
+      @param rev_prefix The prefix prepended to any path sent to [merger] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
+      @param merger The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [merger ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
 
       @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path [p] is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intention. *)
   val run :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    merger:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     unit Pattern.t -> 'a Trie.t -> 'a Trie.t
 
-  (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts an additional argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
+  (** [run_with_hooks ~rev_prefix ~hooks ~merger pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts an additional argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
 
       @param rev_prefix Same as the parameter [rev_prefix] for {!val:run}.
-      @param union Same as the parameter [union] for {!val:run}.
+      @param merger Same as the parameter [merger] for {!val:run}.
       @param hooks The hooks that will be triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h], it will call [hooks h ~rev_path:p t] on the current trie where [p] is the path (in reverse) and [t] is the subtrie at [p].
   *)
   val run_with_hooks :
     ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
+    merger:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> 'a Trie.t) ->
     'hook Pattern.t -> 'a Trie.t -> 'a Trie.t
 end
