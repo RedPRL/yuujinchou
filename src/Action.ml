@@ -2,7 +2,6 @@ open StdLabels
 open Pattern
 
 type path = Pattern.path
-let pp_path = Pattern.pp_path
 
 type _ Effect.t += BindingNotFound : path -> unit Effect.t
 

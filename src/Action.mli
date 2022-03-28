@@ -10,5 +10,3 @@ val run_with_hooks :
   union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
   hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> 'a Trie.t) ->
   'hook Pattern.t -> 'a Trie.t -> 'a Trie.t
-
-val pp_path : Format.formatter -> Pattern.path -> unit

@@ -160,11 +160,6 @@ sig
 
   (** [hook h] applies the hook labelled [h] to the entire trie; see {!val:Action.run_with_hooks}. *)
   val hook : 'hook -> 'hook t
-
-  (** {1 Utility Functions } *)
-
-  (** Pretty printer for {!type:path}. *)
-  val pp_path : Format.formatter -> Pattern.path -> unit
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
@@ -199,11 +194,6 @@ sig
     union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
     hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> 'a Trie.t) ->
     'hook Pattern.t -> 'a Trie.t -> 'a Trie.t
-
-  (** {1 Pretty Printers} *)
-
-  (** Pretty printer for {!type:path}. *)
-  val pp_path : Format.formatter -> Pattern.path -> unit
 end
 
 (**
