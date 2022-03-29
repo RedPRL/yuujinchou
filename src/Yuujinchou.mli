@@ -105,16 +105,6 @@ module Pattern :
 sig
   (** {1 Pattern Type } *)
 
-  (** The type of hierarchical names. *)
-  type path = string list
-
-  (**
-     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [x.y.z] is represented as the following OCaml list:
-     {[
-       ["x"; "y"; "z"]
-     ]}
-  *)
-
   (** The type of patterns, parametrized by the type of hook labels. See {!val:hook}. *)
   type +'hook t
 
@@ -133,10 +123,10 @@ sig
   val any : 'hook t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only : path -> 'hook t
+  val only : Trie.path -> 'hook t
 
   (** [in_ path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"]]{!val:any} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
-  val in_ : path -> 'hook t -> 'hook t
+  val in_ : Trie.path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
 
@@ -144,12 +134,12 @@ sig
   val none : 'hook t
 
   (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[p]{!val:none}. *)
-  val except : path -> 'hook t
+  val except : Trie.path -> 'hook t
 
   (** {2 Renaming} *)
 
   (** [renaming path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty (nothing to move). *)
-  val renaming : path -> path -> 'hook t
+  val renaming : Trie.path -> Trie.path -> 'hook t
 
   (** {2 Sequencing} *)
 
@@ -180,13 +170,13 @@ sig
     type hook
 
     (** The effect [BindingNotFound rev_prefix] means that the engine expected at least one binding under the (reversed) prefix [rev_prefix], but could not find it. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few others expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound ["y"; "x"]] (with the path is in reverse). *)
-    type _ Effect.t += BindingNotFound : Pattern.path -> unit Effect.t
+    type _ Effect.t += BindingNotFound : Trie.bwd_path -> unit Effect.t
 
     (** The effect [Shadowing (rev_path, x, y)] indicates there are two conflicting bindings, [x] and [y], at the same (reversed) path [rev_path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings. The effect may be continued with the resolution of [x] and [y]. *)
-    type _ Effect.t += Shadowing : Pattern.path * data * data -> data Effect.t
+    type _ Effect.t += Shadowing : Trie.bwd_path * data * data -> data Effect.t
 
     (** The effect [Hook (h, rev_prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] when handling the trie [t] at the (reversed) prefix [rev_prefix], it will perform the effect [Hook (h, rev_prefix, t)], which may be continued with the resulting trie. *)
-    type _ Effect.t += Hook : hook * Pattern.path * data Trie.t -> data Trie.t Effect.t
+    type _ Effect.t += Hook : hook * Trie.bwd_path * data Trie.t -> data Trie.t Effect.t
 
     (** [run ~rev_prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
 
@@ -194,7 +184,7 @@ sig
 
         @return The new trie after the transformation.
     *)
-    val run : ?rev_prefix:Pattern.path -> hook Pattern.t -> data Trie.t -> data Trie.t
+    val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
   end
 
   (** The engine running patterns. *)
