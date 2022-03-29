@@ -20,20 +20,25 @@ let data : data Alcotest.testable =
     let equal = (=)
   end)
 
+type empty = |
+module A = Action.Make (struct type nonrec data = data type hook = empty end)
 
 exception WrappedBindingNotFound of path
-let wrap f x =
+let wrap f =
   let open Effect.Deep in
-  ignore @@ try_with f x
+  try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | Action.BindingNotFound path -> Option.some @@
+          | A.BindingNotFound rev_path -> Option.some @@
             fun (k : (a, _) continuation) ->
-            discontinue k @@ WrappedBindingNotFound path
+            discontinue k @@ WrappedBindingNotFound rev_path
+          | A.Shadowing (rev_path, x, y) -> Option.some @@
+            fun (k : (a, _) continuation) ->
+            continue k @@ U (rev_path, x, y)
           | _ -> None
     }
 
-let merger ~rev_path x y = U (rev_path, x, y)
+let wrap_error f = fun () -> wrap @@ fun () -> ignore (f ())
 
 let of_list l =
   Trie.of_seq
@@ -43,169 +48,169 @@ let of_list l =
 let test_none_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [])
-    (Action.run ~merger none (of_list [["x"], N 10]))
+    (wrap @@ fun () -> A.run none (of_list [["x"], N 10]))
 
 let test_none_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [])
-    (Action.run ~merger none (of_list [[], N 10]))
+    (wrap @@ fun () -> A.run none (of_list [[], N 10]))
 
 let test_none_3 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound [])
-    (wrap @@ fun () -> Action.run ~merger none Trie.empty)
+    (wrap_error @@ fun () -> A.run none Trie.empty)
 
 let test_any_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"], N 10])
-    (Action.run ~merger any (of_list [["x"], N 10]))
+    (wrap @@ fun () -> A.run any (of_list [["x"], N 10]))
 
 let test_any_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [[], N 10])
-    (Action.run ~merger any (of_list [[], N 10]))
+    (wrap @@ fun () -> A.run any (of_list [[], N 10]))
 
 let test_any_3 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound [])
-    (wrap @@ fun () -> Action.run ~merger any Trie.empty)
+    (wrap_error @@ fun () -> A.run any Trie.empty)
 
 let test_any_4 () =
   let t = of_list [[], N 10] in
-  Alcotest.(check @@ trie data) "true"
+  Alcotest.(check @@ trie data) "ok"
     t
-    (Action.run ~merger any t)
+    (wrap @@ fun () -> A.run any t)
 
 let test_only_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"], N 10])
-    (Action.run ~merger (only ["x"]) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (only ["x"]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_only_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"; "y"], N 10; ["x"; "x"], N 20])
-    (Action.run ~merger (only ["x"]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
+    (wrap @@ fun () -> A.run (only ["x"]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
 
 let test_only_3 () =
   Alcotest.check_raises "error"
-    (WrappedBindingNotFound ["x"])
-    (wrap @@ fun () -> Action.run ~merger (only ["x"]) Trie.empty)
+    (WrappedBindingNotFound ["y"; "x"])
+    (wrap_error @@ fun () -> A.run (only ["x"; "y"]) Trie.empty)
 
 let test_only_4 () =
   let t = of_list [["x"], N 10] in
   Alcotest.(check @@ trie data) "ok"
     t
-    (Action.run ~merger (only ["x"]) t)
+    (wrap @@ fun () -> A.run (only ["x"]) t)
 
 let test_except_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["y"], N 20])
-    (Action.run ~merger (except ["x"]) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (except ["x"]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_except_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["y"], N 30])
-    (Action.run ~merger (except ["x"]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
+    (wrap @@ fun () -> A.run (except ["x"]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
 
 let test_except_3 () =
   Alcotest.check_raises "error"
-    (WrappedBindingNotFound ["x"])
-    (wrap @@ fun () -> Action.run ~merger (except ["x"]) Trie.empty)
+    (WrappedBindingNotFound ["y"; "x"])
+    (wrap_error @@ fun () -> A.run (except ["x"; "y"]) Trie.empty)
 
 let test_in_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"; "z"], N 10; ["y"], N 20])
-    (Action.run ~merger (in_ ["x"] (renaming [] ["z"])) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (in_ ["x"] (renaming [] ["z"])) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_in_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"; "y"], N 10; ["x"; "w"], N 20; ["y"], N 30])
-    (Action.run ~merger (in_ ["x"] (renaming ["x"] ["w"])) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
+    (wrap @@ fun () -> A.run (in_ ["x"] (renaming ["x"] ["w"])) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
 
 let test_in_3 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound ["x"])
-    (wrap @@ fun () -> Action.run ~merger (in_ ["x"] any) Trie.empty)
+    (wrap_error @@ fun () -> A.run (in_ ["x"] any) Trie.empty)
 
 let test_in_4 () =
   let t = of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30] in
   Alcotest.(check @@ trie data) "ok"
     t
-    (Action.run ~merger (in_ ["x"] (renaming ["x"] ["x"])) t)
+    (wrap @@ fun () -> A.run (in_ ["x"] (renaming ["x"] ["x"])) t)
 
 let test_renaming_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["z"], N 10; ["y"], N 20])
-    (Action.run ~merger (renaming ["x"] ["z"]) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (renaming ["x"] ["z"]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_renaming_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["z"; "y"], N 10; ["z"; "x"], N 20; ["y"], N 30])
-    (Action.run ~merger (renaming ["x"] ["z"]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
+    (wrap @@ fun () -> A.run (renaming ["x"] ["z"]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
 
 let test_renaming_3 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound ["x"])
-    (wrap @@ fun () -> Action.run ~merger (renaming ["x"] ["z"]) Trie.empty)
+    (wrap_error @@ fun () -> A.run (renaming ["x"] ["z"]) Trie.empty)
 
 let test_renaming_4 () =
   let t = of_list [["x"; "y"], N 10; ["x"; "w"], N 20; ["y"], N 30] in
   Alcotest.(check @@ trie data) "ok"
     t
-    (Action.run ~merger (renaming ["x"] ["x"]) t)
+    (wrap @@ fun () -> A.run (renaming ["x"] ["x"]) t)
 
 let test_renaming_5 () =
   let t = of_list [["x"; "y"], N 10; ["x"; "w"], N 20; ["y"], N 30] in
   Alcotest.(check @@ trie data) "ok"
     t
-    (Action.run ~merger (renaming ["x"; "y"] ["x"; "y"]) t)
+    (wrap @@ fun () -> A.run (renaming ["x"; "y"] ["x"; "y"]) t)
 
 let test_seq_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["w"], N 10; ["y"], N 20])
-    (Action.run ~merger (seq [renaming ["x"] ["z"]; renaming ["z"] ["w"]]) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (seq [renaming ["x"] ["z"]; renaming ["z"] ["w"]]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_seq_2 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound [])
-    (wrap @@ fun () -> Action.run ~merger (seq [none; any]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
+    (wrap_error @@ fun () -> A.run (seq [none; any]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
 
 let test_seq_3 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound [])
-    (wrap @@ fun () -> Action.run ~merger (seq [none; none]) Trie.empty)
+    (wrap_error @@ fun () -> A.run (seq [none; none]) Trie.empty)
 
 let test_seq_4 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound ["x"])
-    (wrap @@ fun () -> Action.run ~merger (seq [renaming ["x"] ["z"]; only ["x"]]) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap_error @@ fun () -> A.run (seq [renaming ["x"] ["z"]; only ["x"]]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_seq_5 () =
   let t = of_list [["x"; "y"], N 10; ["x"; "w"], N 20; ["y"], N 30] in
   Alcotest.(check @@ trie data) "ok"
     t
-    (Action.run ~merger (seq [seq []; seq []]) t)
+    (wrap @@ fun () -> A.run (seq [seq []; seq []]) t)
 
 let test_union_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"], U (["x"], N 10, N 10); ["y"], N 20])
-    (Action.run ~merger (union [only ["x"]; except ["x"]; only ["x"]]) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (union [only ["x"]; except ["x"]; only ["x"]]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_union_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"], U (["x"], N 10, N 10); ["y"], N 20])
-    (Action.run ~merger (in_ ["x"] (union [only []; only []])) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (in_ ["x"] (union [only []; only []])) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_union_3 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [])
-    (Action.run ~merger (union []) (of_list [["x"], N 10; ["y"], N 20]))
+    (wrap @@ fun () -> A.run (union []) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_union_4 () =
   let t = of_list [["x"; "y"], N 10; ["x"; "w"], N 20; ["y"], N 30] in
   Alcotest.(check @@ trie data) "ok"
     t
-    (Action.run ~merger (union [seq []]) t)
+    (wrap @@ fun () -> A.run (union [seq []]) t)
 
 (* FIXME: design new test cases for hooks *)
 
