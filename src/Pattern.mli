@@ -1,7 +1,5 @@
 type path = string list
 
-val pp_path : Format.formatter -> path -> unit
-
 type 'hook t =
   | P_only of path
   | P_except of path

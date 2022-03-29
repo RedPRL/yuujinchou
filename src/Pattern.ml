@@ -2,9 +2,6 @@ open StdLabels
 
 type path = string list
 
-let pp_path fmt path =
-  Format.pp_print_string fmt @@ String.concat ~sep:"." path
-
 type 'hook t =
   | P_only of path
   | P_except of path

@@ -43,37 +43,42 @@ import math # Python: the sqrt function is available as `math.sqrt`.
      module Data =
      struct
        type t = int
-       type _ Effect.t += Shadowing : Pattern.path * t * t -> t Effect.t
-       let equal n1 n2 = n1 = n2
-       let merge ~rev_path x y =
-         if equal x y then x else Effect.perform @@ Shadowing (List.rev rev_path, x, y)
+       let equal = Int.equal
        let shadow ~rev_path:_ _x y = y
-       let compare : t -> t -> int = compare
+       let compare = Int.compare
      end
 
      (** An environment is a mapping from paths to data. *)
      type env = Data.t Trie.t
+
+     (* Specialzed Action module with Data.t *)
+     type empty = |
+     module A = Action.Make (struct type data = Data.t type hook = empty end)
 
      (** [remap pattern env] uses the [pattern] to massage
          the environment [env]. *)
      let remap pattern env =
        let open Effect.Deep in
        let string_of_path = function [] -> "(root)" | path -> String.concat "." path in
-       try_with (Action.run ~union:Data.merge pattern) env
+       try_with (A.run pattern) env
          { effc = fun (type a) (eff : a Effect.t) ->
                match eff with
-               | Action.BindingNotFound path -> Option.some @@
+               | A.BindingNotFound rev_path -> Option.some @@
                  fun (k : (a, _) continuation) ->
                  Format.printf "[Warning]@ Could not find any data within the subtree at %s.@."
-                   (string_of_path path);
+                   (string_of_path @@ List.rev rev_path);
                  continue k ()
-               | Data.Shadowing (path, old_data, new_data) -> Option.some @@
+               | A.Shadowing (rev_path, old_data, new_data) -> Option.some @@
                  fun (k : (a, _) continuation) ->
-                 Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@."
-                   old_data (string_of_path path) new_data;
-                 continue k new_data
-               | _ -> None
-         }
+                 if Data.equal old_data new_data then
+                   continue k old_data
+                 else begin
+                   Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@."
+                     old_data (string_of_path @@ List.rev rev_path) new_data;
+                   continue k new_data
+                 end
+               | A.Hook _ -> .
+               | _ -> None }
 
      (** [import env pattern imported] imports the environment
          [imported] massaged by [pattern] into [env]. *)
@@ -114,7 +119,7 @@ sig
   type +'hook t
 
   (**
-     The pattern type is abstract---you should build a pattern using the following builders and execute it by {!val:Action.run}.
+     The pattern type is abstract---you should build a pattern using the following builders and execute it by {!val:Action.S.run}.
   *)
 
   (** Checking equality. *)
@@ -158,52 +163,42 @@ sig
 
   (** {2 Custom Hooks} *)
 
-  (** [hook h] applies the hook labelled [h] to the entire trie; see {!val:Action.run_with_hooks}. *)
+  (** [hook h] applies the hook labelled [h] to the entire trie; see {!module-type:Action.SWithHooks}. *)
   val hook : 'hook -> 'hook t
-
-  (** {1 Utility Functions } *)
-
-  (** Pretty printer for {!type:path}. *)
-  val pp_path : Format.formatter -> Pattern.path -> unit
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
-  (** The engine tries to preserve physical equality whenever feasible. For example, if the trie [t] has a binding at [x], the pattern {!val:Pattern.renaming}[["x"] ["x"]] on [t] will return the original [t]. *)
+  (** The signature of the engine without pattern hooks. *)
+  module type S =
+  sig
+    (** The type of data held by the bindings. *)
+    type data
 
-  (** {1 Matching} *)
+    (** The type of pattern hook labels. *)
+    type hook
 
-  (** The type of the result. The effect [`BindingNotFound] means that the engine expected at least one binding under [path] but could not find it. *)
-  type _ Effect.t += BindingNotFound : Pattern.path -> unit Effect.t
+    (** The effect [BindingNotFound rev_prefix] means that the engine expected at least one binding under the (reversed) prefix [rev_prefix], but could not find it. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few others expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound ["y"; "x"]] (with the path is in reverse). *)
+    type _ Effect.t += BindingNotFound : Pattern.path -> unit Effect.t
 
-  (** [run ~rev_prefix ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It ignores patterns created by {!val:Pattern.hook}.
+    (** The effect [Shadowing (rev_path, x, y)] indicates there are two conflicting bindings, [x] and [y], at the same (reversed) path [rev_path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings. The effect may be continued with the resolution of [x] and [y]. *)
+    type _ Effect.t += Shadowing : Pattern.path * data * data -> data Effect.t
 
-      @param rev_prefix The prefix prepended to any path sent to [union] and any path in the error reporting, but in reverse. The default is the empty unit path ([[]]).
-      @param union The resolver for two conflicting bindings sharing the same name. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings, and [union ~rev_path x y] should return the resolution of [x] and [y] at the (reversed) path [rev_path].
+    (** The effect [Hook (h, rev_prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] when handling the trie [t] at the (reversed) prefix [rev_prefix], it will perform the effect [Hook (h, rev_prefix, t)], which may be continued with the resulting trie. *)
+    type _ Effect.t += Hook : hook * Pattern.path * data Trie.t -> data Trie.t Effect.t
 
-      @return The new trie after the transformation. [Error (`BindingNotFound p)] means the transformation failed because of the absence of expected bindings. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the error [`BindingNotFound ["x"; "y"]]. The path [p] is only an approximation---the user might have intended to hide the binding at [["x"; "y"; "z"]], a binding under [["x"; "y"]], but the engine would never know the user's true intention. *)
-  val run :
-    ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
-    unit Pattern.t -> 'a Trie.t -> 'a Trie.t
+    (** [run ~rev_prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
 
-  (** [run_with_hooks ~rev_prefix ~hooks ~union pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It is similar to {!val:run} but accepts an additional argument [hooks] to handle the patterns created by {!val:Pattern.hook}.
+        @param rev_prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
 
-      @param rev_prefix Same as the parameter [rev_prefix] for {!val:run}.
-      @param union Same as the parameter [union] for {!val:run}.
-      @param hooks The hooks that will be triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h], it will call [hooks h ~rev_path:p t] on the current trie where [p] is the path (in reverse) and [t] is the subtrie at [p].
-  *)
-  val run_with_hooks :
-    ?rev_prefix:Pattern.path ->
-    union:(rev_path:Pattern.path -> 'a -> 'a -> 'a) ->
-    hooks:('hook -> rev_prefix:Pattern.path -> 'a Trie.t -> 'a Trie.t) ->
-    'hook Pattern.t -> 'a Trie.t -> 'a Trie.t
+        @return The new trie after the transformation.
+    *)
+    val run : ?rev_prefix:Pattern.path -> hook Pattern.t -> data Trie.t -> data Trie.t
+  end
 
-  (** {1 Pretty Printers} *)
-
-  (** Pretty printer for {!type:path}. *)
-  val pp_path : Format.formatter -> Pattern.path -> unit
+  (** The engine running patterns. *)
+  module Make (Param : sig type data type hook end) : S with type data = Param.data and type hook = Param.hook
 end
 
 (**

@@ -10,37 +10,42 @@ open Yuujinchou
 module Data =
 struct
   type t = int
-  type _ Effect.t += Shadowing : Pattern.path * t * t -> t Effect.t
-  let equal n1 n2 = n1 = n2
-  let merge ~rev_path x y =
-    if equal x y then x else Effect.perform @@ Shadowing (List.rev rev_path, x, y)
+  let equal = Int.equal
   let shadow ~rev_path:_ _x y = y
-  let compare : t -> t -> int = compare
+  let compare = Int.compare
 end
 
 (** An environment is a mapping from paths to data. *)
 type env = Data.t Trie.t
+
+(* Specialzed Action module with Data.t *)
+type empty = |
+module A = Action.Make (struct type data = Data.t type hook = empty end)
 
 (** [remap pattern env] uses the [pattern] to massage
     the environment [env]. *)
 let remap pattern env =
   let open Effect.Deep in
   let string_of_path = function [] -> "(root)" | path -> String.concat "." path in
-  try_with (Action.run ~union:Data.merge pattern) env
+  try_with (A.run pattern) env
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | Action.BindingNotFound path -> Option.some @@
+          | A.BindingNotFound rev_path -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "[Warning]@ Could not find any data within the subtree at %s.@."
-              (string_of_path path);
+              (string_of_path @@ List.rev rev_path);
             continue k ()
-          | Data.Shadowing (path, old_data, new_data) -> Option.some @@
+          | A.Shadowing (rev_path, old_data, new_data) -> Option.some @@
             fun (k : (a, _) continuation) ->
-            Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@."
-              old_data (string_of_path path) new_data;
-            continue k new_data
-          | _ -> None
-    }
+            if Data.equal old_data new_data then
+              continue k old_data
+            else begin
+              Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@."
+                old_data (string_of_path @@ List.rev rev_path) new_data;
+              continue k new_data
+            end
+          | A.Hook _ -> .
+          | _ -> None }
 
 (** [import env pattern imported] imports the environment
     [imported] massaged by [pattern] into [env]. *)
