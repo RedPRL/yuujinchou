@@ -1,6 +1,6 @@
 # Yuujinchou: Name Pattern Combinators
 
-_Yuujinchou_ is an OCaml package of name patterns for implementing import statements. Please consult the [generated documentation](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou) for more details.
+_Yuujinchou_ is an OCaml package of name patterns for implementing import statements. Please consult the [API documentation](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou) for more details.
 
 ## How to Use It
 
