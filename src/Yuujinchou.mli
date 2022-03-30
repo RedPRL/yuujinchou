@@ -180,17 +180,27 @@ sig
     (** The effect [Hook (h, prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] while handling the trie [t] that is at the prefix [prefix], it will perform the effect [Hook (h, prefix, t)], which may be continued with the resulting trie. *)
     type _ Effect.t += Hook : hook * Trie.bwd_path * data Trie.t -> data Trie.t Effect.t
 
-    (** [run ~rev_prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
+    (** [run ~prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
 
-        @param rev_prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
+        @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
 
         @return The new trie after the transformation.
     *)
     val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
   end
 
+  (** The parameters of an engine. *)
+  module type PARAM =
+  sig
+    (** The type of data held by the bindings. *)
+    type data
+
+    (** The type of pattern hook labels. *)
+    type hook
+  end
+
   (** The functor to generate an engine. *)
-  module Make (Param : sig type data type hook end) : S with type data = Param.data and type hook = Param.hook
+  module Make (Param : PARAM) : S with type data = Param.data and type hook = Param.hook
 end
 
 (**

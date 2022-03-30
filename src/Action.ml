@@ -17,6 +17,12 @@ sig
   val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
 end
 
+module type PARAM =
+sig
+  type data
+  type hook
+end
+
 module Make (Param : sig type data type hook end) =
 struct
   include Param

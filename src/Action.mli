@@ -10,4 +10,10 @@ sig
   val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
 end
 
-module Make (Param : sig type data type hook end) : S with type data = Param.data and type hook = Param.hook
+module type PARAM =
+sig
+  type data
+  type hook
+end
+
+module Make (Param : PARAM) : S with type data = Param.data and type hook = Param.hook
