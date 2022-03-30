@@ -1,4 +1,7 @@
-(** {1 Example Code} *)
+(** {1 Example Code}
+
+    This part should be in sync with README.markdown and src/Yuujinchou.mli
+*)
 
 open Yuujinchou
 open Bwd

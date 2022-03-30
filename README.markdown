@@ -4,14 +4,16 @@ _Yuujinchou_ is an OCaml package of name patterns for implementing import statem
 
 ## How to Use It
 
+<!-- This part should be in sync with test/TestImportSelect.ml and src/Yuujinchou.mli -->
 ```ocaml
 open Yuujinchou
+open Bwd
 
 module Data =
 struct
   type t = int
   let equal = Int.equal
-  let shadow ~rev_path:_ _x y = y
+  let shadow ~path:_ _x y = y
   let compare = Int.compare
 end
 
@@ -30,18 +32,18 @@ let remap pattern env =
   try_with (A.run pattern) env
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | A.BindingNotFound rev_path -> Option.some @@
+          | A.BindingNotFound path -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "[Warning]@ Could not find any data within the subtree at %s.@."
-              (string_of_path @@ List.rev rev_path);
+              (string_of_path @@ BwdLabels.to_list path);
             continue k ()
-          | A.Shadowing (rev_path, old_data, new_data) -> Option.some @@
+          | A.Shadowing (path, old_data, new_data) -> Option.some @@
             fun (k : (a, _) continuation) ->
             if Data.equal old_data new_data then
               continue k old_data
             else begin
               Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@."
-                old_data (string_of_path @@ List.rev rev_path) new_data;
+                old_data (string_of_path @@ BwdLabels.to_list path) new_data;
               continue k new_data
             end
           | A.Hook _ -> .
