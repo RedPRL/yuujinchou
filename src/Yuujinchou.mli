@@ -190,7 +190,7 @@ sig
   end
 
   (** The parameters of an engine. *)
-  module type PARAM =
+  module type Param =
   sig
     (** The type of data held by the bindings. *)
     type data
@@ -200,7 +200,7 @@ sig
   end
 
   (** The functor to generate an engine. *)
-  module Make (Param : PARAM) : S with type data = Param.data and type hook = Param.hook
+  module Make (P : Param) : S with type data = P.data and type hook = P.hook
 end
 
 (**
