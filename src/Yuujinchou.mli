@@ -37,14 +37,16 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 
    {2 Example Code}
 
+   (* This part should be in sync with README.markdown and test/TestImportSelect.ml *)
    {[
      open Yuujinchou
+     open Bwd
 
      module Data =
      struct
        type t = int
        let equal = Int.equal
-       let shadow ~rev_path:_ _x y = y
+       let shadow ~path:_ _x y = y
        let compare = Int.compare
      end
 
@@ -63,18 +65,18 @@ import math # Python: the sqrt function is available as `math.sqrt`.
        try_with (A.run pattern) env
          { effc = fun (type a) (eff : a Effect.t) ->
                match eff with
-               | A.BindingNotFound rev_path -> Option.some @@
+               | A.BindingNotFound path -> Option.some @@
                  fun (k : (a, _) continuation) ->
                  Format.printf "[Warning]@ Could not find any data within the subtree at %s.@."
-                   (string_of_path @@ List.rev rev_path);
+                   (string_of_path @@ BwdLabels.to_list path);
                  continue k ()
-               | A.Shadowing (rev_path, old_data, new_data) -> Option.some @@
+               | A.Shadowing (path, old_data, new_data) -> Option.some @@
                  fun (k : (a, _) continuation) ->
                  if Data.equal old_data new_data then
                    continue k old_data
                  else begin
                    Format.printf "[Warning]@ Data %i assigned at %s was shadowed by data %i.@."
-                     old_data (string_of_path @@ List.rev rev_path) new_data;
+                     old_data (string_of_path @@ BwdLabels.to_list path) new_data;
                    continue k new_data
                  end
                | A.Hook _ -> .
@@ -105,16 +107,6 @@ module Pattern :
 sig
   (** {1 Pattern Type } *)
 
-  (** The type of hierarchical names. *)
-  type path = string list
-
-  (**
-     We assume names are hierarchical and can be encoded as lists of strings. For example, the name [x.y.z] is represented as the following OCaml list:
-     {[
-       ["x"; "y"; "z"]
-     ]}
-  *)
-
   (** The type of patterns, parametrized by the type of hook labels. See {!val:hook}. *)
   type +'hook t
 
@@ -133,10 +125,10 @@ sig
   val any : 'hook t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only : path -> 'hook t
+  val only : Trie.path -> 'hook t
 
   (** [in_ path pattern] runs the pattern [pat] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"]]{!val:any} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
-  val in_ : path -> 'hook t -> 'hook t
+  val in_ : Trie.path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
 
@@ -144,12 +136,12 @@ sig
   val none : 'hook t
 
   (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[p]{!val:none}. *)
-  val except : path -> 'hook t
+  val except : Trie.path -> 'hook t
 
   (** {2 Renaming} *)
 
   (** [renaming path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty (nothing to move). *)
-  val renaming : path -> path -> 'hook t
+  val renaming : Trie.path -> Trie.path -> 'hook t
 
   (** {2 Sequencing} *)
 
@@ -163,14 +155,14 @@ sig
 
   (** {2 Custom Hooks} *)
 
-  (** [hook h] applies the hook labelled [h] to the entire trie; see {!module-type:Action.SWithHooks}. *)
+  (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Action.S} for the effect [Hook] that will be performed when processing this pattern. *)
   val hook : 'hook -> 'hook t
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
-  (** The signature of the engine without pattern hooks. *)
+  (** The signature of the engine. *)
   module type S =
   sig
     (** The type of data held by the bindings. *)
@@ -179,26 +171,36 @@ sig
     (** The type of pattern hook labels. *)
     type hook
 
-    (** The effect [BindingNotFound rev_prefix] means that the engine expected at least one binding under the (reversed) prefix [rev_prefix], but could not find it. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few others expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound ["y"; "x"]] (with the path is in reverse). *)
-    type _ Effect.t += BindingNotFound : Pattern.path -> unit Effect.t
+    (** The effect [BindingNotFound prefix] means that the engine expected at least one binding under the prefix [prefix], but could not find any. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few other patterns expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound (Emp #< "x" #< "y")]. *)
+    type _ Effect.t += BindingNotFound : Trie.bwd_path -> unit Effect.t
 
-    (** The effect [Shadowing (rev_path, x, y)] indicates there are two conflicting bindings, [x] and [y], at the same (reversed) path [rev_path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings. The effect may be continued with the resolution of [x] and [y]. *)
-    type _ Effect.t += Shadowing : Pattern.path * data * data -> data Effect.t
+    (** The effect [Shadowing (path, x, y)] indicates that two items, [x] and [y], are about to be assigned to the same [path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to bindings having the same name, and when that happens, this effect is performed to resolve the conflicting bindings. The effect is continued with the resolution of [x] and [y]. For example, to implement silent shadowing, one can continue it with the item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
+    type _ Effect.t += Shadowing : Trie.bwd_path * data * data -> data Effect.t
 
-    (** The effect [Hook (h, rev_prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] when handling the trie [t] at the (reversed) prefix [rev_prefix], it will perform the effect [Hook (h, rev_prefix, t)], which may be continued with the resulting trie. *)
-    type _ Effect.t += Hook : hook * Pattern.path * data Trie.t -> data Trie.t Effect.t
+    (** The effect [Hook (h, prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] while handling the trie [t] that is at the prefix [prefix], it will perform the effect [Hook (h, prefix, t)], which may be continued with the resulting trie. *)
+    type _ Effect.t += Hook : hook * Trie.bwd_path * data Trie.t -> data Trie.t Effect.t
 
-    (** [run ~rev_prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
+    (** [run ~prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
 
-        @param rev_prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
+        @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
 
         @return The new trie after the transformation.
     *)
-    val run : ?rev_prefix:Pattern.path -> hook Pattern.t -> data Trie.t -> data Trie.t
+    val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
   end
 
-  (** The engine running patterns. *)
-  module Make (Param : sig type data type hook end) : S with type data = Param.data and type hook = Param.hook
+  (** The parameters of an engine. *)
+  module type Param =
+  sig
+    (** The type of data held by the bindings. *)
+    type data
+
+    (** The type of pattern hook labels. *)
+    type hook
+  end
+
+  (** The functor to generate an engine. *)
+  module Make (P : Param) : S with type data = P.data and type hook = P.hook
 end
 
 (**
