@@ -162,14 +162,21 @@ end
 (** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
-  (** The signature of the engine. *)
-  module type S =
+  (** The parameters of an engine. *)
+  module type Param =
   sig
     (** The type of data held by the bindings. *)
     type data
 
     (** The type of pattern hook labels. *)
     type hook
+  end
+
+  (** The signature of the engine. *)
+  module type S =
+  sig
+    (** @open *)
+    include Param
 
     (** The effect [BindingNotFound prefix] means that the engine expected at least one binding under the prefix [prefix], but could not find any. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few other patterns expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound (Emp #< "x" #< "y")]. *)
     type _ Effect.t += BindingNotFound : Trie.bwd_path -> unit Effect.t
@@ -187,16 +194,6 @@ sig
         @return The new trie after the transformation.
     *)
     val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
-  end
-
-  (** The parameters of an engine. *)
-  module type Param =
-  sig
-    (** The type of data held by the bindings. *)
-    type data
-
-    (** The type of pattern hook labels. *)
-    type hook
   end
 
   (** The functor to generate an engine. *)
