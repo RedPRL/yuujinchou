@@ -1,8 +1,11 @@
 open StdLabels
 open MoreLabels
+open Bwd
+open BwdNotation
 
 type seg = string
 type path = seg list
+type bwd_path = seg bwd
 
 module SegMap =
 struct
@@ -119,25 +122,25 @@ let union_option f x y =
   | None, _ -> y
   | Some x', Some y' -> Some (f x' y')
 
-let rec union_node ~rev_prefix m n n' =
-  let root = union_option (m ~rev_path:rev_prefix) n.root n'.root in
+let rec union_node ~prefix m n n' =
+  let root = union_option (m ~path:prefix) n.root n'.root in
   let children =
-    let f key n n' = Some (union_node ~rev_prefix:(key :: rev_prefix) m n n') in
+    let f key n n' = Some (union_node ~prefix:(prefix #< key) m n n') in
     SegMap.union ~f n.children n'.children
   in
   {root; children}
 
-let union_ ~rev_prefix m = union_option @@ union_node ~rev_prefix m
+let union_ ~prefix m = union_option @@ union_node ~prefix m
 
-let[@inline] union ?(rev_prefix=[]) m = union_ ~rev_prefix m
+let[@inline] union ?(prefix=Emp) m = union_ ~prefix m
 
-let union_subtree ?(rev_prefix=[]) m t (path, t') =
-  update_cont t path @@ fun t -> union_ ~rev_prefix:(List.rev_append path rev_prefix) m t t'
+let union_subtree ?(prefix=Emp) m t (path, t') =
+  update_cont t path @@ fun t -> union_ ~prefix:(prefix <>< path) m t t'
 
-let union_singleton ?(rev_prefix=[]) m t (path, v) =
+let union_singleton ?(prefix=Emp) m t (path, v) =
   update_cont t path @@ function
   | None -> non_empty @@ root_opt_node v
-  | Some n -> non_empty {n with root = union_option (m ~rev_path:(List.rev_append path rev_prefix)) n.root @@ Some v}
+  | Some n -> non_empty {n with root = union_option (m ~path:(prefix <>< path)) n.root @@ Some v}
 
 (** {1 Detaching subtrees} *)
 
@@ -162,52 +165,52 @@ let detach_singleton path t = apply_and_update_cont path t @@ function
 
 (** {1 Conversion from/to Seq} *)
 
-let rec node_to_seq_with_reversed_paths ~rev_prefix n () =
+let rec node_to_seq_with_bwd_paths ~prefix n () =
   match n.root with
-  | None -> children_to_seq_with_reversed_paths ~rev_prefix n.children ()
+  | None -> children_to_seq_with_bwd_paths ~prefix n.children ()
   | Some v ->
-    Seq.Cons ((rev_prefix, v), children_to_seq_with_reversed_paths ~rev_prefix n.children)
+    Seq.Cons ((prefix, v), children_to_seq_with_bwd_paths ~prefix n.children)
 
-and children_to_seq_with_reversed_paths ~rev_prefix children =
+and children_to_seq_with_bwd_paths ~prefix children =
   SegMap.to_seq children |> Seq.flat_map @@ fun (seg, n) ->
-  node_to_seq_with_reversed_paths ~rev_prefix:(seg :: rev_prefix) n
+  node_to_seq_with_bwd_paths ~prefix:(prefix #< seg) n
 
-let to_seq_with_reversed_paths ?(rev_prefix=[]) t =
-  Option.fold ~none:Seq.empty ~some:(node_to_seq_with_reversed_paths ~rev_prefix) t
+let to_seq_with_bwd_paths ?(prefix=Emp) t =
+  Option.fold ~none:Seq.empty ~some:(node_to_seq_with_bwd_paths ~prefix) t
 
 let to_seq_values t = Seq.map snd @@
-  to_seq_with_reversed_paths t
+  to_seq_with_bwd_paths t
 
-let to_seq ?rev_prefix t = Seq.map (fun (p, v) -> List.rev p, v) @@
-  to_seq_with_reversed_paths ?rev_prefix t
+let to_seq ?prefix t = Seq.map (fun (p, v) -> BwdLabels.to_list p, v) @@
+  to_seq_with_bwd_paths ?prefix t
 
-let of_seq ?rev_prefix m = Seq.fold_left (union_singleton ?rev_prefix m) empty
+let of_seq ?prefix m = Seq.fold_left (union_singleton ?prefix m) empty
 
 (** {1 Map} *)
 
-let rec iteri_node ~rev_prefix f n =
-  Option.fold ~none:() ~some:(f ~rev_path:rev_prefix) n.root;
-  SegMap.iter ~f:(fun ~key ~data -> iteri_node ~rev_prefix:(key::rev_prefix) f data) n.children
-let iteri ?(rev_prefix=[]) f t = Option.fold ~none:() ~some:(iteri_node ~rev_prefix f) t
+let rec iteri_node ~prefix f n =
+  Option.fold ~none:() ~some:(f ~path:prefix) n.root;
+  SegMap.iter ~f:(fun ~key ~data -> iteri_node ~prefix:(prefix #< key) f data) n.children
+let iteri ?(prefix=Emp) f t = Option.fold ~none:() ~some:(iteri_node ~prefix f) t
 
-let rec mapi_node ~rev_prefix f n =
-  { root = Option.map (f ~rev_path:rev_prefix) n.root
-  ; children = SegMap.mapi ~f:(fun key -> mapi_node ~rev_prefix:(key::rev_prefix) f) n.children
+let rec mapi_node ~prefix f n =
+  { root = Option.map (f ~path:prefix) n.root
+  ; children = SegMap.mapi ~f:(fun key -> mapi_node ~prefix:(prefix #< key) f) n.children
   }
-let mapi ?(rev_prefix=[]) f t = Option.map (mapi_node ~rev_prefix f) t
+let mapi ?(prefix=Emp) f t = Option.map (mapi_node ~prefix f) t
 
-let rec filteri_node ~rev_prefix f n =
+let rec filteri_node ~prefix f n =
   let root = Option.bind n.root @@
-    fun v -> if f ~rev_path:rev_prefix v then Some v else None in
+    fun v -> if f ~path:prefix v then Some v else None in
   let children =
     SegMap.filter_mapi_endo
-      (fun ~key -> filteri_node ~rev_prefix:(key::rev_prefix) f)
+      (fun ~key -> filteri_node ~prefix:(prefix #< key) f)
       n.children
   in
   mk_tree root children
-let filteri ?(rev_prefix=[]) f t = Option.bind t @@ filteri_node ~rev_prefix f
+let filteri ?(prefix=Emp) f t = Option.bind t @@ filteri_node ~prefix f
 
-let rec filter_mapi_node ~rev_prefix f n =
-  mk_tree (Option.bind n.root @@ f ~rev_path:rev_prefix) @@
-  SegMap.filter_mapi (fun ~key -> filter_mapi_node ~rev_prefix:(key::rev_prefix) f) n.children
-let filter_mapi ?(rev_prefix=[]) f t = Option.bind t @@ filter_mapi_node ~rev_prefix f
+let rec filter_mapi_node ~prefix f n =
+  mk_tree (Option.bind n.root @@ f ~path:prefix) @@
+  SegMap.filter_mapi (fun ~key -> filter_mapi_node ~prefix:(prefix #< key) f) n.children
+let filter_mapi ?(prefix=Emp) f t = Option.bind t @@ filter_mapi_node ~prefix f

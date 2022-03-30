@@ -3,11 +3,17 @@ sig
   type data
   type hook
   type _ Effect.t +=
-    | BindingNotFound : Pattern.path -> unit Effect.t
-    | Shadowing : Pattern.path * data * data -> data Effect.t
-    | Hook : hook * Pattern.path * data Trie.t -> data Trie.t Effect.t
+    | BindingNotFound : Trie.bwd_path -> unit Effect.t
+    | Shadowing : Trie.bwd_path * data * data -> data Effect.t
+    | Hook : hook * Trie.bwd_path * data Trie.t -> data Trie.t Effect.t
 
-  val run : ?rev_prefix:Pattern.path -> hook Pattern.t -> data Trie.t -> data Trie.t
+  val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
 end
 
-module Make (Param : sig type data type hook end) : S with type data = Param.data and type hook = Param.hook
+module type Param =
+sig
+  type data
+  type hook
+end
+
+module Make (P : Param) : S with type data = P.data and type hook = P.hook

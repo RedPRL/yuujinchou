@@ -1,7 +1,12 @@
+open Bwd
+
 (** {1 Types} *)
 
 (** The type of hierarchical names. The name [x.y.z] is represented by the OCaml list [["x"; "y"; "z"]]. *)
 type path = string list
+
+(** The type of hierarchical names, but using backward lists. The name [x.y.z] is represented by the backward list [Emp #< "x" #< "y" #< "z"]. *)
+type bwd_path = string bwd
 
 (** The abstract type of a trie. *)
 type +'a t
@@ -46,29 +51,29 @@ val find_root : 'a t -> 'a option
 
 (** {1 Mapping and Filtering} *)
 
-(** [iteri ~rev_prefix f t] applies the function [f] to each value [v] in the trie.
+(** [iteri ~prefix f t] applies the function [f] to each value [v] in the trie.
 
-    @param rev_prefix The prefix prepended to any path sent to [f], but in reverse. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val iteri : ?rev_prefix:path -> (rev_path:path -> 'a -> unit) -> 'a t -> unit
+val iteri : ?prefix:bwd_path -> (path:bwd_path -> 'a -> unit) -> 'a t -> unit
 
-(** [mapi ~rev_prefix f t] applies the function [f] to each value [v] in the trie.
+(** [mapi ~prefix f t] applies the function [f] to each value [v] in the trie.
 
-    @param rev_prefix The prefix prepended to any path sent to [f], but in reverse. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val mapi : ?rev_prefix:path -> (rev_path:path -> 'a -> 'b) -> 'a t -> 'b t
+val mapi : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'b) -> 'a t -> 'b t
 
-(** [filteri ~rev_prefix f t] removes all values [v] at path [p] such that [f ~rev_prefix:p v] returns [false].
+(** [filteri ~prefix f t] removes all values [v] at path [p] such that [f ~prefix:p v] returns [false].
 
-    @param rev_prefix The prefix prepended to any path sent to [f]. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val filteri : ?rev_prefix:path -> (rev_path:path -> 'a -> bool) -> 'a t -> 'a t
+val filteri : ?prefix:bwd_path -> (path:bwd_path -> 'a -> bool) -> 'a t -> 'a t
 
-(** [filter_mapi ~rev_prefix f t] applies the function [f] to each value [v] at [p] in the trie. If [f ~rev_prefix:p v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'].
+(** [filter_mapi ~prefix f t] applies the function [f] to each value [v] at [p] in the trie. If [f ~prefix:p v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'].
 
-    @param rev_prefix The prefix prepended to any path sent to [f], but in reverse. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val filter_mapi : ?rev_prefix:path -> (rev_path:path -> 'a -> 'b option) -> 'a t -> 'b t
+val filter_mapi : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'b option) -> 'a t -> 'b t
 
 (** {1 Updating} *)
 
@@ -83,23 +88,23 @@ val update_root : ('a option -> 'a option) -> 'a t -> 'a t
 
 (** {1 Union} *)
 
-(** [union ~rev_prefix merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will call [merger ~rev_path:p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the (reversed) path [rev_path]. The path [rev_path] is reversed for efficient traversal.
+(** [union ~prefix merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will call [merger ~path:p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the [path].
 
-    @param rev_prefix The prefix prepended to any path sent to [merger]. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
-val union : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
+val union : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
 
-(** [union_subtree ~rev_prefix merger t1 (path, t2)] is equivalent to {!val:union}[~rev_prefix merger t1 (prefix path t2)], but potentially more efficient.
+(** [union_subtree ~prefix merger t1 (path, t2)] is equivalent to {!val:union}[~prefix merger t1 (prefix path t2)], but potentially more efficient.
 
-    @param rev_prefix The prefix prepended to any path sent to [merger]. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
-val union_subtree : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
+val union_subtree : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
 
 (** [union_singleton merger t binding] is equivalent to {!val:union}[merger t1 (singleton binding)], but potentially more efficient.
 
-    @param rev_prefix The prefix prepended to any path sent to [merger]. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
-val union_singleton : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t
+val union_singleton : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t
 
 (** {1 Separation} *)
 
@@ -111,23 +116,23 @@ val detach_singleton : path -> 'a t -> 'a option * 'a t
 
 (** {1 Iterators} *)
 
-(** [to_seq ~rev_prefix t] traverses through the trie [t] in the lexicographical order.
+(** [to_seq ~prefix t] traverses through the trie [t] in the lexicographical order.
 
-    @param rev_prefix The prefix prepended to any path in the output, but in reverse. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path in the output. The default is the empty prefix ([Emp]).
 *)
-val to_seq : ?rev_prefix:path -> 'a t -> (path * 'a) Seq.t
+val to_seq : ?prefix:bwd_path -> 'a t -> (path * 'a) Seq.t
 
-(** [to_seq_with_reversed_paths] is like {!val:to_seq} but with paths reversed. This is potentially more efficient than {!val:to_seq}.
+(** [to_seq_with_bwd_paths] is like {!val:to_seq}. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped.
 
-    @param rev_prefix The prefix prepended to any path in the output, but in reverse. The default is the empty unit path ([[]]).
+    @param prefix The prefix prepended to any path in the output. The default is the empty prefix ([Emp]).
 *)
-val to_seq_with_reversed_paths : ?rev_prefix:path -> 'a t -> (path * 'a) Seq.t
+val to_seq_with_bwd_paths : ?prefix:bwd_path -> 'a t -> (bwd_path * 'a) Seq.t
 
-(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is potentially more efficient than {!val:to_seq} because path reversal is skipped. *)
+(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped. *)
 val to_seq_values : 'a t -> 'a Seq.t
 
-(** [of_seq ~rev_prefix merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}.
+(** [of_seq ~prefix merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}.
 
-    @param rev_prefix The prefix prepended to any path sent to [merger], but in reverse. The default is the empty unit path ([[]]). Note that [rev_prefix] does not directly affect the output trie, only the argument to [merger].
+    @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]). Note that [prefix] does not directly affect the output trie, only the argument to [merger].
 *)
-val of_seq : ?rev_prefix:path -> (rev_path:path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
+val of_seq : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
