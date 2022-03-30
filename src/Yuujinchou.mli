@@ -155,7 +155,7 @@ sig
 
   (** {2 Custom Hooks} *)
 
-  (** [hook h] applies the hook labelled [h] to the entire trie; see {!module-type:Action.SWithHooks}. *)
+  (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Action.S} for the effect [Hook] that will be performed when processing this pattern. *)
   val hook : 'hook -> 'hook t
 end
 
