@@ -160,7 +160,7 @@ end
 (** The {!module:Action} module implements the engine running the patterns. *)
 module Action :
 sig
-  (** The signature of the engine without pattern hooks. *)
+  (** The signature of the engine. *)
   module type S =
   sig
     (** The type of data held by the bindings. *)
@@ -169,16 +169,16 @@ sig
     (** The type of pattern hook labels. *)
     type hook
 
-    (** The effect [BindingNotFound rev_prefix] means that the engine expected at least one binding under the (reversed) prefix [rev_prefix], but could not find it. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few others expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound ["y"; "x"]] (with the path is in reverse). *)
+    (** The effect [BindingNotFound prefix] means that the engine expected at least one binding under the prefix [prefix], but could not find any. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few other patterns expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound (Emp #< "x" #< "y")]. *)
     type _ Effect.t += BindingNotFound : Trie.bwd_path -> unit Effect.t
 
-    (** The effect [Shadowing (rev_path, x, y)] indicates there are two conflicting bindings, [x] and [y], at the same (reversed) path [rev_path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to conflicting bindings. The effect may be continued with the resolution of [x] and [y]. *)
+    (** The effect [Shadowing (path, x, y)] indicates that two items, [x] and [y], are about to be assigned to the same [path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to bindings having the same name, and when that happens, this effect is performed to resolve the conflicting bindings. The effect is continued with the resolution of [x] and [y]. For example, to implement silent shadowing, one can continue it with the item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
     type _ Effect.t += Shadowing : Trie.bwd_path * data * data -> data Effect.t
 
-    (** The effect [Hook (h, rev_prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] when handling the trie [t] at the (reversed) prefix [rev_prefix], it will perform the effect [Hook (h, rev_prefix, t)], which may be continued with the resulting trie. *)
+    (** The effect [Hook (h, prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] while handling the trie [t] that is at the prefix [prefix], it will perform the effect [Hook (h, prefix, t)], which may be continued with the resulting trie. *)
     type _ Effect.t += Hook : hook * Trie.bwd_path * data Trie.t -> data Trie.t Effect.t
 
-    (** [run ~rev_prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie.
+    (** [run ~rev_prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
 
         @param rev_prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
 
@@ -187,7 +187,7 @@ sig
     val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
   end
 
-  (** The engine running patterns. *)
+  (** The functor to generate an engine. *)
   module Make (Param : sig type data type hook end) : S with type data = Param.data and type hook = Param.hook
 end
 
