@@ -2,6 +2,8 @@
 
     This part should be in sync with README.markdown and src/Yuujinchou.mli
 *)
+(* The following shim does nothing for OCaml >= 5, but is needed for OCaml < 5. *)
+open Eff.StdlibShim
 
 open Yuujinchou
 open Bwd

@@ -1,7 +1,10 @@
 open StdLabels
-open Pattern
+open Eff.StdlibShim
+
 open Bwd
 open BwdNotation
+
+open Pattern
 
 type bwd_path = Trie.bwd_path
 
