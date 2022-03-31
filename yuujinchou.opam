@@ -11,7 +11,7 @@ homepage: "https://github.com/RedPRL/yuujinchou"
 bug-reports: "https://github.com/RedPRL/yuujinchou/issues"
 dev-repo: "git+https://github.com/RedPRL/yuujinchou.git"
 depends: [
-  "dune" {>= "2.7"}
+  "dune" {>= "2.0"}
   "base-domains"
   "bwd" {>= "1.0.0"}
   "alcotest" {>= "1.5.0" & with-test}
@@ -23,7 +23,6 @@ pin-depends: [
   [ "algaeff.~dev" "git+https://github.com/RedPRL/algaeff" ]
 ]
 build: [
-  ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "build" "-p" name "-j" jobs "@runtest"] {with-test}
   ["dune" "build" "-p" name "-j" jobs "@doc"] {with-doc}
