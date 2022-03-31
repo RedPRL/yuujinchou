@@ -1,4 +1,4 @@
 (library
  (name Yuujinchou)
  (public_name yuujinchou)
- (libraries bwd))
+ (libraries algaeff bwd))

@@ -6,19 +6,34 @@ on:
   pull_request:
 jobs:
   run:
+    strategy:
+      matrix:
+        include:
+          - ocaml-compiler: "ocaml-variants.4.12.0+domains"
+            make-doc: false
+          - ocaml-compiler: "ocaml-variants.4.12.0+domains+effects"
+            make-doc: false
+          - ocaml-compiler: "ocaml-variants.5.0.0+trunk"
+            make-doc: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: "ocaml-variants.5.0.0+trunk"
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
       - run: opam repo add alpha git+https://github.com/kit-ty-kate/opam-alpha-repository.git
+        if: ${{ matrix.ocaml-compiler == 'ocaml-variants.5.0.0+trunk' }}
+
+      - run: opam pin . --with-test --yes
+        if: ${{ ! matrix.make-doc }}
       - run: opam pin . --with-doc --with-test --yes
+        if: ${{ matrix.make-doc }}
+
       - run: echo 'opam-build-root='`opam config var yuujinchou:build` >> $GITHUB_ENV
-        if: ${{ github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && startsWith (github.head_ref, 'doc')) }}
+        if: ${{ matrix.make-doc && github.ref == 'refs/heads/main' }}
       - uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && startsWith (github.head_ref, 'doc')) }}
+        if: ${{ matrix.make-doc && github.ref == 'refs/heads/main' }}
         with:
           force_orphan: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
