@@ -1,3 +1,5 @@
+open Eff.StdlibShim
+
 module type Param =
 sig
   type data

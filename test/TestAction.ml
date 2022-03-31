@@ -1,3 +1,5 @@
+open Eff.StdlibShim
+
 open Bwd
 open BwdNotation
 open Yuujinchou

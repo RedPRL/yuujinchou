@@ -1,3 +1,5 @@
+open Eff.StdlibShim
+
 (**
    {b Yuujinchou} is an OCaml package of name patterns.
 
@@ -36,9 +38,13 @@ import math # Python: the sqrt function is available as `math.sqrt`.
    {1 Using the Library}
 
    {2 Example Code}
-
-   (* This part should be in sync with README.markdown and test/TestImportSelect.ml *)
+*)
+(* The example code should be in sync with README.markdown and test/TestImportSelect.ml *)
+(**
    {[
+     (* The following shim does nothing for OCaml >= 5, but is needed for OCaml < 5. *)
+     open Eff.StdlibShim
+
      open Yuujinchou
      open Bwd
 
