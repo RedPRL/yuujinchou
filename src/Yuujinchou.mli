@@ -127,7 +127,8 @@ sig
 
   (** {2 Basics} *)
 
-  (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match). *)
+  (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
+      To avoid the emptiness checking, use the identity pattern {!val:seq}[[]]. *)
   val any : 'hook t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
@@ -138,7 +139,8 @@ sig
 
   (** {2 Negation} *)
 
-  (** [none] drops everything. It is an error if the tree was already empty (nothing to drop). *)
+  (** [none] drops everything. It is an error if the tree was already empty (nothing to drop).
+      To avid the emptiness checking, use the empty pattern {!val:union}[[]]. *)
   val none : 'hook t
 
   (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[p]{!val:none}. *)
@@ -151,12 +153,14 @@ sig
 
   (** {2 Sequencing} *)
 
-  (** [seq [pat0; pat1; pat2; ...; patn]] runs the patterns [pat0], [pat1], [pat2], ..., [patn] in order. *)
+  (** [seq [pat0; pat1; pat2; ...; patn]] runs the patterns [pat0], [pat1], [pat2], ..., [patn] in order.
+      In particular, [seq []] is the identity pattern. *)
   val seq : 'hook t list -> 'hook t
 
   (** {2 Union} *)
 
-  (** [union [pat0; pat1; pat2; ...; patn]] calculates the union of the results of individual patterns [pat0], [pat1], [pat2], ..., [patn]. *)
+  (** [union [pat0; pat1; pat2; ...; patn]] calculates the union of the results of individual patterns [pat0], [pat1], [pat2], ..., [patn].
+      In particular, [union []] is the empty pattern. *)
   val union : 'hook t list -> 'hook t
 
   (** {2 Custom Hooks} *)
