@@ -6,7 +6,7 @@ module Q = QCheck2
 let cmp_path = List.compare ~cmp:String.compare
 let cmp (p1, _) (p2, _) = cmp_path p1 p2
 
-let seq_to_list s = ListAsTrie.of_seq (fun ~path:_ _ _ -> failwith "Conflicting bindings") s
+let seq_to_list s = ListAsTrie.of_seq s
 let rawlist_to_list l = seq_to_list @@ List.to_seq l
 let list_to_rawlist l = List.of_seq @@ ListAsTrie.to_seq l
 
@@ -23,7 +23,7 @@ let obs_path = Q.Observable.(list string)
 let obs_bwd_path = Q.Observable.contramap Bwd.BwdLabels.to_list obs_path
 let obs_list = Q.Observable.(contramap list_to_rawlist @@ list @@ pair obs_path int)
 
-let of_list l = Trie.of_seq (fun ~path:_ _ _ -> failwith "Conflicting bindings") @@ ListAsTrie.to_seq l
+let of_list l = Trie.of_seq @@ ListAsTrie.to_seq l
 let to_list t = seq_to_list @@ Trie.to_seq t
 
 (* for iteri *)
@@ -212,12 +212,20 @@ let test_to_seq_values =
        List.of_seq (ListAsTrie.to_seq_values l))
 let test_of_seq =
   Q.Test.make ~count ~name:"of_seq"
+    Q.Gen.(small_list @@ pair gen_path int)
+    ~print:Q.Print.(list @@ pair print_path int)
+    (fun l ->
+       to_list (Trie.of_seq (List.to_seq l))
+       =
+       ListAsTrie.of_seq (List.to_seq l))
+let test_of_seq_with_merger =
+  Q.Test.make ~count ~name:"of_seq_with_merger"
     Q.Gen.(triple (opt gen_bwd_path) (Q.fun3 obs_bwd_path Q.Observable.int Q.Observable.int int) (small_list @@ pair gen_path int))
     ~print:Q.Print.(triple (option print_bwd_path) Q.Fn.print (list @@ pair print_path int))
     (fun (prefix, Fun (_, f), l) ->
-       to_list (Trie.of_seq ?prefix (fun ~path -> f path) (List.to_seq l))
+       to_list (Trie.of_seq_with_merger ?prefix (fun ~path -> f path) (List.to_seq l))
        =
-       ListAsTrie.of_seq ?prefix (fun ~path -> f path) (List.to_seq l))
+       ListAsTrie.of_seq_with_merger ?prefix (fun ~path -> f path) (List.to_seq l))
 
 let () =
   exit @@
@@ -247,4 +255,5 @@ let () =
     ; test_to_seq_with_bwd_paths
     ; test_to_seq_values
     ; test_of_seq
+    ; test_of_seq_with_merger
     ]

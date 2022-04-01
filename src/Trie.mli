@@ -131,8 +131,11 @@ val to_seq_with_bwd_paths : ?prefix:bwd_path -> 'a t -> (bwd_path * 'a) Seq.t
 (** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped. *)
 val to_seq_values : 'a t -> 'a Seq.t
 
-(** [of_seq ~prefix merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}.
+(** [of_seq ~prefix s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Later bindings will shadow previous ones if the paths of bindings are not unique. *)
+val of_seq : (path * 'a) Seq.t -> 'a t
+
+(** [of_seq_with_merger ~prefix merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Bindings with the same path are resolved using [merger] instead of silent shadowing.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]). Note that [prefix] does not directly affect the output trie, only the argument to [merger].
 *)
-val of_seq : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
+val of_seq_with_merger : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t

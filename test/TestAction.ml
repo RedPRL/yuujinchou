@@ -52,10 +52,7 @@ let wrap f =
 
 let wrap_error f = fun () -> wrap @@ fun () -> ignore (f ())
 
-let of_list l =
-  Trie.of_seq
-    (fun ~path _ _ -> failwith @@ "conflicting keys at " ^ String.concat "." @@ BwdLabels.to_list path)
-    (List.to_seq l)
+let of_list l = Trie.of_seq (List.to_seq l)
 
 let test_none_1 () =
   Alcotest.(check @@ trie data) "ok"
