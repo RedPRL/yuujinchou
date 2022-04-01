@@ -66,13 +66,14 @@ let select env pattern =
 
 ## Installation
 
-You need OCaml 4.08.0 or newer. The package is available on the OPAM repository:
+You need a version of OCaml that supports algebraic effects.
+Currently, it means OCaml >= 5.0.0, OCaml 4.12+domains, or OCaml 4.12+domains+effects
+The package is available in the OPAM repository:
 ```
 opam install yuujinchou
 ```
 
-You could also check out the source repository and install the latest version in development:
+You could also pin the latest version in development:
 ```
-git clone https://github.com/RedPRL/yuujinchou.git
-opam install ./yuujinchou
+opam pin https://github.com/RedPRL/yuujinchou.git
 ```
