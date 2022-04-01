@@ -206,6 +206,7 @@ sig
   module Make (P : Param) : S with type data = P.data and type hook = P.hook
 end
 
+(** The {!module:Scope} module implements the scoping effects based on {!module:Action}. *)
 module Scope :
 sig
   (** The parameters of scoping effects. *)
@@ -243,14 +244,14 @@ sig
     (** [run_on_visible ?prefix pat] modifies the visible namespace by
         running the pattern pat on it, using {!val:Act.run}.
 
-        @param prefix additional prefix prepended to the paths reported by the effect
+        @param prefix The additional prefix prepended to the paths reported by the effects
         in {!module:Act}. *)
 
     val run_on_export : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
     (** [run_on_visible ?prefix pat] modifies the export namespace by
         running the pattern pat on it, using {!val:Act.run}.
 
-        @param prefix additional prefix prepended to the paths reported by the effect
+        @param prefix The additional prefix prepended to the paths reported by the effects
         in {!module:Act}. *)
 
     val export_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
@@ -259,7 +260,7 @@ sig
         Conflicting names during the final merge will trigger the effect
         {!constructor:Act.Shadowing}.
 
-        @param prefix additional prefix prepended to the paths reported by the effect
+        @param prefix The additional prefix prepended to the paths reported by the effects
         in {!module:Act}. *)
 
     val include_singleton : ?prefix:Trie.bwd_path -> Trie.path * data -> unit
@@ -268,15 +269,15 @@ sig
         Conflicting names during the final merge will trigger the effect
         {!constructor:Act.Shadowing}.
 
-        @param prefix additional prefix prepended to the paths reported by the effect
-        in {!module:Act}. *)
+        @param prefix The additional prefix prepended to the paths reported by the effect
+        {!constructor:Act.Shadowing}. *)
 
     val include_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
     (** [include_subtree ?prefix (p, ns)] merges the namespace [ns] prefixed with [p] into
         both the visible and export namespaces. Conflicting names during the final merge
         will trigger the effect {!constructor:Act.Shadowing}.
 
-        @param prefix additional prefix prepended to the paths reported by the effect
+        @param prefix The additional prefix prepended to the paths reported by the effect
         {!constructor:Act.Shadowing}. *)
 
     val import_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
@@ -284,7 +285,7 @@ sig
         the visible namespace (while keeping the export namespace intact).
         Conflicting names during the final merge will trigger the effect {!constructor:Act.Shadowing}.
 
-        @param prefix additional prefix prepended to the paths reported by the effect
+        @param prefix The additional prefix prepended to the paths reported by the effect
         {!constructor:Act.Shadowing}. *)
 
     val run : (unit -> 'a) -> 'a
@@ -296,7 +297,7 @@ sig
         will be prefixed with [p] and merged into both the visible and export namespaces
         of the parent scope.
 
-        @param prefix additional prefix prepended to the paths reported by the effect
+        @param prefix The additional prefix prepended to the paths reported by the effect
         {!constructor:Act.Shadowing}. *)
   end
 
