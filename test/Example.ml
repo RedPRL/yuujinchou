@@ -1,11 +1,3 @@
-# Yuujinchou: Name Pattern Combinators
-
-_Yuujinchou_ is an OCaml package of name patterns for implementing import statements. Please consult the [API documentation](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou) for more details.
-
-## How to Use It
-
-<!-- This part should be in sync with test/Example.ml and src/Yuujinchou.mli -->
-```ocaml
 (* The following shim does nothing for OCaml >= 5, but is needed for OCaml < 5. *)
 open Eff.StdlibShim
 
@@ -96,17 +88,22 @@ let interpret prog =
   handle_pattern_effects @@ fun () ->
   S.run @@ fun () ->
   List.iter interpret_decl prog
-```
 
-## Installation
-
-You need OCaml 4.08.0 or newer. The package is available on the OPAM repository:
-```
-opam install yuujinchou
-```
-
-You could also check out the source repository and install the latest version in development:
-```
-git clone https://github.com/RedPRL/yuujinchou.git
-opam install ./yuujinchou
-```
+(* Some code in action *)
+let () = interpret [
+    Decl (["x"], 1);
+    PrintVisible;
+    Decl (["x"], 2);
+    PrintVisible;
+    ShadowingDecl (["x"], 10);
+    PrintVisible;
+    Import (Trie.of_seq (List.to_seq [["y"], 20]), Pattern.renaming [] ["z"]);
+    PrintVisible;
+    Export ["z"; "y"];
+    Section (["w"], [
+        Decl (["a"], 100);
+        PrintVisible;
+        Export ["x"];
+      ]);
+    PrintVisible;
+  ]
