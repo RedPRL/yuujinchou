@@ -206,6 +206,104 @@ sig
   module Make (P : Param) : S with type data = P.data and type hook = P.hook
 end
 
+module Scope :
+sig
+  (** The parameters of scoping effects. *)
+  module type Param = Action.Param
+
+  (** The signature of scoping effects. *)
+  module type S =
+  sig
+    include Param
+    (** @open *)
+
+    exception RecursiveLocking
+    (** The exception [RecursiveLocking] is raised when an operation on a scope is called
+        before another operation on the same scope is finished.
+        This could happen when the user calls one of the public functions (for example, {!val:run_on_visible}) and calls the same
+        function or another function (for example, {!val:run_on_export}) when handling the effects performed by the pattern engine
+        defined in {!module:Act}.
+        This module blocks all access to the scope in the intermediate states, including {!val:resolve}, and any attempt
+        to access intermediate states of scopes will raise the exception [RecursiveLocking].
+
+        Note: {!val:section} only locks the parent scope; the child scope is initially unlocked.
+    *)
+
+    module Act : Action.S with type data = data and type hook = hook
+    (** The pattern engine used by the scoping mechanism to run patterns.
+        Note that {!module:Action.Make} is generative, so it is crucial to handle
+        effects defined in this module, not other instances of pattern engines. *)
+
+    val resolve : Trie.path -> data option
+    (** [resolve p] looks up the name [p] in the nested scopes
+        and return the data associated with the innermost one.
+        (Nested scopes can be formed by calling {!val:section}.) *)
+
+    val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
+    (** [run_on_visible ?prefix pat] modifies the visible namespace by
+        running the pattern pat on it, using {!val:Act.run}.
+
+        @param prefix additional prefix prepended to the paths reported by the effect
+        in {!module:Act}. *)
+
+    val run_on_export : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
+    (** [run_on_visible ?prefix pat] modifies the export namespace by
+        running the pattern pat on it, using {!val:Act.run}.
+
+        @param prefix additional prefix prepended to the paths reported by the effect
+        in {!module:Act}. *)
+
+    val export_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
+    (** [export_visible ?prefix pat] runs the pattern on the visible namespace,
+        using {!val:Act.run}, but then merge the result into the export namespace.
+        Conflicting names during the final merge will trigger the effect
+        {!constructor:Act.Shadowing}.
+
+        @param prefix additional prefix prepended to the paths reported by the effect
+        in {!module:Act}. *)
+
+    val include_singleton : ?prefix:Trie.bwd_path -> Trie.path * data -> unit
+    (** [include_singleton ?prefix (p, x)] adds a new binding to both the visible
+        and export namespaces, where the binding is associating the data [x] to the path [p].
+        Conflicting names during the final merge will trigger the effect
+        {!constructor:Act.Shadowing}.
+
+        @param prefix additional prefix prepended to the paths reported by the effect
+        in {!module:Act}. *)
+
+    val include_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
+    (** [include_subtree ?prefix (p, ns)] merges the namespace [ns] prefixed with [p] into
+        both the visible and export namespaces. Conflicting names during the final merge
+        will trigger the effect {!constructor:Act.Shadowing}.
+
+        @param prefix additional prefix prepended to the paths reported by the effect
+        {!constructor:Act.Shadowing}. *)
+
+    val import_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
+    (** [include_subtree ?prefix (p, ns)] merges the namespace [ns] prefixed with [p] into
+        the visible namespace (while keeping the export namespace intact).
+        Conflicting names during the final merge will trigger the effect {!constructor:Act.Shadowing}.
+
+        @param prefix additional prefix prepended to the paths reported by the effect
+        {!constructor:Act.Shadowing}. *)
+
+    val run : (unit -> 'a) -> 'a
+    (** Execute the code that performs scoping effects. *)
+
+    val section : ?prefix:Trie.bwd_path -> Trie.path -> (unit -> 'a) -> 'a
+    (** [section ?prefix p f] starts a new section and runs the code [f] with the prefix [p].
+        The child scope inherits the visible namespace from the parent, and the export namespace
+        will be prefixed with [p] and merged into both the visible and export namespaces
+        of the parent scope.
+
+        @param prefix additional prefix prepended to the paths reported by the effect
+        {!constructor:Act.Shadowing}. *)
+  end
+
+  module Make (P : Param) : S with type data = P.data and type hook = P.hook
+  (** The functor to generate a module for scoping effects. *)
+end
+
 (**
    {2 Implementing Features}
 

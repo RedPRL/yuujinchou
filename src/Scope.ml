@@ -5,6 +5,9 @@ module type Param = Action.Param
 module type S =
 sig
   include Param
+
+  exception RecursiveLocking
+
   module Act : Action.S with type data = data and type hook = hook
 
   val resolve : Trie.path -> data option
@@ -62,9 +65,12 @@ struct
 
   open Internal
 
+  exception RecursiveLocking = M.RecursiveLocking
+
   module Act = Internal.A
 
-  let resolve p = resolve p
+  let resolve p =
+    M.exclusively @@ fun () -> resolve p
 
   let run_on_visible ?prefix pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
