@@ -1,0 +1,112 @@
+open Eff.StdlibShim
+
+module type Param = Action.Param
+
+module type S =
+sig
+  include Param
+  module Act : Action.S with type data = data and type hook = hook
+
+  val resolve : Trie.path -> data option
+  val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
+  val run_on_export : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
+  val export_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
+  val include_singleton : ?prefix:Trie.bwd_path -> Trie.path * data -> unit
+  val include_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
+  val import_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
+  val run : (unit -> 'a) -> 'a
+  val section : ?prefix:Trie.bwd_path -> Trie.path -> (unit -> 'a) -> 'a
+end
+
+module Make (P : Param) : S with type data = P.data and type hook = P.hook =
+struct
+  include P
+
+  module Internal =
+  struct
+    module A = Action.Make(P)
+
+    module M = Eff.Mutex.Make()
+
+    type scope = {visible : data Trie.t; export : data Trie.t}
+    module S = Eff.State.Make(struct type state = scope end)
+
+    type _ Effect.t += Resolve : Trie.path -> data option Effect.t
+    let resolve p = Effect.perform (Resolve p)
+
+    let top_level_wall f =
+      let open Effect.Deep in
+      try_with f ()
+        { effc = fun (type a) (eff : a Effect.t) ->
+              match eff with
+              | Resolve _ -> Option.some @@ fun (k : (a, _) continuation) ->
+                continue k None
+              | _ -> None }
+
+    let run_scope ~init_visible f =
+      let init = {visible = init_visible; export = Trie.empty} in
+      M.run @@ fun () -> S.run ~init @@ fun () ->
+      let open Effect.Deep in
+      try_with f ()
+        { effc = fun (type a) (eff : a Effect.t) ->
+              match eff with
+              | Resolve p -> Option.some @@ fun (k : (a, _) continuation) ->
+                let ans =
+                  match Trie.find_singleton p (S.get ()).visible with
+                  | Some x -> Some x
+                  | None -> resolve p
+                in
+                continue k ans
+              | _ -> None }
+  end
+
+  open Internal
+
+  module Act = Internal.A
+
+  let resolve p = resolve p
+
+  let run_on_visible ?prefix pat =
+    M.exclusively @@ fun () -> S.modify @@ fun s ->
+    {s with visible = A.run ?prefix pat s.visible}
+
+  let run_on_export ?prefix pat =
+    M.exclusively @@ fun () -> S.modify @@ fun s ->
+    {s with export = A.run ?prefix pat s.export}
+
+  let merger ~path x y = Effect.perform @@ Act.Shadowing (path, x, y)
+
+  let export_visible ?prefix pat =
+    M.exclusively @@ fun () -> S.modify @@ fun s ->
+    {s with
+     export =
+       Trie.union ?prefix merger s.export @@
+       A.run ?prefix pat s.visible }
+
+  let include_singleton ?prefix (path, x) =
+    M.exclusively @@ fun () -> S.modify @@ fun s ->
+    { visible = Trie.union_singleton ?prefix merger s.visible (path, x);
+      export = Trie.union_singleton ?prefix merger s.export (path, x) }
+
+  let include_subtree ?prefix (path, ns) =
+    M.exclusively @@ fun () -> S.modify @@ fun s ->
+    { visible = Trie.union_subtree ?prefix merger s.visible (path, ns);
+      export = Trie.union_subtree ?prefix merger s.export (path, ns) }
+
+  let import_subtree ?prefix (path, ns) =
+    M.exclusively @@ fun () -> S.modify @@ fun s ->
+    { s with visible = Trie.union_subtree ?prefix merger s.visible (path, ns) }
+
+  let run f =
+    top_level_wall @@ fun () ->
+    run_scope ~init_visible:Trie.empty f
+
+  let section ?prefix p f =
+    M.exclusively @@ fun () ->
+    let ans, export =
+      run_scope ~init_visible:(S.get()).visible @@ fun () ->
+      let ans = f () in ans, (S.get()).export
+    in
+    include_subtree ?prefix (p, export);
+    ans
+end
