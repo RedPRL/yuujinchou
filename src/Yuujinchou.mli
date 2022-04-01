@@ -102,7 +102,7 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 
    {2 Library Organization}
 
-   The library code is split into three parts:
+   The library code is split into four parts: (The {!module:Scope} is new.)
 *)
 
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
@@ -291,8 +291,8 @@ sig
     (** Execute the code that performs scoping effects. *)
 
     val section : ?prefix:Trie.bwd_path -> Trie.path -> (unit -> 'a) -> 'a
-    (** [section ?prefix p f] starts a new section and runs the code [f] with the prefix [p].
-        The child scope inherits the visible namespace from the parent, and the export namespace
+    (** [section ?prefix p f] starts a new scope and runs the thunk [f] within the scope.
+        The child scope inherits the visible namespace from the parent, and its export namespace
         will be prefixed with [p] and merged into both the visible and export namespaces
         of the parent scope.
 
