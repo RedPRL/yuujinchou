@@ -7,11 +7,17 @@ open Bwd
 (* A tiny language demonstrating some power of the Scope module. *)
 type pattern_cmd = Print
 type decl =
+  (* declaration *)
   | Decl of Trie.path * int
-  | ShadowingDecl of Trie.path * int (* supressing the shadowing warning *)
-  | Import of int Trie.t * pattern_cmd Pattern.t (* importing a trie after applying the pattern *)
+  (* declaration, but supressing the shadowing warning *)
+  | ShadowingDecl of Trie.path * int
+  (* importing a trie after applying the pattern *)
+  | Import of int Trie.t * pattern_cmd Pattern.t
+  (* printing out all visible bindings *)
   | PrintVisible
+  (* exporting a binding *)
   | Export of Trie.path
+  (* section *)
   | Section of Trie.path * decl list
 type program = decl list
 
