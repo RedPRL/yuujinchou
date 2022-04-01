@@ -94,10 +94,13 @@ struct
     { visible = Trie.union_singleton ?prefix merger s.visible (path, x);
       export = Trie.union_singleton ?prefix merger s.export (path, x) }
 
-  let include_subtree ?prefix (path, ns) =
-    M.exclusively @@ fun () -> S.modify @@ fun s ->
+  let unsafe_include_subtree ?prefix (path, ns) =
+    S.modify @@ fun s ->
     { visible = Trie.union_subtree ?prefix merger s.visible (path, ns);
       export = Trie.union_subtree ?prefix merger s.export (path, ns) }
+
+  let include_subtree ?prefix (path, ns) =
+    M.exclusively @@ fun () -> unsafe_include_subtree ?prefix (path, ns)
 
   let import_subtree ?prefix (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
@@ -113,6 +116,6 @@ struct
       run_scope ~init_visible:(S.get()).visible @@ fun () ->
       let ans = f () in ans, (S.get()).export
     in
-    include_subtree ?prefix (p, export);
+    unsafe_include_subtree ?prefix (p, export);
     ans
 end
