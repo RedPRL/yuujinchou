@@ -275,9 +275,8 @@ sig
         effects defined in this module, not other instances of pattern engines. *)
 
     val resolve : Trie.path -> data option
-    (** [resolve p] looks up the name [p] in the nested scopes
-        and return the data associated with the innermost one.
-        (Nested scopes can be formed by calling {!val:section}.) *)
+    (** [resolve p] looks up the name [p] in the current scope
+        and return the data associated with the binding. *)
 
     val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
     (** [run_on_visible ?prefix pat] modifies the visible namespace by

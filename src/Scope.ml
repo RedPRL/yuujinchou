@@ -34,33 +34,9 @@ struct
     type scope = {visible : data Trie.t; export : data Trie.t}
     module S = Eff.State.Make(struct type state = scope end)
 
-    type _ Effect.t += Resolve : Trie.path -> data option Effect.t
-    let resolve p = Effect.perform (Resolve p)
-
-    let top_level_wall f =
-      let open Effect.Deep in
-      try_with f ()
-        { effc = fun (type a) (eff : a Effect.t) ->
-              match eff with
-              | Resolve _ -> Option.some @@ fun (k : (a, _) continuation) ->
-                continue k None
-              | _ -> None }
-
     let run_scope ~init_visible f =
       let init = {visible = init_visible; export = Trie.empty} in
-      M.run @@ fun () -> S.run ~init @@ fun () ->
-      let open Effect.Deep in
-      try_with f ()
-        { effc = fun (type a) (eff : a Effect.t) ->
-              match eff with
-              | Resolve p -> Option.some @@ fun (k : (a, _) continuation) ->
-                let ans =
-                  match Trie.find_singleton p (S.get ()).visible with
-                  | Some x -> Some x
-                  | None -> resolve p
-                in
-                continue k ans
-              | _ -> None }
+      M.run @@ fun () -> S.run ~init f
   end
 
   open Internal
@@ -70,7 +46,8 @@ struct
   module Act = Internal.A
 
   let resolve p =
-    M.exclusively @@ fun () -> resolve p
+    M.exclusively @@ fun () ->
+    Trie.find_singleton p (S.get ()).visible
 
   let run_on_visible ?prefix pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
@@ -106,9 +83,7 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     { s with visible = Trie.union_subtree ?prefix merger s.visible (path, ns) }
 
-  let run f =
-    top_level_wall @@ fun () ->
-    run_scope ~init_visible:Trie.empty f
+  let run f = run_scope ~init_visible:Trie.empty f
 
   let section ?prefix p f =
     M.exclusively @@ fun () ->
