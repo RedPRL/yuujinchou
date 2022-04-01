@@ -77,8 +77,7 @@ let data_set : DataSet.t Alcotest.testable =
 
 let trie_of_list l =
   Trie.of_seq
-    (fun ~path _ _ -> failwith @@ "conflicting keys at " ^ String.concat "." @@ BwdLabels.to_list path)
-    (List.to_seq l)
+   (List.to_seq l)
 
 let set_of_list l = DataSet.of_seq (List.to_seq l)
 

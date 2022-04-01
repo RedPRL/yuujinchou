@@ -184,7 +184,9 @@ let to_seq_values t = Seq.map snd @@
 let to_seq ?prefix t = Seq.map (fun (p, v) -> BwdLabels.to_list p, v) @@
   to_seq_with_bwd_paths ?prefix t
 
-let of_seq ?prefix m = Seq.fold_left (union_singleton ?prefix m) empty
+let of_seq_with_merger ?prefix m = Seq.fold_left (union_singleton ?prefix m) empty
+
+let of_seq s = of_seq_with_merger ~prefix:Emp (fun ~path:_ _ y -> y) s
 
 (** {1 Map} *)
 
