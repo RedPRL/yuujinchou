@@ -221,11 +221,12 @@ sig
     exception RecursiveLocking
     (** The exception [RecursiveLocking] is raised when an operation on a scope is called
         before another operation on the same scope is finished.
-        This could happen when the user calls one of the public functions (for example, {!val:run_on_visible}) and calls the same
-        function or another function (for example, {!val:run_on_export}) when handling the effects performed by the pattern engine
-        defined in {!module:Act}.
-        This module blocks all access to the scope in the intermediate states, including {!val:resolve}, and any attempt
-        to access intermediate states of scopes will raise the exception [RecursiveLocking].
+        This could happen when the user calls one of the public functions (for example, {!val:run_on_visible}), and then calls the same
+        function or another one (for example, {!val:run_on_export}) while handling the effects performed by the pattern engine
+        in {!module:Act}.
+
+        The principle is that you should not access any scope in its intermediate states, including {!val:resolve},
+        and any attempt to do so will raise the exception [RecursiveLocking].
 
         Note: {!val:section} only locks the parent scope; the child scope is initially unlocked.
     *)
