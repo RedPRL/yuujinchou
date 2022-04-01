@@ -11,6 +11,6 @@
  (libraries alcotest yuujinchou))
 
 (test
- (name TestImportSelect)
- (modules TestImportSelect)
+ (name Example)
+ (modules Example)
  (libraries alcotest yuujinchou))
