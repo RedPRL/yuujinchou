@@ -4,7 +4,7 @@ module type S =
 sig
   include Param
 
-  exception RecursiveLocking
+  exception Locked
 
   module Act : Action.S with type data = data and type hook = hook
 
