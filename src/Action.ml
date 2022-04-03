@@ -8,22 +8,22 @@ open Pattern
 
 type bwd_path = Trie.bwd_path
 
-module type S =
+module type Param =
 sig
   type data
   type hook
+end
+
+module type S =
+sig
+  include Param
+
   type _ Effect.t +=
     | BindingNotFound : bwd_path -> unit Effect.t
     | Shadowing : bwd_path * data * data -> data Effect.t
     | Hook : hook * bwd_path * data Trie.t -> data Trie.t Effect.t
 
   val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
-end
-
-module type Param =
-sig
-  type data
-  type hook
 end
 
 module Make (P : Param) =

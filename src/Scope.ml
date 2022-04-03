@@ -1,6 +1,10 @@
 open Eff.StdlibShim
 
-module type Param = Action.Param
+module type Param =
+sig
+  type data
+  type hook
+end
 
 module type S =
 sig

@@ -118,7 +118,7 @@ import math # Python: the sqrt function is available as `math.sqrt`.
                | _ -> None }
 
      (* The interpreter *)
-     let rec interpret_decl =
+     let rec interpret_decl : decl -> unit =
        function
        | Decl (p, x) ->
          S.include_singleton (p, x)
@@ -134,7 +134,8 @@ import math # Python: the sqrt function is available as `math.sqrt`.
          S.export_visible (Pattern.only p)
        | Section (p, sec) ->
          S.section p @@ fun () -> List.iter interpret_decl sec
-     let interpret prog =
+
+     let interpret (prog : program) =
        handle_pattern_effects @@ fun () ->
        S.run @@ fun () ->
        List.iter interpret_decl prog

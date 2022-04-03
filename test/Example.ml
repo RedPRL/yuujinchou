@@ -74,7 +74,7 @@ let silence_shadowing f =
           | _ -> None }
 
 (* The interpreter *)
-let rec interpret_decl =
+let rec interpret_decl : decl -> unit =
   function
   | Decl (p, x) ->
     S.include_singleton (p, x)
@@ -90,7 +90,8 @@ let rec interpret_decl =
     S.export_visible (Pattern.only p)
   | Section (p, sec) ->
     S.section p @@ fun () -> List.iter interpret_decl sec
-let interpret prog =
+
+let interpret (prog : program) =
   handle_pattern_effects @@ fun () ->
   S.run @@ fun () ->
   List.iter interpret_decl prog
