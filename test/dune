@@ -13,4 +13,4 @@
 (test
  (name Example)
  (modules Example)
- (libraries alcotest yuujinchou))
+ (libraries yuujinchou))
