@@ -31,7 +31,9 @@ type program = decl list
 
 (* Specialzed Scope module with Data.t *)
 module S = Scope.Make (struct type data = int type hook = pattern_cmd end)
-module A = S.Act
+
+(* New source label for imported namespaces *)
+type S.Act.source += Imported
 
 (* Convert a backward path into a string for printing. *)
 let string_of_bwd_path =
@@ -42,27 +44,32 @@ let string_of_bwd_path =
 (* Handle effects from running the patterns. *)
 let handle_pattern_effects f =
   let open Effect.Deep in
+  let string_of_source =
+    function
+    | Some S.Visible -> " in the visible namespace"
+    | Some S.Export -> " in the export namespace"
+    | Some Imported -> " in the imported namespace"
+    | _ -> " in an unknown namespace"
+  in
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | A.BindingNotFound path -> Option.some @@
+          | S.Act.BindingNotFound (src, path) -> Option.some @@
             fun (k : (a, _) continuation) ->
-            Format.printf "[Warning] Could not find any data within the subtree at %s.@."
-              (string_of_bwd_path path);
+            Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
+              (string_of_bwd_path path) (string_of_source src);
             continue k ()
-          | A.Shadowing (path, old_data, new_data) -> Option.some @@
+          | S.Act.Shadowing (src, path, old_data, new_data) -> Option.some @@
             fun (k : (a, _) continuation) ->
-            if Int.equal old_data new_data then
-              continue k old_data
-            else begin
-              Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i.@."
-                old_data (string_of_bwd_path path) new_data;
+            begin
+              Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
+                old_data (string_of_bwd_path path) new_data (string_of_source src);
               continue k new_data
             end
-          | A.Hook (Print, path, trie) -> Option.some @@
+          | S.Act.Hook (src, path, Print, trie) -> Option.some @@
             fun (k : (a, _) continuation) ->
-            Format.printf "@[<v 2>[Info] Got the following bindings at the prefix %s:@;"
-              (string_of_bwd_path path);
+            Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
+              (string_of_bwd_path path) (string_of_source src);
             Trie.iteri
               (fun ~path data ->
                  Format.printf "%s => %i@;" (string_of_bwd_path path) data)
@@ -77,7 +84,7 @@ let silence_shadowing f =
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | A.Shadowing (_path, _old_data, new_data) -> Option.some @@
+          | S.Act.Shadowing (_src, _path, _old_data, new_data) -> Option.some @@
             fun (k : (a, _) continuation) -> continue k new_data
           | _ -> None }
 
@@ -90,7 +97,7 @@ let rec interpret_decl : decl -> unit =
     silence_shadowing @@ fun () ->
     S.include_singleton (p, x)
   | Import (t, pat) ->
-    let t = A.run pat t in
+    let t = S.Act.run ~source:Imported pat t in
     S.import_subtree ([], t)
   | PrintVisible ->
     S.run_on_visible (Pattern.hook Print)

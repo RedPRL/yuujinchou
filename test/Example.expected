@@ -1,24 +1,24 @@
-[Info] Got the following bindings at the prefix (root):
+[Info] Got the following bindings at (root) in the visible namespace:
   x => 1
   
-[Warning] Data 1 assigned at x was shadowed by data 2.
-[Warning] Data 1 assigned at x was shadowed by data 2.
-[Info] Got the following bindings at the prefix (root):
+[Warning] Data 1 assigned at x was shadowed by data 2 in the export namespace.
+[Warning] Data 1 assigned at x was shadowed by data 2 in the visible namespace.
+[Info] Got the following bindings at (root) in the visible namespace:
   x => 2
   
-[Info] Got the following bindings at the prefix (root):
+[Info] Got the following bindings at (root) in the visible namespace:
   x => 10
   
-[Info] Got the following bindings at the prefix (root):
+[Info] Got the following bindings at (root) in the visible namespace:
   x => 10
   z.y => 20
   
-[Info] Got the following bindings at the prefix (root):
+[Info] Got the following bindings at (root) in the visible namespace:
   a => 100
   x => 10
   z.y => 20
   
-[Info] Got the following bindings at the prefix (root):
+[Info] Got the following bindings at (root) in the visible namespace:
   w.a => 100
   w.x => 10
   x => 10
