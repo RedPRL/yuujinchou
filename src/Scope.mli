@@ -7,6 +7,7 @@ sig
   exception Locked
 
   module Act : Action.S with type data = data and type hook = hook
+  type Act.source += Visible | Export
 
   val resolve : Trie.path -> data option
   val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit

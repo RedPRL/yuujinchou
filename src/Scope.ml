@@ -14,6 +14,8 @@ sig
 
   module Act : Action.S with type data = data and type hook = hook
 
+  type Act.source += Visible | Export
+
   val resolve : Trie.path -> data option
   val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
   val run_on_export : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
@@ -32,6 +34,7 @@ struct
   module Internal =
   struct
     module A = Action.Make(P)
+    type A.source += Visible | Export
 
     module M = Eff.Mutex.Make()
 
@@ -48,6 +51,9 @@ struct
   exception Locked = M.Locked
 
   module Act = Internal.A
+  type Act.source +=
+    | Visible = Internal.Visible
+    | Export = Internal.Export
 
   let resolve p =
     M.exclusively @@ fun () ->
@@ -55,37 +61,37 @@ struct
 
   let run_on_visible ?prefix pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with visible = A.run ?prefix pat s.visible}
+    {s with visible = A.run ~source:Visible ?prefix pat s.visible}
 
   let run_on_export ?prefix pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with export = A.run ?prefix pat s.export}
+    {s with export = A.run ~source:Export ?prefix pat s.export}
 
-  let merger ~path x y = Effect.perform @@ Act.Shadowing (path, x, y)
+  let merger ~source ~path x y = Effect.perform @@ Act.Shadowing (Some source, path, x, y)
 
   let export_visible ?prefix pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ?prefix merger s.export @@
-       A.run ?prefix pat s.visible }
+       Trie.union ?prefix (merger ~source:Export) s.export @@
+       A.run ~source:Visible ?prefix pat s.visible }
 
   let include_singleton ?prefix (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { visible = Trie.union_singleton ?prefix merger s.visible (path, x);
-      export = Trie.union_singleton ?prefix merger s.export (path, x) }
+    { visible = Trie.union_singleton ?prefix (merger ~source:Visible) s.visible (path, x);
+      export = Trie.union_singleton ?prefix (merger ~source:Export) s.export (path, x) }
 
   let unsafe_include_subtree ?prefix (path, ns) =
     S.modify @@ fun s ->
-    { visible = Trie.union_subtree ?prefix merger s.visible (path, ns);
-      export = Trie.union_subtree ?prefix merger s.export (path, ns) }
+    { visible = Trie.union_subtree ?prefix (merger ~source:Visible) s.visible (path, ns);
+      export = Trie.union_subtree ?prefix (merger ~source:Export) s.export (path, ns) }
 
   let include_subtree ?prefix (path, ns) =
     M.exclusively @@ fun () -> unsafe_include_subtree ?prefix (path, ns)
 
   let import_subtree ?prefix (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_subtree ?prefix merger s.visible (path, ns) }
+    { s with visible = Trie.union_subtree ?prefix (merger ~source:Visible) s.visible (path, ns) }
 
   let run f = run_scope ~init_visible:Trie.empty f
 
