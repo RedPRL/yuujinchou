@@ -1,4 +1,4 @@
-open Eff.StdlibShim
+open Algaeff.StdlibShim
 
 module type Param =
 sig
@@ -36,10 +36,10 @@ struct
     module A = Action.Make(P)
     type A.source += Visible | Export
 
-    module M = Eff.Mutex.Make()
+    module M = Algaeff.Mutex.Make()
 
     type scope = {visible : data Trie.t; export : data Trie.t}
-    module S = Eff.State.Make(struct type state = scope end)
+    module S = Algaeff.State.Make(struct type state = scope end)
 
     let run_scope ~init_visible f =
       let init = {visible = init_visible; export = Trie.empty} in

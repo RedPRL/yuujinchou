@@ -7,7 +7,7 @@ _Yuujinchou_ is an OCaml package of name patterns for implementing import statem
 <!-- This part should be in sync with test/Example.ml and src/Yuujinchou.mli -->
 ```ocaml
 (* The following shim does nothing for OCaml >= 5, but is needed for OCaml < 5. *)
-open Eff.StdlibShim
+open Algaeff.StdlibShim
 
 open Yuujinchou
 open Bwd

@@ -1,5 +1,5 @@
 (* The following shim does nothing for OCaml >= 5, but is needed for OCaml < 5. *)
-open Eff.StdlibShim
+open Algaeff.StdlibShim
 
 open Yuujinchou
 open Bwd

@@ -1,4 +1,4 @@
-open Eff.StdlibShim
+open Algaeff.StdlibShim
 
 module type Param =
 sig

@@ -1,5 +1,5 @@
 open StdLabels
-open Eff.StdlibShim
+open Algaeff.StdlibShim
 
 open Bwd
 open BwdNotation
