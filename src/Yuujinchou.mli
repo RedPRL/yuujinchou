@@ -67,7 +67,9 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 
      (* Specialzed Scope module with Data.t *)
      module S = Scope.Make (struct type data = int type hook = pattern_cmd end)
-     module A = S.Act
+
+     (* New source label for imported namespaces *)
+     type S.Act.source += Imported
 
      (* Convert a backward path into a string for printing. *)
      let string_of_bwd_path =
@@ -78,27 +80,32 @@ import math # Python: the sqrt function is available as `math.sqrt`.
      (* Handle effects from running the patterns. *)
      let handle_pattern_effects f =
        let open Effect.Deep in
+       let string_of_source =
+         function
+         | Some S.Visible -> " in the visible namespace"
+         | Some S.Export -> " in the export namespace"
+         | Some Imported -> " in the imported namespace"
+         | _ -> " in an unknown namespace"
+       in
        try_with f ()
          { effc = fun (type a) (eff : a Effect.t) ->
                match eff with
-               | A.BindingNotFound path -> Option.some @@
+               | S.Act.BindingNotFound (src, path) -> Option.some @@
                  fun (k : (a, _) continuation) ->
-                 Format.printf "[Warning] Could not find any data within the subtree at %s.@."
-                   (string_of_bwd_path path);
+                 Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
+                   (string_of_bwd_path path) (string_of_source src);
                  continue k ()
-               | A.Shadowing (path, old_data, new_data) -> Option.some @@
+               | S.Act.Shadowing (src, path, old_data, new_data) -> Option.some @@
                  fun (k : (a, _) continuation) ->
-                 if Int.equal old_data new_data then
-                   continue k old_data
-                 else begin
-                   Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i.@."
-                     old_data (string_of_bwd_path path) new_data;
+                 begin
+                   Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
+                     old_data (string_of_bwd_path path) new_data (string_of_source src);
                    continue k new_data
                  end
-               | A.Hook (Print, path, trie) -> Option.some @@
+               | S.Act.Hook (src, path, Print, trie) -> Option.some @@
                  fun (k : (a, _) continuation) ->
-                 Format.printf "@[<v 2>[Info] Got the following bindings at the prefix %s:@;"
-                   (string_of_bwd_path path);
+                 Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
+                   (string_of_bwd_path path) (string_of_source src);
                  Trie.iteri
                    (fun ~path data ->
                       Format.printf "%s => %i@;" (string_of_bwd_path path) data)
@@ -113,7 +120,7 @@ import math # Python: the sqrt function is available as `math.sqrt`.
        try_with f ()
          { effc = fun (type a) (eff : a Effect.t) ->
                match eff with
-               | A.Shadowing (_path, _old_data, new_data) -> Option.some @@
+               | S.Act.Shadowing (_src, _path, _old_data, new_data) -> Option.some @@
                  fun (k : (a, _) continuation) -> continue k new_data
                | _ -> None }
 
@@ -126,7 +133,7 @@ import math # Python: the sqrt function is available as `math.sqrt`.
          silence_shadowing @@ fun () ->
          S.include_singleton (p, x)
        | Import (t, pat) ->
-         let t = A.run pat t in
+         let t = S.Act.run ~source:Imported pat t in
          S.import_subtree ([], t)
        | PrintVisible ->
          S.run_on_visible (Pattern.hook Print)
@@ -229,22 +236,26 @@ sig
     (** @open *)
     include Param
 
-    (** The effect [BindingNotFound prefix] means that the engine expected at least one binding under the prefix [prefix], but could not find any. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few other patterns expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound (Emp #< "x" #< "y")]. *)
-    type _ Effect.t += BindingNotFound : Trie.bwd_path -> unit Effect.t
+    (** Source of the trie. Each effect may come the source information for the effect handler to identify on which trie the pattern is running. *)
+    type source = ..
 
-    (** The effect [Shadowing (path, x, y)] indicates that two items, [x] and [y], are about to be assigned to the same [path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to bindings having the same name, and when that happens, this effect is performed to resolve the conflicting bindings. The effect is continued with the resolution of [x] and [y]. For example, to implement silent shadowing, one can continue it with the item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
-    type _ Effect.t += Shadowing : Trie.bwd_path * data * data -> data Effect.t
+    (** The effect [BindingNotFound (source, prefix)] means that the engine expected at least one binding within the subtree at [path], but could not find any. Patterns such as {!val:Pattern.any}, {!val:Pattern.only}, {!val:Pattern.none}, and a few other patterns expect at least one matching binding. For example, the pattern {!val:Pattern.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the pattern will trigger the effect [BindingNotFound (Emp #< "x" #< "y")]. See {!type:source} for the argument [source]. *)
+    type _ Effect.t += BindingNotFound : source option * Trie.bwd_path -> unit Effect.t
 
-    (** The effect [Hook (h, prefix, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] while handling the trie [t] that is at the prefix [prefix], it will perform the effect [Hook (h, prefix, t)], which may be continued with the resulting trie. *)
-    type _ Effect.t += Hook : hook * Trie.bwd_path * data Trie.t -> data Trie.t Effect.t
+    (** The effect [Shadowing (source, path, x, y)] indicates that two items, [x] and [y], are about to be assigned to the same [path]. Patterns such as {!val:Pattern.renaming} and {!val:Pattern.union} could lead to bindings having the same name, and when that happens, this effect is performed to resolve the conflicting bindings. The effect is continued with the resolution of [x] and [y]. For example, to implement silent shadowing, one can continue it with the item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. See {!type:source} for the argument [source]. *)
+    type _ Effect.t += Shadowing : source option * Trie.bwd_path * data * data -> data Effect.t
+
+    (** The effect [Hook (source, path, h, t)] is triggered by patterns created by {!val:Pattern.hook}. When the engine encounters the pattern {!val:Pattern.hook}[h] while handling the subtree [t] at [path], it will perform the effect [Hook (source, path, h, t)], which may be continued with the resulting trie. See {!type:source} for the argument [source]. *)
+    type _ Effect.t += Hook : source option * Trie.bwd_path * hook * data Trie.t -> data Trie.t Effect.t
 
     (** [run ~prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
 
+        @param source The source of the trie. If unspecified, effects come with {!constructor:None} as their sources.
         @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
 
         @return The new trie after the transformation.
     *)
-    val run : ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
+    val run : ?source:source -> ?prefix:Trie.bwd_path -> hook Pattern.t -> data Trie.t -> data Trie.t
   end
 
   (** The functor to generate an engine. *)
@@ -280,6 +291,12 @@ sig
     (** The pattern engine used by the scoping mechanism to run patterns.
         Note that {!module:Action.Make} is generative, so it is crucial to handle
         effects defined in this module, not other instances of pattern engines. *)
+
+    type Act.source += Visible
+    (** New source label for visible namespaces. *)
+
+    type Act.source += Export
+    (** New source label for export namespaces. *)
 
     val resolve : Trie.path -> data option
     (** [resolve p] looks up the name [p] in the current scope
