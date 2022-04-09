@@ -52,7 +52,7 @@ let test_singleton =
   Q.Test.make ~count ~name:"singleton" Q.Gen.(pair gen_path int) ~print:Q.Print.(pair print_path int)
     (fun (p, x) -> to_list (Trie.singleton (p, x)) = ListAsTrie.singleton (p, x))
 
-(* Trie.empty is not tested *)
+(* Trie.equal is not tested *)
 
 let test_find_subtree =
   Q.Test.make ~count ~name:"find_subtree" Q.Gen.(pair gen_path gen_list) ~print:Q.Print.(pair print_path print_list)
