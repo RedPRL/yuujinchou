@@ -80,7 +80,7 @@ let test_mapi =
     (fun (prefix, Fun (_, f), l) ->
        to_list (Trie.mapi ?prefix (fun ~path -> f path) (of_list l))
        =
-       ListAsTrie.mapi ?prefix (fun ~path -> f path) l;)
+       ListAsTrie.mapi ?prefix (fun ~path -> f path) l)
 let test_filteri =
   Q.Test.make ~count ~name:"filteri"
     Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path Q.Observable.int bool) gen_list)
