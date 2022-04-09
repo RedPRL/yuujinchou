@@ -34,7 +34,7 @@ let bag_eq l1 l2 = List.stable_sort ~cmp:compare l1 = List.stable_sort ~cmp:comp
 let count = 100
 
 let test_empty =
-  Q.Test.make ~count ~name:"empty" Q.Gen.unit
+  Q.Test.make ~count ~name:"empty" Q.Gen.unit ~print:Q.Print.unit
     (fun () -> to_list Trie.empty = ListAsTrie.empty)
 let test_is_empty =
   Q.Test.make ~count ~name:"is_empty" gen_list ~print:print_list
