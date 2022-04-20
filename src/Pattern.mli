@@ -24,3 +24,5 @@ val seq : 'hook t list -> 'hook t
 val union : 'hook t list -> 'hook t
 
 val hook : 'hook -> 'hook t
+
+val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit

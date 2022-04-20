@@ -215,6 +215,12 @@ sig
 
   (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Action.S} for the effect [Hook] that will be performed when processing this pattern. *)
   val hook : 'hook -> 'hook t
+
+  (** {2 Ugly Printing} *)
+
+  (** [dump dump_hook pat] dumps the internal representation of [pat] for debugging,
+      where [dump_hook] is the ugly printer for hook labels (see {!val:hook}). *)
+  val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit
 end
 
 (** The {!module:Action} module implements the engine running the patterns. *)

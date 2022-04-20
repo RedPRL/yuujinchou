@@ -37,3 +37,25 @@ let rec equal equal_hook pat1 pat2 =
     begin try List.for_all2 ~f:(equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
   | P_hook h1, P_hook h2 -> equal_hook h1 h2
   | _ -> false
+
+let dump_path =
+  Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_char fmt '.') Format.pp_print_string
+
+let rec dump dump_hook fmt =
+  function
+  | P_only p ->
+    Format.fprintf fmt "@[<hv 1>only[@,@[%a@]]@]" dump_path p
+  | P_except p ->
+    Format.fprintf fmt "@[<hv 1>except[@,@[%a@]]@]" dump_path p
+  | P_in (p, pat) ->
+    Format.fprintf fmt "@[<hv 1>in[@,@[%a@];@,@[%a@]]@]" dump_path p (dump dump_hook) pat
+  | P_renaming (p1, p2) ->
+    Format.fprintf fmt "@[<hv 1>renaming[@,@[%a@];@,@[%a@]]@]" dump_path p1 dump_path p2
+  | P_seq pats ->
+    Format.fprintf fmt "@[<hv 1>seq[@,%a]@]"
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ";@,") (dump dump_hook)) pats
+  | P_union pats ->
+    Format.fprintf fmt "@[<hv 1>union[@,%a]@]"
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ";@,") (dump dump_hook)) pats
+  | P_hook h ->
+    Format.fprintf fmt "@[<hv 1>hook[@,@[%a@]]@]" dump_hook h
