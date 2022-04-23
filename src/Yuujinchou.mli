@@ -298,11 +298,9 @@ sig
         Note that {!module:Action.Make} is generative, so it is crucial to handle
         effects defined in this module, not other instances of pattern engines. *)
 
-    type Act.source += Visible
-    (** New source label for visible namespaces. *)
-
-    type Act.source += Export
-    (** New source label for export namespaces. *)
+    type Act.source +=
+      | Visible (** The source label for visible namespaces. *)
+      | Export (** The source label for export namespaces. *)
 
     val resolve : Trie.path -> data option
     (** [resolve p] looks up the name [p] in the current scope
