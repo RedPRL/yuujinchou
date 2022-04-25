@@ -1,4 +1,6 @@
 open Algaeff.StdlibShim
+open Bwd
+open BwdNotation
 
 module type Param =
 sig
@@ -17,14 +19,14 @@ sig
   type Act.source += Visible | Export
 
   val resolve : Trie.path -> data option
-  val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-  val run_on_export : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-  val export_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-  val include_singleton : ?prefix:Trie.bwd_path -> Trie.path * data -> unit
-  val include_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
-  val import_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
-  val run : (unit -> 'a) -> 'a
-  val section : ?prefix:Trie.bwd_path -> Trie.path -> (unit -> 'a) -> 'a
+  val run_on_visible : hook Pattern.t -> unit
+  val run_on_export : hook Pattern.t -> unit
+  val export_visible : hook Pattern.t -> unit
+  val include_singleton : Trie.path * data -> unit
+  val include_subtree : Trie.path * data Trie.t -> unit
+  val import_subtree : Trie.path * data Trie.t -> unit
+  val section : Trie.path -> (unit -> 'a) -> 'a
+  val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> 'a
 end
 
 module Make (P : Param) : S with type data = P.data and type hook = P.hook =
@@ -41,9 +43,15 @@ struct
     type scope = {visible : data Trie.t; export : data Trie.t}
     module S = Algaeff.State.Make(struct type state = scope end)
 
-    let run_scope ~init_visible f =
+    type env = {prefix : Trie.bwd_path}
+    module R = Algaeff.Reader.Make(struct type nonrec env = env end)
+
+    let run ~prefix ~init_visible f =
+      let env = {prefix} in
       let init = {visible = init_visible; export = Trie.empty} in
-      M.run @@ fun () -> S.run ~init f
+      M.run @@ fun () -> R.run ~env @@ fun () -> S.run ~init f
+
+    let prefix () = (R.read()).prefix
   end
 
   open Internal
@@ -59,48 +67,48 @@ struct
     M.exclusively @@ fun () ->
     Trie.find_singleton p (S.get ()).visible
 
-  let run_on_visible ?prefix pat =
+  let run_on_visible pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with visible = A.run ~source:Visible ?prefix pat s.visible}
+    {s with visible = A.run ~source:Visible ~prefix:Emp pat s.visible}
 
-  let run_on_export ?prefix pat =
+  let run_on_export pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with export = A.run ~source:Export ?prefix pat s.export}
+    {s with export = A.run ~source:Export ~prefix:(prefix()) pat s.export}
 
   let merger ~source ~path x y = Effect.perform @@ Act.Shadowing (Some source, path, x, y)
 
-  let export_visible ?prefix pat =
+  let export_visible pat =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ?prefix (merger ~source:Export) s.export @@
-       A.run ~source:Visible ?prefix pat s.visible }
+       Trie.union ~prefix:(prefix()) (merger ~source:Export) s.export @@
+       A.run ~source:Visible ~prefix:Emp pat s.visible }
 
-  let include_singleton ?prefix (path, x) =
+  let include_singleton (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { visible = Trie.union_singleton ?prefix (merger ~source:Visible) s.visible (path, x);
-      export = Trie.union_singleton ?prefix (merger ~source:Export) s.export (path, x) }
+    { visible = Trie.union_singleton ~prefix:Emp (merger ~source:Visible) s.visible (path, x);
+      export = Trie.union_singleton ~prefix:(prefix()) (merger ~source:Export) s.export (path, x) }
 
-  let unsafe_include_subtree ?prefix (path, ns) =
+  let unsafe_include_subtree (path, ns) =
     S.modify @@ fun s ->
-    { visible = Trie.union_subtree ?prefix (merger ~source:Visible) s.visible (path, ns);
-      export = Trie.union_subtree ?prefix (merger ~source:Export) s.export (path, ns) }
+    { visible = Trie.union_subtree ~prefix:Emp (merger ~source:Visible) s.visible (path, ns);
+      export = Trie.union_subtree ~prefix:(prefix()) (merger ~source:Export) s.export (path, ns) }
 
-  let include_subtree ?prefix (path, ns) =
-    M.exclusively @@ fun () -> unsafe_include_subtree ?prefix (path, ns)
+  let include_subtree (path, ns) =
+    M.exclusively @@ fun () -> unsafe_include_subtree (path, ns)
 
-  let import_subtree ?prefix (path, ns) =
+  let import_subtree (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_subtree ?prefix (merger ~source:Visible) s.visible (path, ns) }
+    { s with visible = Trie.union_subtree ~prefix:Emp (merger ~source:Visible) s.visible (path, ns) }
 
-  let run f = run_scope ~init_visible:Trie.empty f
-
-  let section ?prefix p f =
+  let section p f =
     M.exclusively @@ fun () ->
     let ans, export =
-      run_scope ~init_visible:(S.get()).visible @@ fun () ->
+      Internal.run ~prefix:(prefix() <>< p) ~init_visible:(S.get()).visible @@ fun () ->
       let ans = f () in ans, (S.get()).export
     in
-    unsafe_include_subtree ?prefix (p, export);
+    unsafe_include_subtree (p, export);
     ans
+
+  let run ?(prefix=Emp) f = Internal.run ~prefix ~init_visible:Trie.empty f
 end

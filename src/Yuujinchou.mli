@@ -257,7 +257,7 @@ sig
     (** [run ~prefix pattern trie] runs the [pattern] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
 
         @param source The source of the trie. If unspecified, effects come with {!constructor:None} as their sources.
-        @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([[]]).
+        @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([Emp]).
 
         @return The new trie after the transformation.
     *)
@@ -306,65 +306,48 @@ sig
     (** [resolve p] looks up the name [p] in the current scope
         and return the data associated with the binding. *)
 
-    val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-    (** [run_on_visible ?prefix pat] modifies the visible namespace by
-        running the pattern pat on it, using {!val:Act.run}.
+    val run_on_visible : hook Pattern.t -> unit
+    (** [run_on_visible pat] modifies the visible namespace by
+        running the pattern pat on it, using {!val:Act.run}. *)
 
-        @param prefix The additional prefix prepended to the paths reported by the effects
-        in {!module:Act}. *)
+    val run_on_export : hook Pattern.t -> unit
+    (** [run_on_visible pat] modifies the export namespace by
+        running the pattern pat on it, using {!val:Act.run}. *)
 
-    val run_on_export : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-    (** [run_on_visible ?prefix pat] modifies the export namespace by
-        running the pattern pat on it, using {!val:Act.run}.
-
-        @param prefix The additional prefix prepended to the paths reported by the effects
-        in {!module:Act}. *)
-
-    val export_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-    (** [export_visible ?prefix pat] runs the pattern on the visible namespace,
+    val export_visible : hook Pattern.t -> unit
+    (** [export_visible pat] runs the pattern on the visible namespace,
         using {!val:Act.run}, but then merge the result into the export namespace.
         Conflicting names during the final merge will trigger the effect
-        {!constructor:Act.Shadowing}.
+        {!constructor:Act.Shadowing}. *)
 
-        @param prefix The additional prefix prepended to the paths reported by the effects
-        in {!module:Act}. *)
-
-    val include_singleton : ?prefix:Trie.bwd_path -> Trie.path * data -> unit
-    (** [include_singleton ?prefix (p, x)] adds a new binding to both the visible
+    val include_singleton : Trie.path * data -> unit
+    (** [include_singleton (p, x)] adds a new binding to both the visible
         and export namespaces, where the binding is associating the data [x] to the path [p].
         Conflicting names during the final merge will trigger the effect
-        {!constructor:Act.Shadowing}.
-
-        @param prefix The additional prefix prepended to the paths reported by the effect
         {!constructor:Act.Shadowing}. *)
 
-    val include_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
-    (** [include_subtree ?prefix (p, ns)] merges the namespace [ns] prefixed with [p] into
+    val include_subtree : Trie.path * data Trie.t -> unit
+    (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
         both the visible and export namespaces. Conflicting names during the final merge
-        will trigger the effect {!constructor:Act.Shadowing}.
+        will trigger the effect {!constructor:Act.Shadowing}. *)
 
-        @param prefix The additional prefix prepended to the paths reported by the effect
-        {!constructor:Act.Shadowing}. *)
-
-    val import_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
-    (** [include_subtree ?prefix (p, ns)] merges the namespace [ns] prefixed with [p] into
+    val import_subtree : Trie.path * data Trie.t -> unit
+    (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
         the visible namespace (while keeping the export namespace intact).
-        Conflicting names during the final merge will trigger the effect {!constructor:Act.Shadowing}.
+        Conflicting names during the final merge will trigger the effect {!constructor:Act.Shadowing}. *)
 
-        @param prefix The additional prefix prepended to the paths reported by the effect
-        {!constructor:Act.Shadowing}. *)
-
-    val run : (unit -> 'a) -> 'a
-    (** Execute the code that performs scoping effects. *)
-
-    val section : ?prefix:Trie.bwd_path -> Trie.path -> (unit -> 'a) -> 'a
-    (** [section ?prefix p f] starts a new scope and runs the thunk [f] within the scope.
+    val section : Trie.path -> (unit -> 'a) -> 'a
+    (** [section p f] starts a new scope and runs the thunk [f] within the scope.
         The child scope inherits the visible namespace from the parent, and its export namespace
         will be prefixed with [p] and merged into both the visible and export namespaces
-        of the parent scope.
+        of the parent scope. *)
 
-        @param prefix The additional prefix prepended to the paths reported by the effect
-        {!constructor:Act.Shadowing}. *)
+    val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> 'a
+    (** Execute the code that performs scoping effects.
+
+        @param prefix The additional global prefix prepended to the reported paths originating
+        from export namespaces. The default is the empty unit path ([Emp]).
+        This does not affect paths originating from visible namespaces. *)
   end
 
   module Make (P : Param) : S with type data = P.data and type hook = P.hook

@@ -118,6 +118,7 @@ let () = interpret [
         Decl (["a"], 100);
         PrintVisible;
         Export ["x"];
+        Export ["x"];
       ]);
     PrintVisible;
   ]

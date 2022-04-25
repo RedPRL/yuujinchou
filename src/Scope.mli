@@ -10,14 +10,14 @@ sig
   type Act.source += Visible | Export
 
   val resolve : Trie.path -> data option
-  val run_on_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-  val run_on_export : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-  val export_visible : ?prefix:Trie.bwd_path -> hook Pattern.t -> unit
-  val include_singleton : ?prefix:Trie.bwd_path -> Trie.path * data -> unit
-  val include_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
-  val import_subtree : ?prefix:Trie.bwd_path -> Trie.path * data Trie.t -> unit
-  val run : (unit -> 'a) -> 'a
-  val section : ?prefix:Trie.bwd_path -> Trie.path -> (unit -> 'a) -> 'a
+  val run_on_visible : hook Pattern.t -> unit
+  val run_on_export : hook Pattern.t -> unit
+  val export_visible : hook Pattern.t -> unit
+  val include_singleton : Trie.path * data -> unit
+  val include_subtree : Trie.path * data Trie.t -> unit
+  val import_subtree : Trie.path * data Trie.t -> unit
+  val section : Trie.path -> (unit -> 'a) -> 'a
+  val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> 'a
 end
 
 module Make (P : Param) : S with type data = P.data and type hook = P.hook
