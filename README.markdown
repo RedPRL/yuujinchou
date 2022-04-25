@@ -108,8 +108,7 @@ let rec interpret_decl : decl -> unit =
 
 let interpret (prog : program) =
   handle_pattern_effects @@ fun () ->
-  S.run @@ fun () ->
-  List.iter interpret_decl prog
+  S.run (fun () -> List.iter interpret_decl prog)
 ```
 
 ## Installation

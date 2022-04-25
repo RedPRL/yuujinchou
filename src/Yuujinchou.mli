@@ -144,8 +144,7 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 
      let interpret (prog : program) =
        handle_pattern_effects @@ fun () ->
-       S.run @@ fun () ->
-       List.iter interpret_decl prog
+       S.run (fun () -> List.iter interpret_decl prog)
    ]}
 
    {2 Library Organization}
