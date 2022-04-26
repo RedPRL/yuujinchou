@@ -19,9 +19,9 @@ sig
   type Act.source += Visible | Export
 
   val resolve : Trie.path -> data option
-  val run_on_visible : hook Pattern.t -> unit
-  val run_on_export : hook Pattern.t -> unit
-  val export_visible : hook Pattern.t -> unit
+  val run_on_visible : hook Modifier.t -> unit
+  val run_on_export : hook Modifier.t -> unit
+  val export_visible : hook Modifier.t -> unit
   val include_singleton : Trie.path * data -> unit
   val include_subtree : Trie.path * data Trie.t -> unit
   val import_subtree : Trie.path * data Trie.t -> unit

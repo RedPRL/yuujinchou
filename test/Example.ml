@@ -5,14 +5,14 @@ open Yuujinchou
 open Bwd
 
 (* A tiny language demonstrating some power of the Scope module. *)
-type pattern_cmd = Print
+type modifier_cmd = Print
 type decl =
   (* declaration *)
   | Decl of Trie.path * int
   (* declaration, but supressing the shadowing warning *)
   | ShadowingDecl of Trie.path * int
-  (* importing a trie after applying the pattern *)
-  | Import of int Trie.t * pattern_cmd Pattern.t
+  (* importing a trie after applying the modifier *)
+  | Import of int Trie.t * modifier_cmd Modifier.t
   (* printing out all visible bindings *)
   | PrintVisible
   (* exporting a binding *)
@@ -22,7 +22,7 @@ type decl =
 type program = decl list
 
 (* Specialzed Scope module with Data.t *)
-module S = Scope.Make (struct type data = int type hook = pattern_cmd end)
+module S = Scope.Make (struct type data = int type hook = modifier_cmd end)
 
 (* New source label for imported namespaces *)
 type S.Act.source += Imported
@@ -33,8 +33,8 @@ let string_of_bwd_path =
   | Emp -> "(root)"
   | path -> String.concat "." (BwdLabels.to_list path)
 
-(* Handle effects from running the patterns. *)
-let handle_pattern_effects f =
+(* Handle effects from running the modifiers. *)
+let handle_modifier_effects f =
   let open Effect.Deep in
   let string_of_source =
     function
@@ -88,18 +88,18 @@ let rec interpret_decl : decl -> unit =
   | ShadowingDecl (p, x) ->
     silence_shadowing @@ fun () ->
     S.include_singleton (p, x)
-  | Import (t, pat) ->
-    let t = S.Act.run ~source:Imported pat t in
+  | Import (t, m) ->
+    let t = S.Act.run ~source:Imported m t in
     S.import_subtree ([], t)
   | PrintVisible ->
-    S.run_on_visible (Pattern.hook Print)
+    S.run_on_visible (Modifier.hook Print)
   | Export p ->
-    S.export_visible (Pattern.only p)
+    S.export_visible (Modifier.only p)
   | Section (p, sec) ->
     S.section p @@ fun () -> List.iter interpret_decl sec
 
 let interpret (prog : program) =
-  handle_pattern_effects @@ fun () ->
+  handle_modifier_effects @@ fun () ->
   S.run (fun () -> List.iter interpret_decl prog)
 
 (* Some code in action *)
@@ -110,7 +110,7 @@ let () = interpret [
     PrintVisible;
     ShadowingDecl (["x"], 10);
     PrintVisible;
-    Import (Trie.of_seq (List.to_seq [["y"], 20]), Pattern.renaming [] ["z"]);
+    Import (Trie.of_seq (List.to_seq [["y"], 20]), Modifier.renaming [] ["z"]);
     PrintVisible;
     Export ["z"; "y"];
     Section (["w"], [

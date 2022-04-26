@@ -1,4 +1,4 @@
 module Trie = Trie
-module Pattern = Pattern
+module Modifier = Modifier
 module Action = Action
 module Scope = Scope
