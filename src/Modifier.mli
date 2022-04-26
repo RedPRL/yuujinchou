@@ -1,6 +1,6 @@
 type 'hook t =
   | P_only of Trie.path
-  | P_except of Trie.path
+  | P_none
   | P_in of Trie.path * 'hook t
   | P_renaming of Trie.path * Trie.path
   | P_seq of 'hook t list

@@ -50,10 +50,8 @@ struct
         let t = Trie.find_subtree p t in
         check_nonempty ~path:(prefix <>< p) t;
         Trie.prefix p t
-      | P_except p ->
-        let t, remaining = Trie.detach_subtree p t in
-        check_nonempty ~path:(prefix <>< p) t;
-        remaining
+      | P_none ->
+        check_nonempty ~path:prefix t; Trie.empty
       | P_in (p, pat) ->
         Trie.update_subtree p (go ~prefix:(prefix <>< p) pat) t
       | P_renaming (p1, p2) ->
