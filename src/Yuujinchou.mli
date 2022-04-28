@@ -225,6 +225,9 @@ sig
         the visible namespace (while keeping the export namespace intact).
         Conflicting names during the final merge will trigger the effect {!constructor:Act.Shadowing}. *)
 
+    val get_export : unit -> data Trie.t
+    (** [get_export ()] returns the export namespace of the current scope. *)
+
     val section : Trie.path -> (unit -> 'a) -> 'a
     (** [section p f] starts a new scope and runs the thunk [f] within the scope.
         The child scope inherits the visible namespace from the parent, and its export namespace

@@ -25,6 +25,7 @@ sig
   val include_singleton : Trie.path * data -> unit
   val include_subtree : Trie.path * data Trie.t -> unit
   val import_subtree : Trie.path * data Trie.t -> unit
+  val get_export : unit -> data Trie.t
   val section : Trie.path -> (unit -> 'a) -> 'a
   val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> 'a
 end
@@ -101,11 +102,14 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     { s with visible = Trie.union_subtree ~prefix:Emp (merger ~source:Visible) s.visible (path, ns) }
 
+  let get_export () =
+    M.exclusively @@ fun () -> (S.get()).export
+
   let section p f =
     M.exclusively @@ fun () ->
     let ans, export =
       Internal.run ~prefix:(prefix() <>< p) ~init_visible:(S.get()).visible @@ fun () ->
-      let ans = f () in ans, (S.get()).export
+      let ans = f () in ans, get_export ()
     in
     unsafe_include_subtree (p, export);
     ans
