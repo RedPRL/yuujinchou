@@ -90,13 +90,13 @@ sig
 
   (** {2 Sequencing} *)
 
-  (** [seq [pat0; pat1; pat2; ...; patn]] runs the modifiers [pat0], [pat1], [pat2], ..., [patn] in order.
+  (** [seq [m0; m1; m2; ...; mn]] runs the modifiers [m0], [m1], [m2], ..., [mn] in order.
       In particular, [seq []] is the identity modifier. *)
   val seq : 'hook t list -> 'hook t
 
   (** {2 Union} *)
 
-  (** [union [pat0; pat1; pat2; ...; patn]] calculates the union of the results of individual modifiers [pat0], [pat1], [pat2], ..., [patn].
+  (** [union [m0; m1; m2; ...; mn]] calculates the union of the results of individual modifiers [m0], [m1], [m2], ..., [mn].
       In particular, [union []] is the empty modifier. *)
   val union : 'hook t list -> 'hook t
 

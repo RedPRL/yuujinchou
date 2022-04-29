@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "yuujinchou"
-synopsis: "Name pattern combinators"
+synopsis: "Name modifier combinators"
 description: """
 This package implements a domain-specific language for modifying names. It intends to facilitate the implementation of the "import" statement.
 """
