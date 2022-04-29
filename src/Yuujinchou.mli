@@ -54,7 +54,7 @@ sig
   type +'hook t
 
   (**
-     The modifier type is abstract---you should build a modifier using the following builders and execute it by {!val:Action.S.run}.
+     The modifier type is abstract---you should build a modifier using the following builders and execute it by {!val:Action.S.exec}.
   *)
 
   (** Checking equality. *)
@@ -143,14 +143,14 @@ sig
     (** The effect [Hook (source, path, h, t)] is triggered by modifiers created by {!val:Modifier.hook}. When the engine encounters the modifier {!val:Modifier.hook}[h] while handling the subtree [t] at [path], it will perform the effect [Hook (source, path, h, t)], which may be continued with the resulting trie. See {!type:source} for the argument [source]. *)
     type _ Effect.t += Hook : source option * Trie.bwd_path * hook * data Trie.t -> data Trie.t Effect.t
 
-    (** [run ~prefix modifier trie] runs the [modifier] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
+    (** [exec ~prefix modifier trie] runs the [modifier] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
 
         @param source The source of the trie. If unspecified, effects come with {!constructor:None} as their sources.
         @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([Emp]).
 
         @return The new trie after the transformation.
     *)
-    val run : ?source:source -> ?prefix:Trie.bwd_path -> hook Modifier.t -> data Trie.t -> data Trie.t
+    val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook Modifier.t -> data Trie.t -> data Trie.t
   end
 
   (** The functor to generate an engine. *)
@@ -172,8 +172,8 @@ sig
     exception Locked
     (** The exception [Locked] is raised when an operation on a scope is called
         before another operation on the same scope is finished.
-        This could happen when the user calls one of the public functions (for example, {!val:run_on_visible}), and then calls the same
-        function or another one (for example, {!val:run_on_export}) while handling the effects performed by the modifier engine
+        This could happen when the user calls one of the public functions (for example, {!val:modify_visible}), and then calls the same
+        function or another one (for example, {!val:modify_export}) while handling the effects performed by the modifier engine
         in {!module:Act}.
 
         The principle is that you should not access any scope in its intermediate states, including {!val:resolve},
@@ -195,17 +195,17 @@ sig
     (** [resolve p] looks up the name [p] in the current scope
         and return the data associated with the binding. *)
 
-    val run_on_visible : hook Modifier.t -> unit
-    (** [run_on_visible m] modifies the visible namespace by
-        running the modifier [m] on it, using {!val:Act.run}. *)
+    val modify_visible : hook Modifier.t -> unit
+    (** [modify_visible m] modifies the visible namespace by
+        running the modifier [m] on it, using {!val:Act.exec}. *)
 
-    val run_on_export : hook Modifier.t -> unit
-    (** [run_on_visible m] modifies the export namespace by
-        running the modifier [m] on it, using {!val:Act.run}. *)
+    val modify_export : hook Modifier.t -> unit
+    (** [modify_visible m] modifies the export namespace by
+        running the modifier [m] on it, using {!val:Act.exec}. *)
 
     val export_visible : hook Modifier.t -> unit
     (** [export_visible m] runs the modifier on the visible namespace,
-        using {!val:Act.run}, but then merge the result into the export namespace.
+        using {!val:Act.exec}, but then merge the result into the export namespace.
         Conflicting names during the final merge will trigger the effect
         {!constructor:Act.Shadowing}. *)
 
@@ -346,7 +346,7 @@ end
          let t = S.Act.run ~source:Imported m t in
          S.import_subtree ([], t)
        | PrintVisible ->
-         S.run_on_visible (Modifier.hook Print)
+         S.modify_visible (Modifier.hook Print)
        | Export p ->
          S.export_visible (Modifier.only p)
        | Section (p, sec) ->

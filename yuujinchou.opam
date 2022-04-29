@@ -2,7 +2,7 @@ opam-version: "2.0"
 name: "yuujinchou"
 synopsis: "Name pattern combinators"
 description: """
-This package implements a pattern language for selecting names. It intends to facilitate the implementation of the "import" statement or any feature that allows users to select a group of names by patterns.
+This package implements a domain-specific language for modifying names. It intends to facilitate the implementation of the "import" statement.
 """
 maintainer: "favonia <favonia@gmail.com>"
 authors: "favonia <favonia@gmail.com>"

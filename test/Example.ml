@@ -89,10 +89,10 @@ let rec interpret_decl : decl -> unit =
     silence_shadowing @@ fun () ->
     S.include_singleton (p, x)
   | Import (t, m) ->
-    let t = S.Act.run ~source:Imported m t in
+    let t = S.Act.exec ~source:Imported m t in
     S.import_subtree ([], t)
   | PrintVisible ->
-    S.run_on_visible (Modifier.hook Print)
+    S.modify_visible (Modifier.hook Print)
   | Export p ->
     S.export_visible (Modifier.only p)
   | Section (p, sec) ->

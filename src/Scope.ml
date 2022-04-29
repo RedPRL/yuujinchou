@@ -19,8 +19,8 @@ sig
   type Act.source += Visible | Export
 
   val resolve : Trie.path -> data option
-  val run_on_visible : hook Modifier.t -> unit
-  val run_on_export : hook Modifier.t -> unit
+  val modify_visible : hook Modifier.t -> unit
+  val modify_export : hook Modifier.t -> unit
   val export_visible : hook Modifier.t -> unit
   val include_singleton : Trie.path * data -> unit
   val include_subtree : Trie.path * data Trie.t -> unit
@@ -68,22 +68,22 @@ struct
     M.exclusively @@ fun () ->
     Trie.find_singleton p (S.get ()).visible
 
-  let run_on_visible pat =
+  let modify_visible m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with visible = A.run ~source:Visible ~prefix:Emp pat s.visible}
+    {s with visible = A.exec ~source:Visible ~prefix:Emp m s.visible}
 
-  let run_on_export pat =
+  let modify_export m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with export = A.run ~source:Export ~prefix:(prefix()) pat s.export}
+    {s with export = A.exec ~source:Export ~prefix:(prefix()) m s.export}
 
   let merger ~source ~path x y = Effect.perform @@ Act.Shadowing (Some source, path, x, y)
 
-  let export_visible pat =
+  let export_visible m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
        Trie.union ~prefix:(prefix()) (merger ~source:Export) s.export @@
-       A.run ~source:Visible ~prefix:Emp pat s.visible }
+       A.exec ~source:Visible ~prefix:Emp m s.visible }
 
   let include_singleton (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
