@@ -1,11 +1,11 @@
 type 'hook t =
-  | P_only of Trie.path
-  | P_none
-  | P_in of Trie.path * 'hook t
-  | P_renaming of Trie.path * Trie.path
-  | P_seq of 'hook t list
-  | P_union of 'hook t list
-  | P_hook of 'hook
+  | M_only of Trie.path
+  | M_none
+  | M_in of Trie.path * 'hook t
+  | M_renaming of Trie.path * Trie.path
+  | M_seq of 'hook t list
+  | M_union of 'hook t list
+  | M_hook of 'hook
 
 val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
 

@@ -46,28 +46,28 @@ struct
     let hook h ~prefix t = Effect.perform @@ Hook (source, prefix, h, t) in
     let rec go ~prefix pat t =
       match pat with
-      | P_only p ->
+      | M_only p ->
         let t = Trie.find_subtree p t in
         check_nonempty ~path:(prefix <>< p) t;
         Trie.prefix p t
-      | P_none ->
+      | M_none ->
         check_nonempty ~path:prefix t; Trie.empty
-      | P_in (p, pat) ->
+      | M_in (p, pat) ->
         Trie.update_subtree p (go ~prefix:(prefix <>< p) pat) t
-      | P_renaming (p1, p2) ->
+      | M_renaming (p1, p2) ->
         let t, remaining = Trie.detach_subtree p1 t in
         check_nonempty ~path:(prefix <>< p1) t;
         Trie.union_subtree ~prefix merger remaining (p2, t)
-      | P_seq pats ->
+      | M_seq pats ->
         let f t pat = go ~prefix pat t in
         List.fold_left ~f ~init:t pats
-      | P_union pats ->
+      | M_union pats ->
         let f ts pat =
           let ti = go ~prefix pat t in
           Trie.union ~prefix merger ts ti
         in
         List.fold_left ~f ~init:Trie.empty pats
-      | P_hook h -> hook h ~prefix t
+      | M_hook h -> hook h ~prefix t
     in go
 
   let run ?source ?(prefix=Emp) pat t = run_ ~source ~prefix pat t
