@@ -1,4 +1,4 @@
-# Yuujinchou: Name Modifier Combinators
+# Yuujinchou (友人帳): Name Modifiers
 
 _Yuujinchou_ is an OCaml package of name modifiers. Please consult the [API documentation](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou) for more details.
 

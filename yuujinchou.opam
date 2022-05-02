@@ -1,8 +1,8 @@
 opam-version: "2.0"
 name: "yuujinchou"
-synopsis: "Name modifier combinators"
+synopsis: "Name modifiers"
 description: """
-This package implements a domain-specific language for modifying names. It intends to facilitate the implementation of the "import" statement.
+This package implements a domain-specific language for modifying hierarchical names. It intends to facilitate the implementation of the "import" statement.
 """
 maintainer: "favonia <favonia@gmail.com>"
 authors: "favonia <favonia@gmail.com>"
