@@ -65,22 +65,22 @@ sig
   (** {2 Basics} *)
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
-      To avoid the emptiness checking, use the identity modifier {!val:seq}[[]]. *)
+      To avoid the emptiness checking, use the identity modifier {!val:seq}[ []]. *)
   val any : 'hook t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
   val only : Trie.path -> 'hook t
 
-  (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"]]{!val:any} will keep [y] (if existing), while {!val:only}[["x"]] will drop [y]. *)
+  (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"] ]{!val:any} will keep [y] (if existing), while {!val:only}[ ["x"]] will drop [y]. *)
   val in_ : Trie.path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop).
-      To avid the emptiness checking, use the empty modifier {!val:union}[[]]. *)
+      To avid the emptiness checking, use the empty modifier {!val:union}[ []]. *)
   val none : 'hook t
 
-  (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[p]{!val:none}. *)
+  (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[ p ]{!val:none}. *)
   val except : Trie.path -> 'hook t
 
   (** {2 Renaming} *)
@@ -134,13 +134,13 @@ sig
     (** Source of the trie. Each effect may come the source information for the effect handler to identify on which trie the modifier is running. *)
     type source = ..
 
-    (** The effect [BindingNotFound (source, prefix)] means that the engine expected at least one binding within the subtree at [path], but could not find any. Modifiers such as {!val:Modifier.any}, {!val:Modifier.only}, {!val:Modifier.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Modifier.except}[["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger the effect [BindingNotFound (Emp #< "x" #< "y")]. See {!type:source} for the argument [source]. *)
+    (** The effect [BindingNotFound (source, prefix)] means that the engine expected at least one binding within the subtree at [path], but could not find any. Modifiers such as {!val:Modifier.any}, {!val:Modifier.only}, {!val:Modifier.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Modifier.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger the effect [BindingNotFound (Emp #< "x" #< "y")]. See {!type:source} for the argument [source]. *)
     type _ Effect.t += BindingNotFound : source option * Trie.bwd_path -> unit Effect.t
 
     (** The effect [Shadowing (source, path, x, y)] indicates that two items, [x] and [y], are about to be assigned to the same [path]. Modifiers such as {!val:Modifier.renaming} and {!val:Modifier.union} could lead to bindings having the same name, and when that happens, this effect is performed to resolve the conflicting bindings. The effect is continued with the resolution of [x] and [y]. For example, to implement silent shadowing, one can continue it with the item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. See {!type:source} for the argument [source]. *)
     type _ Effect.t += Shadowing : source option * Trie.bwd_path * data * data -> data Effect.t
 
-    (** The effect [Hook (source, path, h, t)] is triggered by modifiers created by {!val:Modifier.hook}. When the engine encounters the modifier {!val:Modifier.hook}[h] while handling the subtree [t] at [path], it will perform the effect [Hook (source, path, h, t)], which may be continued with the resulting trie. See {!type:source} for the argument [source]. *)
+    (** The effect [Hook (source, path, h, t)] is triggered by modifiers created by {!val:Modifier.hook}. When the engine encounters the modifier {!val:Modifier.hook}[ h] while handling the subtree [t] at [path], it will perform the effect [Hook (source, path, h, t)], which may be continued with the resulting trie. See {!type:source} for the argument [source]. *)
     type _ Effect.t += Hook : source option * Trie.bwd_path * hook * data Trie.t -> data Trie.t Effect.t
 
     (** [exec ~prefix modifier trie] runs the [modifier] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.

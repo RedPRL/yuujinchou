@@ -1,4 +1,4 @@
-# Yuujinchou (友人帳): Name Modifiers
+# 👹 Yuujinchou (友人帳): Name Modifiers
 
 _Yuujinchou_ is an OCaml package of name modifiers. Please consult the [API documentation](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou) for more details.
 
@@ -16,7 +16,7 @@ _Yuujinchou_ is an OCaml package of name modifiers. Please consult the [API docu
 ## Installation
 
 You need a version of OCaml that supports algebraic effects.
-Currently, it means OCaml >= 5.0.0, OCaml 4.12+domains, or OCaml 4.12+domains+effects
+Currently, it means OCaml >= 5.0.0, OCaml 4.12+domains, or OCaml 4.12+domains+effects.
 The package is available in the OPAM repository:
 ```
 opam install yuujinchou
