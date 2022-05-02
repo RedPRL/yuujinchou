@@ -13,9 +13,9 @@ sig
   type source = ..
 
   type _ Effect.t +=
-    | BindingNotFound : source option * Trie.bwd_path -> unit Effect.t
-    | Shadowing : source option * Trie.bwd_path * data * data -> data Effect.t
-    | Hook : source option * Trie.bwd_path * hook * data Trie.t -> data Trie.t Effect.t
+    | BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
+    | Shadowing : {source : source option; path : Trie.bwd_path; former : data; latter : data} -> data Effect.t
+    | Hook : {source : source option; prefix : Trie.bwd_path; hook : hook; input : data Trie.t} -> data Trie.t Effect.t
 
   val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook Modifier.t -> data Trie.t -> data Trie.t
 end

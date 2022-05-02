@@ -46,28 +46,28 @@ let handle_modifier_effects f =
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | S.Act.BindingNotFound (src, path) -> Option.some @@
+          | S.Act.BindingNotFound {source; prefix} -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
-              (string_of_bwd_path path) (string_of_source src);
+              (string_of_bwd_path prefix) (string_of_source source);
             continue k ()
-          | S.Act.Shadowing (src, path, old_data, new_data) -> Option.some @@
+          | S.Act.Shadowing {source; path; former; latter} -> Option.some @@
             fun (k : (a, _) continuation) ->
             begin
               Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
-                old_data (string_of_bwd_path path) new_data (string_of_source src);
-              continue k new_data
+                former (string_of_bwd_path path) latter (string_of_source source);
+              continue k latter
             end
-          | S.Act.Hook (src, path, Print, trie) -> Option.some @@
+          | S.Act.Hook {source; prefix; hook = Print; input} -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
-              (string_of_bwd_path path) (string_of_source src);
+              (string_of_bwd_path prefix) (string_of_source source);
             Trie.iteri
               (fun ~path data ->
                  Format.printf "%s => %i@;" (string_of_bwd_path path) data)
-              trie;
+              input;
             Format.printf "@]@.";
-            continue k trie
+            continue k input
           | _ -> None }
 
 (* Mute the shadowing effects. *)
@@ -76,8 +76,8 @@ let silence_shadowing f =
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | S.Act.Shadowing (_src, _path, _old_data, new_data) -> Option.some @@
-            fun (k : (a, _) continuation) -> continue k new_data
+          | S.Act.Shadowing {latter; _} -> Option.some @@
+            fun (k : (a, _) continuation) -> continue k latter
           | _ -> None }
 
 (* The interpreter *)

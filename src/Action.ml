@@ -19,9 +19,9 @@ sig
   type source = ..
 
   type _ Effect.t +=
-    | BindingNotFound : source option * Trie.bwd_path -> unit Effect.t
-    | Shadowing : source option * Trie.bwd_path * data * data -> data Effect.t
-    | Hook : source option * Trie.bwd_path * hook * data Trie.t -> data Trie.t Effect.t
+    | BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
+    | Shadowing : {source : source option; path : Trie.bwd_path; former : data; latter : data} -> data Effect.t
+    | Hook : {source : source option; prefix : Trie.bwd_path; hook : hook; input : data Trie.t} -> data Trie.t Effect.t
 
   val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook Modifier.t -> data Trie.t -> data Trie.t
 end
@@ -33,30 +33,30 @@ struct
   type source = ..
 
   type _ Effect.t +=
-    | BindingNotFound : source option * Trie.bwd_path -> unit Effect.t
-    | Shadowing : source option * Trie.bwd_path * data * data -> data Effect.t
-    | Hook : source option * Trie.bwd_path * hook * data Trie.t -> data Trie.t Effect.t
+    | BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
+    | Shadowing : {source : source option; path : Trie.bwd_path; former : data; latter : data} -> data Effect.t
+    | Hook : {source : source option; prefix : Trie.bwd_path; hook : hook; input : data Trie.t} -> data Trie.t Effect.t
 
   let exec ?source ?(prefix=Emp) =
-    let check_nonempty ~path t =
+    let check_nonempty ~prefix t =
       if Trie.is_empty t then
-        Effect.perform @@ BindingNotFound (source, path)
+        Effect.perform @@ BindingNotFound {source; prefix}
     in
-    let merger ~path x y = Effect.perform @@ Shadowing (source, path, x, y) in
-    let hook h ~prefix t = Effect.perform @@ Hook (source, prefix, h, t) in
+    let merger ~path former latter = Effect.perform @@ Shadowing {source; path; former; latter} in
+    let hook hook ~prefix t = Effect.perform @@ Hook {source; prefix; hook; input=t} in
     let rec go ~prefix m t =
       match m with
       | M_only p ->
         let t = Trie.find_subtree p t in
-        check_nonempty ~path:(prefix <>< p) t;
+        check_nonempty ~prefix:(prefix <>< p) t;
         Trie.prefix p t
       | M_none ->
-        check_nonempty ~path:prefix t; Trie.empty
+        check_nonempty ~prefix t; Trie.empty
       | M_in (p, m) ->
         Trie.update_subtree p (go ~prefix:(prefix <>< p) m) t
       | M_renaming (p1, p2) ->
         let t, remaining = Trie.detach_subtree p1 t in
-        check_nonempty ~path:(prefix <>< p1) t;
+        check_nonempty ~prefix:(prefix <>< p1) t;
         Trie.union_subtree ~prefix merger remaining (p2, t)
       | M_seq ms ->
         let f t m = go ~prefix m t in
@@ -69,5 +69,4 @@ struct
         List.fold_left ~f ~init:Trie.empty ms
       | M_hook h -> hook h ~prefix t
     in go ~prefix
-
 end

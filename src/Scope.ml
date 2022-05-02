@@ -76,7 +76,7 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with export = A.exec ~source:Export ~prefix:(prefix()) m s.export}
 
-  let merger ~source ~path x y = Effect.perform @@ Act.Shadowing (Some source, path, x, y)
+  let merger ~source ~path former latter = Effect.perform @@ Act.Shadowing {source = Some source; path; former; latter}
 
   let export_visible m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->

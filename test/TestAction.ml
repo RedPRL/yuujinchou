@@ -40,12 +40,12 @@ let wrap f =
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | A.BindingNotFound (_src, path) -> Option.some @@
+          | A.BindingNotFound {prefix; _} -> Option.some @@
             fun (k : (a, _) continuation) ->
-            discontinue k @@ WrappedBindingNotFound path
-          | A.Shadowing (_src, path, x, y) -> Option.some @@
+            discontinue k @@ WrappedBindingNotFound prefix
+          | A.Shadowing {path; former; latter; _} -> Option.some @@
             fun (k : (a, _) continuation) ->
-            continue k @@ U (path, x, y)
+            continue k @@ U (path, former, latter)
           | A.Hook _ -> .
           | _ -> None
     }
