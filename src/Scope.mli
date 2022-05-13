@@ -1,4 +1,4 @@
-module type Param = Action.Param
+module type Param = Modifier.Param
 
 module type S =
 sig
@@ -6,13 +6,13 @@ sig
 
   exception Locked
 
-  module Act : Action.S with type data = data and type hook = hook
-  type Act.source += Visible | Export
+  module Mod : Modifier.S with type data = data and type hook = hook
+  type Mod.source += Visible | Export
 
   val resolve : Trie.path -> data option
-  val modify_visible : hook Modifier.t -> unit
-  val modify_export : hook Modifier.t -> unit
-  val export_visible : hook Modifier.t -> unit
+  val modify_visible : hook Language.modifier -> unit
+  val modify_export : hook Language.modifier -> unit
+  val export_visible : hook Language.modifier -> unit
   val include_singleton : Trie.path * data -> unit
   val include_subtree : Trie.path * data Trie.t -> unit
   val import_subtree : Trie.path * data Trie.t -> unit

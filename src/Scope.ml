@@ -14,14 +14,14 @@ sig
 
   exception Locked
 
-  module Act : Action.S with type data = data and type hook = hook
+  module Mod : Modifier.S with type data = data and type hook = hook
 
-  type Act.source += Visible | Export
+  type Mod.source += Visible | Export
 
   val resolve : Trie.path -> data option
-  val modify_visible : hook Modifier.t -> unit
-  val modify_export : hook Modifier.t -> unit
-  val export_visible : hook Modifier.t -> unit
+  val modify_visible : hook Language.modifier -> unit
+  val modify_export : hook Language.modifier -> unit
+  val export_visible : hook Language.modifier -> unit
   val include_singleton : Trie.path * data -> unit
   val include_subtree : Trie.path * data Trie.t -> unit
   val import_subtree : Trie.path * data Trie.t -> unit
@@ -36,8 +36,8 @@ struct
 
   module Internal =
   struct
-    module A = Action.Make(P)
-    type A.source += Visible | Export
+    module Mod = Modifier.Make(P)
+    type Mod.source += Visible | Export
 
     module M = Algaeff.Mutex.Make()
 
@@ -59,8 +59,8 @@ struct
 
   exception Locked = M.Locked
 
-  module Act = Internal.A
-  type Act.source +=
+  module Mod = Internal.Mod
+  type Mod.source +=
     | Visible = Internal.Visible
     | Export = Internal.Export
 
@@ -70,20 +70,20 @@ struct
 
   let modify_visible m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with visible = A.exec ~source:Visible ~prefix:Emp m s.visible}
+    {s with visible = Mod.exec ~source:Visible ~prefix:Emp m s.visible}
 
   let modify_export m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with export = A.exec ~source:Export ~prefix:(prefix()) m s.export}
+    {s with export = Mod.exec ~source:Export ~prefix:(prefix()) m s.export}
 
-  let merger ~source ~path former latter = Effect.perform @@ Act.Shadowing {source = Some source; path; former; latter}
+  let merger ~source ~path former latter = Effect.perform @@ Mod.Shadowing {source = Some source; path; former; latter}
 
   let export_visible m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
        Trie.union ~prefix:(prefix()) (merger ~source:Export) s.export @@
-       A.exec ~source:Visible ~prefix:Emp m s.visible }
+       Mod.exec ~source:Visible ~prefix:Emp m s.visible }
 
   let include_singleton (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->

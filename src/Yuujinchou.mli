@@ -45,20 +45,27 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
 module Trie : module type of Trie
 
-(** The {!module:Modifier} module defines the modifiers. *)
-module Modifier :
+(** The {!module:Language} module defines the language of modifiers. *)
+module Language :
 sig
-  (** {1 Modifier Type } *)
+  (** {1 Types} *)
+
+  (** The type of generic modifiers, parametrized by the type of hook labels. *)
+  type (!'hook, !'kind) t constraint 'kind = [< `Modifier | `Selector]
 
   (** The type of modifiers, parametrized by the type of hook labels. See {!val:hook}. *)
-  type +'hook t
+  type 'hook modifier = ('hook, [`Modifier]) t
+
+  (** The type of selectors, parametrized by the type of hook labels.
+      Selectors are specialized modifiers that only allow explicit, positive listing of names. *)
+  type 'hook selector = ('hook, [`Selector]) t
 
   (**
-     The modifier type is abstract---you should build a modifier using the following builders and execute it by {!val:Action.S.exec}.
+     The modifier type is abstract---you should build a modifier using the following builders and execute it by {!val:Modifier.S.exec}.
   *)
 
   (** Checking equality. *)
-  val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
+  val equal : ('hook -> 'hook -> bool) -> ('hook, 'kind) t -> ('hook, 'kind) t -> bool
 
   (** {1 Modifier Builders} *)
 
@@ -66,54 +73,54 @@ sig
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
       To avoid the emptiness checking, use the identity modifier {!val:seq}[ []]. *)
-  val any : 'hook t
+  val any : ('hook, 'kind) t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only : Trie.path -> 'hook t
+  val only : Trie.path -> ('hook, 'kind) t
 
   (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"] ]{!val:any} will keep [y] (if existing), while {!val:only}[ ["x"]] will drop [y]. *)
-  val in_ : Trie.path -> 'hook t -> 'hook t
+  val in_ : Trie.path -> 'hook modifier -> 'hook modifier
 
   (** {2 Negation} *)
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop).
       To avid the emptiness checking, use the empty modifier {!val:union}[ []]. *)
-  val none : 'hook t
+  val none : 'hook modifier
 
   (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[ p ]{!val:none}. *)
-  val except : Trie.path -> 'hook t
+  val except : Trie.path -> 'hook modifier
 
   (** {2 Renaming} *)
 
   (** [renaming path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty (nothing to move). *)
-  val renaming : Trie.path -> Trie.path -> 'hook t
+  val renaming : Trie.path -> Trie.path -> 'hook modifier
 
   (** {2 Sequencing} *)
 
   (** [seq [m0; m1; m2; ...; mn]] runs the modifiers [m0], [m1], [m2], ..., [mn] in order.
       In particular, [seq []] is the identity modifier. *)
-  val seq : 'hook t list -> 'hook t
+  val seq : 'hook modifier list -> 'hook modifier
 
   (** {2 Union} *)
 
   (** [union [m0; m1; m2; ...; mn]] calculates the union of the results of individual modifiers [m0], [m1], [m2], ..., [mn].
       In particular, [union []] is the empty modifier. *)
-  val union : 'hook t list -> 'hook t
+  val union : ('hook, 'kind) t list -> ('hook, 'kind) t
 
   (** {2 Custom Hooks} *)
 
-  (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Action.S} for the effect [Hook] that will be performed when processing this modifier. *)
-  val hook : 'hook -> 'hook t
+  (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Modifier.S} for the effect [Hook] that will be performed when processing this modifier. *)
+  val hook : 'hook -> ('hook, 'kind) t
 
   (** {2 Ugly Printing} *)
 
   (** [dump dump_hook m] dumps the internal representation of [m] for debugging,
       where [dump_hook] is the ugly printer for hook labels (see {!val:hook}). *)
-  val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit
+  val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> ('hook, 'kind) t -> unit
 end
 
-(** The {!module:Action} module implements the engine running the modifiers. *)
-module Action :
+(** The {!module:Modifier} module implements the engine running the modifiers. *)
+module Modifier :
 sig
   (** The parameters of an engine. *)
   module type Param =
@@ -150,18 +157,18 @@ sig
 
         @return The new trie after the transformation.
     *)
-    val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook Modifier.t -> data Trie.t -> data Trie.t
+    val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook Language.modifier -> data Trie.t -> data Trie.t
   end
 
   (** The functor to generate an engine. *)
   module Make (P : Param) : S with type data = P.data and type hook = P.hook
 end
 
-(** The {!module:Scope} module implements the scoping effects based on {!module:Action}. *)
+(** The {!module:Scope} module implements the scoping effects based on {!module:Modifier}. *)
 module Scope :
 sig
   (** The parameters of scoping effects. *)
-  module type Param = Action.Param
+  module type Param = Modifier.Param
 
   (** The signature of scoping effects. *)
   module type S =
@@ -174,7 +181,7 @@ sig
         before another operation on the same scope is finished.
         This could happen when the user calls one of the public functions (for example, {!val:modify_visible}), and then calls the same
         function or another one (for example, {!val:modify_export}) while handling the effects performed by the modifier engine
-        in {!module:Act}.
+        in {!module:Mod}.
 
         The principle is that you should not access any scope in its intermediate states, including {!val:resolve},
         and any attempt to do so will raise the exception [Locked].
@@ -182,12 +189,12 @@ sig
         Note: {!val:section} only locks the parent scope; the child scope is initially unlocked.
     *)
 
-    module Act : Action.S with type data = data and type hook = hook
+    module Mod : Modifier.S with type data = data and type hook = hook
     (** The modifier engine used by the scoping mechanism to run modifiers.
-        Note that {!module:Action.Make} is generative, so it is crucial to handle
+        Note that {!module:Modifier.Make} is generative, so it is crucial to handle
         effects defined in this module, not other instances of modifier engines. *)
 
-    type Act.source +=
+    type Mod.source +=
       | Visible (** The source label for visible namespaces. *)
       | Export (** The source label for export namespaces. *)
 
@@ -195,35 +202,35 @@ sig
     (** [resolve p] looks up the name [p] in the current scope
         and return the data associated with the binding. *)
 
-    val modify_visible : hook Modifier.t -> unit
+    val modify_visible : hook Language.modifier -> unit
     (** [modify_visible m] modifies the visible namespace by
-        running the modifier [m] on it, using {!val:Act.exec}. *)
+        running the modifier [m] on it, using {!val:Mod.exec}. *)
 
-    val modify_export : hook Modifier.t -> unit
+    val modify_export : hook Language.modifier -> unit
     (** [modify_visible m] modifies the export namespace by
-        running the modifier [m] on it, using {!val:Act.exec}. *)
+        running the modifier [m] on it, using {!val:Mod.exec}. *)
 
-    val export_visible : hook Modifier.t -> unit
+    val export_visible : hook Language.modifier -> unit
     (** [export_visible m] runs the modifier on the visible namespace,
-        using {!val:Act.exec}, but then merge the result into the export namespace.
+        using {!val:Mod.exec}, but then merge the result into the export namespace.
         Conflicting names during the final merge will trigger the effect
-        {!constructor:Act.Shadowing}. *)
+        {!constructor:Mod.Shadowing}. *)
 
     val include_singleton : Trie.path * data -> unit
     (** [include_singleton (p, x)] adds a new binding to both the visible
         and export namespaces, where the binding is associating the data [x] to the path [p].
         Conflicting names during the final merge will trigger the effect
-        {!constructor:Act.Shadowing}. *)
+        {!constructor:Mod.Shadowing}. *)
 
     val include_subtree : Trie.path * data Trie.t -> unit
     (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
         both the visible and export namespaces. Conflicting names during the final merge
-        will trigger the effect {!constructor:Act.Shadowing}. *)
+        will trigger the effect {!constructor:Mod.Shadowing}. *)
 
     val import_subtree : Trie.path * data Trie.t -> unit
     (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
         the visible namespace (while keeping the export namespace intact).
-        Conflicting names during the final merge will trigger the effect {!constructor:Act.Shadowing}. *)
+        Conflicting names during the final merge will trigger the effect {!constructor:Mod.Shadowing}. *)
 
     val get_export : unit -> data Trie.t
     (** [get_export ()] returns the export namespace of the current scope. *)
@@ -266,7 +273,7 @@ end
        (* declaration, but supressing the shadowing warning *)
        | ShadowingDecl of Trie.path * int
        (* importing a trie after applying the modifier *)
-       | Import of int Trie.t * modifier_cmd Modifier.t
+       | Import of int Trie.t * modifier_cmd Language.modifier
        (* printing out all visible bindings *)
        | PrintVisible
        (* exporting a binding *)
@@ -279,7 +286,7 @@ end
      module S = Scope.Make (struct type data = int type hook = modifier_cmd end)
 
      (* New source label for imported namespaces *)
-     type S.Act.source += Imported
+     type S.Mod.source += Imported
 
      (* Convert a backward path into a string for printing. *)
      let string_of_bwd_path =
@@ -300,19 +307,19 @@ end
        try_with f ()
          { effc = fun (type a) (eff : a Effect.t) ->
                match eff with
-               | S.Act.BindingNotFound {source; prefix} -> Option.some @@
+               | S.Mod.BindingNotFound {source; prefix} -> Option.some @@
                  fun (k : (a, _) continuation) ->
                  Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
                    (string_of_bwd_path prefix) (string_of_source source);
                  continue k ()
-               | S.Act.Shadowing {source; path; former; latter} -> Option.some @@
+               | S.Mod.Shadowing {source; path; former; latter} -> Option.some @@
                  fun (k : (a, _) continuation) ->
                  begin
                    Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
                      former (string_of_bwd_path path) latter (string_of_source source);
                    continue k latter
                  end
-               | S.Act.Hook {source; prefix; hook = Print; input} -> Option.some @@
+               | S.Mod.Hook {source; prefix; hook = Print; input} -> Option.some @@
                  fun (k : (a, _) continuation) ->
                  Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
                    (string_of_bwd_path prefix) (string_of_source source);
@@ -330,7 +337,7 @@ end
        try_with f ()
          { effc = fun (type a) (eff : a Effect.t) ->
                match eff with
-               | S.Act.Shadowing {latter; _} -> Option.some @@
+               | S.Mod.Shadowing {latter; _} -> Option.some @@
                  fun (k : (a, _) continuation) -> continue k latter
                | _ -> None }
 
@@ -343,12 +350,12 @@ end
          silence_shadowing @@ fun () ->
          S.include_singleton (p, x)
        | Import (t, m) ->
-         let t = S.Act.exec ~source:Imported m t in
+         let t = S.Mod.exec ~source:Imported m t in
          S.import_subtree ([], t)
        | PrintVisible ->
-         S.modify_visible (Modifier.hook Print)
+         S.modify_visible (Language.hook Print)
        | Export p ->
-         S.export_visible (Modifier.only p)
+         S.export_visible (Language.only p)
        | Section (p, sec) ->
          S.section p @@ fun () -> List.iter interpret_decl sec
 

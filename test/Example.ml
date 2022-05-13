@@ -12,7 +12,7 @@ type decl =
   (* declaration, but supressing the shadowing warning *)
   | ShadowingDecl of Trie.path * int
   (* importing a trie after applying the modifier *)
-  | Import of int Trie.t * modifier_cmd Modifier.t
+  | Import of int Trie.t * modifier_cmd Language.modifier
   (* printing out all visible bindings *)
   | PrintVisible
   (* exporting a binding *)
@@ -25,7 +25,7 @@ type program = decl list
 module S = Scope.Make (struct type data = int type hook = modifier_cmd end)
 
 (* New source label for imported namespaces *)
-type S.Act.source += Imported
+type S.Mod.source += Imported
 
 (* Convert a backward path into a string for printing. *)
 let string_of_bwd_path =
@@ -46,19 +46,19 @@ let handle_modifier_effects f =
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | S.Act.BindingNotFound {source; prefix} -> Option.some @@
+          | S.Mod.BindingNotFound {source; prefix} -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
               (string_of_bwd_path prefix) (string_of_source source);
             continue k ()
-          | S.Act.Shadowing {source; path; former; latter} -> Option.some @@
+          | S.Mod.Shadowing {source; path; former; latter} -> Option.some @@
             fun (k : (a, _) continuation) ->
             begin
               Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
                 former (string_of_bwd_path path) latter (string_of_source source);
               continue k latter
             end
-          | S.Act.Hook {source; prefix; hook = Print; input} -> Option.some @@
+          | S.Mod.Hook {source; prefix; hook = Print; input} -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
               (string_of_bwd_path prefix) (string_of_source source);
@@ -76,7 +76,7 @@ let silence_shadowing f =
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | S.Act.Shadowing {latter; _} -> Option.some @@
+          | S.Mod.Shadowing {latter; _} -> Option.some @@
             fun (k : (a, _) continuation) -> continue k latter
           | _ -> None }
 
@@ -89,12 +89,12 @@ let rec interpret_decl : decl -> unit =
     silence_shadowing @@ fun () ->
     S.include_singleton (p, x)
   | Import (t, m) ->
-    let t = S.Act.exec ~source:Imported m t in
+    let t = S.Mod.exec ~source:Imported m t in
     S.import_subtree ([], t)
   | PrintVisible ->
-    S.modify_visible (Modifier.hook Print)
+    S.modify_visible (Language.hook Print)
   | Export p ->
-    S.export_visible (Modifier.only p)
+    S.export_visible (Language.only p)
   | Section (p, sec) ->
     S.section p @@ fun () -> List.iter interpret_decl sec
 
@@ -110,7 +110,7 @@ let () = interpret [
     PrintVisible;
     ShadowingDecl (["x"], 10);
     PrintVisible;
-    Import (Trie.of_seq (List.to_seq [["y"], 20]), Modifier.renaming [] ["z"]);
+    Import (Trie.of_seq (List.to_seq [["y"], 20]), Language.renaming [] ["z"]);
     PrintVisible;
     Export ["z"; "y"];
     Section (["w"], [

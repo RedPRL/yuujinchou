@@ -1,4 +1,4 @@
 module Trie = Trie
+module Language = Language
 module Modifier = Modifier
-module Action = Action
 module Scope = Scope
