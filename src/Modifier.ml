@@ -1,62 +1,70 @@
 open StdLabels
+open Algaeff.StdlibShim
 
-type path = string list
+open Bwd
+open BwdNotation
 
-type 'hook t =
-  | M_only of path
-  | M_none
-  | M_in of path * 'hook t
-  | M_renaming of path * path
-  | M_seq of 'hook t list
-  | M_union of 'hook t list
-  | M_hook of 'hook
+open Language
 
-let any = M_only []
-let none = M_none
+type source = ..
 
-let in_ p m = M_in (p, m)
+module type Param =
+sig
+  type data
+  type hook
+end
 
-let only p = M_only p
-let except p = in_ p none
+module type S =
+sig
+  include Param
 
-let renaming p p' = M_renaming (p, p')
+  type _ Effect.t +=
+    | BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
+    | Shadowing : {source : source option; path : Trie.bwd_path; former : data; latter : data} -> data Effect.t
+    | Hook : {source : source option; prefix : Trie.bwd_path; hook : hook; input : data Trie.t} -> data Trie.t Effect.t
 
-let seq ms = M_seq ms
+  val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook modifier -> data Trie.t -> data Trie.t
+end
 
-let hook f = M_hook f
+module Make (P : Param) : S with type data = P.data and type hook = P.hook =
+struct
+  include P
 
-let union l = M_union l
+  type _ Effect.t +=
+    | BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
+    | Shadowing : {source : source option; path : Trie.bwd_path; former : data; latter : data} -> data Effect.t
+    | Hook : {source : source option; prefix : Trie.bwd_path; hook : hook; input : data Trie.t} -> data Trie.t Effect.t
 
-let (=) = List.equal ~eq:String.equal
-let rec equal equal_hook m1 m2 =
-  match m1, m2 with
-  | M_only p1, M_only p2 -> p1 = p2
-  | M_none, M_none -> true
-  | M_in (p1, m1), M_in (p2, m2) -> p1 = p2 && equal equal_hook m1 m2
-  | M_renaming (p1, p1'), M_renaming (p2, p2') -> p1 = p2 && p1' = p2'
-  | M_seq ps1, M_seq ps2 | M_union ps1, M_union ps2 ->
-    begin try List.for_all2 ~f:(equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
-  | M_hook h1, M_hook h2 -> equal_hook h1 h2
-  | _ -> false
+  let check_nonempty ~source ~prefix t =
+    if Trie.is_empty t then
+      Effect.perform @@ BindingNotFound {source; prefix}
+  let merger ~source ~path former latter = Effect.perform @@ Shadowing {source; path; former; latter}
+  let do_hook ~source ~hook ~prefix t = Effect.perform @@ Hook {source; prefix; hook; input=t}
 
-let dump_path =
-  Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_char fmt '.') Format.pp_print_string
-
-let rec dump dump_hook fmt =
-  function
-  | M_only p ->
-    Format.fprintf fmt "@[<hv 1>only[@,@[%a@]]@]" dump_path p
-  | M_none ->
-    Format.pp_print_string fmt "none"
-  | M_in (p, m) ->
-    Format.fprintf fmt "@[<hv 1>in[@,@[%a@];@,@[%a@]]@]" dump_path p (dump dump_hook) m
-  | M_renaming (p1, p2) ->
-    Format.fprintf fmt "@[<hv 1>renaming[@,@[%a@];@,@[%a@]]@]" dump_path p1 dump_path p2
-  | M_seq ms ->
-    Format.fprintf fmt "@[<hv 1>seq[@,%a]@]"
-      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ";@,") (dump dump_hook)) ms
-  | M_union ms ->
-    Format.fprintf fmt "@[<hv 1>union[@,%a]@]"
-      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ";@,") (dump dump_hook)) ms
-  | M_hook h ->
-    Format.fprintf fmt "@[<hv 1>hook[@,@[%a@]]@]" dump_hook h
+  let exec ?source ?(prefix=Emp) =
+    let rec go ~prefix m t =
+      match m with
+      | M_only p ->
+        let t = Trie.find_subtree p t in
+        check_nonempty ~source ~prefix:(prefix <>< p) t;
+        Trie.prefix p t
+      | M_none ->
+        check_nonempty ~source ~prefix t; Trie.empty
+      | M_in (p, m) ->
+        Trie.update_subtree p (go ~prefix:(prefix <>< p) m) t
+      | M_renaming (p1, p2) ->
+        let t, remaining = Trie.detach_subtree p1 t in
+        check_nonempty ~source ~prefix:(prefix <>< p1) t;
+        Trie.union_subtree ~prefix (merger ~source) remaining (p2, t)
+      | M_seq ms ->
+        let f t m = go ~prefix m t in
+        List.fold_left ~f ~init:t ms
+      | M_union ms ->
+        let f ts m =
+          let ti = go ~prefix m t in
+          Trie.union ~prefix (merger ~source) ts ti
+        in
+        List.fold_left ~f ~init:Trie.empty ms
+      | M_hook hook -> do_hook ~source ~hook ~prefix t
+    in go ~prefix
+end

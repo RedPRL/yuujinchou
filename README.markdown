@@ -5,8 +5,9 @@ _Yuujinchou_ is an OCaml package of name modifiers. Please consult the [API docu
 ## Components
 
 - [Yuujinchou.Trie](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Trie): efficient namespaces for hierarchical names
-- [Yuujinchou.Modifier](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Modifier): name modifiers
-- [Yuujinchou.Action](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Action): the engine running modifiers
+- [Yuujinchou.Language](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Language): name modifiers and selectors
+- [Yuujinchou.Modifier](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Modifier): the engine running modifiers
+- [Yuujinchou.Selector](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Modifier): the engine running selectors
 - [Yuujinchou.Scope](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Scope): nested scopes
 
 ## Example Code
