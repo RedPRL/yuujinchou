@@ -39,7 +39,7 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 
    {2 Library Organization}
 
-   The library code is split into four parts:
+   The library code is split into five parts:
 *)
 
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
@@ -57,7 +57,8 @@ sig
   type 'hook modifier = ('hook, [`Modifier]) t
 
   (** The type of selectors, parametrized by the type of hook labels.
-      Selectors are specialized modifiers that only allow explicit, positive listing of names. *)
+      Selectors are specialized modifiers that use explicit, positive listing of names to
+      produce sets of data. Only {!val:any}, {!val:only}, {!val:union}, and {!val:hook} are allowed. *)
   type 'hook selector = ('hook, [`Selector]) t
 
   (**
@@ -72,7 +73,12 @@ sig
   (** {2 Basics} *)
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
-      To avoid the emptiness checking, use the identity modifier {!val:seq}[ []]. *)
+      To avoid the emptiness checking, use the identity modifier {!val:seq}[ []].
+      This is equivalent to {!val:only}[ []].
+
+      While this could technically can be a selector for completeness,
+      this selector selects everything and could lead to a huge set of data.
+  *)
   val any : ('hook, 'kind) t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
@@ -104,12 +110,13 @@ sig
   (** {2 Union} *)
 
   (** [union [m0; m1; m2; ...; mn]] calculates the union of the results of individual modifiers [m0], [m1], [m2], ..., [mn].
-      In particular, [union []] is the empty modifier. *)
+      In particular, [union []] is the empty modifier. As a selector, it produces the union set of the results of sub-selectors. *)
   val union : ('hook, 'kind) t list -> ('hook, 'kind) t
 
   (** {2 Custom Hooks} *)
 
-  (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Modifier.S} for the effect [Hook] that will be performed when processing this modifier. *)
+  (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Modifier.S} for the effect [Hook] that will be performed when processing this modifier.
+      As a selector, it applies the hook labelled [h] to calculate the data set. *)
   val hook : 'hook -> ('hook, 'kind) t
 
   (** {2 Ugly Printing} *)
@@ -141,13 +148,13 @@ sig
     (** Source of the trie. Each effect may come the source information for the effect handler to identify on which trie the modifier is running. *)
     type source = ..
 
-    (** The effect [BindingNotFound {source; prefix}] means that the engine expected at least one binding within the subtree at [path], but could not find any. Modifiers such as {!val:Modifier.any}, {!val:Modifier.only}, {!val:Modifier.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Modifier.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. See {!type:source} for the argument [source]. *)
+    (** The effect [BindingNotFound {source; prefix}] means that the engine expected at least one binding within the subtree at [path], but could not find any. Modifiers such as {!val:Language.any}, {!val:Language.only}, {!val:Language.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. See {!type:source} for the argument [source]. *)
     type _ Effect.t += BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
 
-    (** The effect [Shadowing {source; path; former; latter}] indicates that two items, [former] and [latter], are both assigned to the same [path]. Modifiers such as {!val:Modifier.renaming} and {!val:Modifier.union} could lead to bindings having the same name, and when that happens, this effect is performed to resolve the conflicting bindings. The effect is continued with the resolution of [former] and [latter]. For example, to implement silent shadowing, one can continue it with the item [latter]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. See {!type:source} for the argument [source]. *)
+    (** The effect [Shadowing {source; path; former; latter}] indicates that two items, [former] and [latter], are both assigned to the same [path]. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this effect is performed to resolve the conflicting bindings. The effect is continued with the resolution of [former] and [latter]. For example, to implement silent shadowing, one can continue it with the item [latter]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. See {!type:source} for the argument [source]. *)
     type _ Effect.t += Shadowing : {source : source option; path : Trie.bwd_path; former : data; latter : data} -> data Effect.t
 
-    (** The effect [Hook {source; prefix; hook; input}] is triggered by modifiers created by {!val:Modifier.hook}. When the engine encounters the modifier generated by {!val:Modifier.hook}[ hook] while handling the subtree [input] at [prefix], it will perform the effect [Hook {source; path; hook; input}], which may be continued with the resulting trie. See {!type:source} for the argument [source]. *)
+    (** The effect [Hook {source; prefix; hook; input}] is triggered by modifiers created by {!val:Language.hook}. When the engine encounters the modifier generated by {!val:Language.hook}[ hook] while handling the subtree [input] at [prefix], it will perform the effect [Hook {source; path; hook; input}], which may be continued with the resulting trie. See {!type:source} for the argument [source]. *)
     type _ Effect.t += Hook : {source : source option; prefix : Trie.bwd_path; hook : hook; input : data Trie.t} -> data Trie.t Effect.t
 
     (** [exec ~prefix modifier trie] runs the [modifier] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
@@ -158,6 +165,55 @@ sig
         @return The new trie after the transformation.
     *)
     val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook Language.modifier -> data Trie.t -> data Trie.t
+  end
+
+  (** The functor to generate an engine. *)
+  module Make (P : Param) : S with type data = P.data and type hook = P.hook
+end
+
+(** The {!module:Selector} module implements the engine running the selectors,
+    which are specialized modifiers that only allow explicit positive listing of names. *)
+module Selector :
+sig
+  (** The parameters of an engine. *)
+  module type Param =
+  sig
+    (** The type of data held by the bindings. *)
+    type data
+
+    (** The type of modifier hook labels. *)
+    type hook
+
+    (** The comparator for {!type:data}. *)
+    val compare_data : data -> data -> int
+  end
+
+  (** The signature of the engine. *)
+  module type S =
+  sig
+    (** @open *)
+    include Param
+
+    (** Source of the trie. Each effect may come the source information for the effect handler to identify on which trie the modifier is running. *)
+    type source = ..
+
+    (** The types of data sets. *)
+    module DataSet : Set.S with type elt = data
+
+    (** The effect [BindingNotFound {source; prefix}] means that the engine expected at least one binding within the subtree at [path], but could not find any. The selector {!val:Language.only} expects at least one matching binding. For example, the selector {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the selector will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. See {!type:source} for the argument [source]. *)
+    type _ Effect.t += BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
+
+    (** The effect [Hook {source; prefix; hook; input}] is triggered by selectors created by {!val:Language.hook}. When the engine encounters the selector generated by {!val:Language.hook}[ hook] while handling the subtree [input] at [prefix], it will perform the effect [Hook {source; path; hook; input}], which may be continued with the resulting set of data. See {!type:source} for the argument [source]. *)
+    type _ Effect.t += Hook : {source : source option; prefix : Trie.bwd_path; hook : hook; input : data Trie.t} -> DataSet.t Effect.t
+
+    (** [exec ~prefix modifier trie] runs the [modifier] on the [trie] and return the transformed trie. It can perform effects {!constructor:BindingNotFound}, {!constructor:Shadowing},and {!constructor:Hook}.
+
+        @param source The source of the trie. If unspecified, effects come with {!constructor:None} as their sources. Note that this does not affect the resulting trie but only the effects performed by the engine. A typical use case is for the same effect handler to know which trie it is handling.
+        @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([Emp]).
+
+        @return The new trie after the transformation.
+    *)
+    val exec : ?source:source -> ?prefix:Trie.bwd_path -> hook Language.selector -> data Trie.t -> DataSet.t
   end
 
   (** The functor to generate an engine. *)
