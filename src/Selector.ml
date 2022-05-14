@@ -6,6 +6,8 @@ open BwdNotation
 
 open Language
 
+type source = Modifier.source
+
 module type Param =
 sig
   type data
@@ -17,7 +19,6 @@ module type S =
 sig
   include Param
 
-  type source = ..
 
   module DataSet : Set.S with type elt = data
 
@@ -31,8 +32,6 @@ end
 module Make (P : Param) : S with type data = P.data and type hook = P.hook =
 struct
   include P
-
-  type source = ..
 
   module DataSet = Set.Make(struct type t = data let compare = compare_data end)
 

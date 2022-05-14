@@ -1,5 +1,7 @@
 module type Param = Modifier.Param
 
+type Modifier.source += Visible | Export
+
 module type S =
 sig
   include Param
@@ -7,7 +9,6 @@ sig
   exception Locked
 
   module Mod : Modifier.S with type data = data and type hook = hook
-  type Mod.source += Visible | Export
 
   val resolve : Trie.path -> data option
   val modify_visible : hook Language.modifier -> unit

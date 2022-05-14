@@ -2,6 +2,8 @@ open Algaeff.StdlibShim
 open Bwd
 open BwdNotation
 
+type Modifier.source += Visible | Export
+
 module type Param =
 sig
   type data
@@ -15,8 +17,6 @@ sig
   exception Locked
 
   module Mod : Modifier.S with type data = data and type hook = hook
-
-  type Mod.source += Visible | Export
 
   val resolve : Trie.path -> data option
   val modify_visible : hook Language.modifier -> unit
@@ -37,7 +37,6 @@ struct
   module Internal =
   struct
     module Mod = Modifier.Make(P)
-    type Mod.source += Visible | Export
 
     module M = Algaeff.Mutex.Make()
 
@@ -60,9 +59,6 @@ struct
   exception Locked = M.Locked
 
   module Mod = Internal.Mod
-  type Mod.source +=
-    | Visible = Internal.Visible
-    | Export = Internal.Export
 
   let resolve p =
     M.exclusively @@ fun () ->

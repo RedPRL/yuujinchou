@@ -6,8 +6,8 @@
  (libraries qcheck-core qcheck-core.runner yuujinchou))
 
 (test
- (name TestAction)
- (modules TestAction)
+ (name TestModifier)
+ (modules TestModifier)
  (libraries alcotest yuujinchou))
 
 (test

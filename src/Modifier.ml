@@ -6,6 +6,8 @@ open BwdNotation
 
 open Language
 
+type source = ..
+
 module type Param =
 sig
   type data
@@ -15,8 +17,6 @@ end
 module type S =
 sig
   include Param
-
-  type source = ..
 
   type _ Effect.t +=
     | BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t
@@ -29,8 +29,6 @@ end
 module Make (P : Param) : S with type data = P.data and type hook = P.hook =
 struct
   include P
-
-  type source = ..
 
   type _ Effect.t +=
     | BindingNotFound : {source : source option; prefix : Trie.bwd_path} -> unit Effect.t

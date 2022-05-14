@@ -25,7 +25,7 @@ type program = decl list
 module S = Scope.Make (struct type data = int type hook = modifier_cmd end)
 
 (* New source label for imported namespaces *)
-type S.Mod.source += Imported
+type Modifier.source += Imported
 
 (* Convert a backward path into a string for printing. *)
 let string_of_bwd_path =
@@ -38,8 +38,8 @@ let handle_modifier_effects f =
   let open Effect.Deep in
   let string_of_source =
     function
-    | Some S.Visible -> " in the visible namespace"
-    | Some S.Export -> " in the export namespace"
+    | Some Scope.Visible -> " in the visible namespace"
+    | Some Scope.Export -> " in the export namespace"
     | Some Imported -> " in the imported namespace"
     | _ -> " in an unknown namespace"
   in

@@ -225,7 +225,7 @@ let test_union_4 () =
 
 let () =
   let open Alcotest in
-  run "Action" [
+  run "Modifier" [
     "none", [
       test_case "none" `Quick test_none_1;
       test_case "none" `Quick test_none_2;
