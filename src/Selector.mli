@@ -1,5 +1,3 @@
-open Algaeff.StdlibShim
-
 type source = Modifier.source
 
 module type Param =

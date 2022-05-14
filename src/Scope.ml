@@ -1,4 +1,3 @@
-open Algaeff.StdlibShim
 open Bwd
 open BwdNotation
 

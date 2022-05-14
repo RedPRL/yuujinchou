@@ -1,5 +1,3 @@
-open Algaeff.StdlibShim
-
 open Bwd
 open BwdNotation
 open Yuujinchou

@@ -16,8 +16,7 @@ _Yuujinchou_ is an OCaml package of name modifiers. Please consult the [API docu
 
 ## Installation
 
-You need a version of OCaml that supports algebraic effects.
-Currently, it means OCaml >= 5.0.0, OCaml 4.12+domains, or OCaml 4.12+domains+effects.
+You need a OCaml >= 5.0.
 The package is available in the OPAM repository:
 ```
 opam install yuujinchou
