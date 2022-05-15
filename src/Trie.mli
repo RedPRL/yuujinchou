@@ -51,29 +51,29 @@ val find_root : 'a t -> 'a option
 
 (** {1 Mapping and Filtering} *)
 
-(** [iteri ~prefix f t] applies the function [f] to each value [v] in the trie.
+(** [iter ~prefix f t] applies the function [f] to each value [v] in the trie.
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val iteri : ?prefix:bwd_path -> (path:bwd_path -> 'a -> unit) -> 'a t -> unit
+val iter : ?prefix:bwd_path -> (bwd_path -> 'a -> unit) -> 'a t -> unit
 
-(** [mapi ~prefix f t] applies the function [f] to each value [v] in the trie.
-
-    @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
-*)
-val mapi : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'b) -> 'a t -> 'b t
-
-(** [filteri ~prefix f t] removes all values [v] at path [p] such that [f ~prefix:p v] returns [false].
+(** [map ~prefix f t] applies the function [f] to each value [v] in the trie.
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val filteri : ?prefix:bwd_path -> (path:bwd_path -> 'a -> bool) -> 'a t -> 'a t
+val map : ?prefix:bwd_path -> (bwd_path -> 'a -> 'b) -> 'a t -> 'b t
 
-(** [filter_mapi ~prefix f t] applies the function [f] to each value [v] at [p] in the trie. If [f ~prefix:p v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'].
+(** [filter ~prefix f t] removes all values [v] at path [p] such that [f ~prefix:p v] returns [false].
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val filter_mapi : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'b option) -> 'a t -> 'b t
+val filter : ?prefix:bwd_path -> (bwd_path -> 'a -> bool) -> 'a t -> 'a t
+
+(** [filter_map ~prefix f t] applies the function [f] to each value [v] at [p] in the trie. If [f ~prefix:p v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'].
+
+    @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
+*)
+val filter_map : ?prefix:bwd_path -> (bwd_path -> 'a -> 'b option) -> 'a t -> 'b t
 
 (** {1 Updating} *)
 
@@ -88,23 +88,23 @@ val update_root : ('a option -> 'a option) -> 'a t -> 'a t
 
 (** {1 Union} *)
 
-(** [union ~prefix merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will call [merger ~path:p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the [path].
+(** [union ~prefix merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will call [merger p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the [path].
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
-val union : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
+val union : ?prefix:bwd_path -> (bwd_path -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
 
 (** [union_subtree ~prefix merger t1 (path, t2)] is equivalent to {!val:union}[~prefix merger t1 (prefix path t2)], but potentially more efficient.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
-val union_subtree : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
+val union_subtree : ?prefix:bwd_path -> (bwd_path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a t -> 'a t
 
 (** [union_singleton merger t binding] is equivalent to {!val:union}[merger t1 (singleton binding)], but potentially more efficient.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
-val union_singleton : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t
+val union_singleton : ?prefix:bwd_path -> (bwd_path -> 'a -> 'a -> 'a) -> 'a t -> path * 'a -> 'a t
 
 (** {1 Separation} *)
 
@@ -138,4 +138,4 @@ val of_seq : (path * 'a) Seq.t -> 'a t
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]). Note that [prefix] does not directly affect the output trie, only the argument to [merger].
 *)
-val of_seq_with_merger : ?prefix:bwd_path -> (path:bwd_path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t
+val of_seq_with_merger : ?prefix:bwd_path -> (bwd_path -> 'a -> 'a -> 'a) -> (path * 'a) Seq.t -> 'a t

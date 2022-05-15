@@ -26,7 +26,7 @@ let obs_list = Q.Observable.(contramap list_to_rawlist @@ list @@ pair obs_path 
 let of_list l = Trie.of_seq @@ ListAsTrie.to_seq l
 let to_list t = seq_to_list @@ Trie.to_seq t
 
-(* for iteri *)
+(* for iter *)
 let bag_create () = ref []
 let bag_push x l = l := x :: !l
 let bag_eq l1 l2 = List.stable_sort ~cmp:compare l1 = List.stable_sort ~cmp:compare l2
@@ -64,44 +64,40 @@ let test_find_root =
   Q.Test.make ~count ~name:"find_root" gen_list ~print:print_list
     (fun l -> Trie.find_root (of_list l) = ListAsTrie.find_root l)
 
-let test_iteri =
-  Q.Test.make ~count ~name:"iteri" Q.Gen.(pair (opt gen_bwd_path) gen_list)
+let test_iter =
+  Q.Test.make ~count ~name:"iter" Q.Gen.(pair (opt gen_bwd_path) gen_list)
     ~print:Q.Print.(pair (option print_bwd_path) print_list)
     (fun (prefix, l) ->
        let calls1 = bag_create () in
        let calls2 = bag_create () in
-       Trie.iteri ?prefix (fun ~path x -> bag_push (path, x) calls1) (of_list l);
-       ListAsTrie.iteri ?prefix (fun ~path x -> bag_push (path, x) calls2) l;
+       Trie.iter ?prefix (fun path x -> bag_push (path, x) calls1) (of_list l);
+       ListAsTrie.iter ?prefix (fun path x -> bag_push (path, x) calls2) l;
        bag_eq !calls1 !calls2)
-let test_mapi =
-  Q.Test.make ~count ~name:"mapi"
+let test_map =
+  Q.Test.make ~count ~name:"map"
     Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path Q.Observable.int int) gen_list)
     ~print:Q.Print.(triple (option print_bwd_path) Q.Fn.print print_list)
     (fun (prefix, Fun (_, f), l) ->
-       to_list (Trie.mapi ?prefix (fun ~path -> f path) (of_list l))
+       to_list (Trie.map ?prefix f (of_list l))
        =
-       ListAsTrie.mapi ?prefix (fun ~path -> f path) l)
-let test_filteri =
-  Q.Test.make ~count ~name:"filteri"
+       ListAsTrie.map ?prefix f l)
+let test_filter =
+  Q.Test.make ~count ~name:"filter"
     Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path Q.Observable.int bool) gen_list)
     ~print:Q.Print.(triple (option print_bwd_path) Q.Fn.print print_list)
     (fun (prefix, Fun (_, f), l) ->
-       to_list (Trie.filteri ?prefix (fun ~path -> f path) (of_list l))
+       to_list (Trie.filter ?prefix f (of_list l))
        =
-       ListAsTrie.filteri ?prefix (fun ~path -> f path) l)
-let test_filter_mapi =
-  Q.Test.make ~count ~name:"filter_mapi"
+       ListAsTrie.filter ?prefix f l)
+let test_filter_map =
+  Q.Test.make ~count ~name:"filter_map"
     Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path Q.Observable.int (opt int)) gen_list)
     ~print:Q.Print.(triple (option print_bwd_path) Q.Fn.print print_list)
     (fun (prefix, Fun (_, f), l) ->
        to_list
-         (Trie.filter_mapi ?prefix
-            (fun ~path -> f path)
-            (of_list l))
+         (Trie.filter_map ?prefix f (of_list l))
        =
-       ListAsTrie.filter_mapi ?prefix
-         (fun ~path -> f path)
-         l)
+       ListAsTrie.filter_map ?prefix f l)
 
 let test_update_subtree =
   Q.Test.make ~count ~name:"update_subtree"
@@ -139,39 +135,27 @@ let test_union =
     ~print:Q.Print.(quad (option print_bwd_path) Q.Fn.print print_list print_list)
     (fun (prefix, Fun (_, f), l1, l2) ->
        to_list
-         (Trie.union ?prefix
-            (fun ~path -> f path)
-            (of_list l1) (of_list l2))
+         (Trie.union ?prefix f (of_list l1) (of_list l2))
        =
-       ListAsTrie.union ?prefix
-         (fun ~path -> f path)
-         l1 l2)
+       ListAsTrie.union ?prefix f l1 l2)
 let test_union_subtree =
   Q.Test.make ~count ~name:"union_subtree"
     Q.Gen.(quad (opt gen_bwd_path) (Q.fun3 obs_bwd_path Q.Observable.int Q.Observable.int int) gen_list (pair gen_path gen_list))
     ~print:Q.Print.(quad (option print_bwd_path) Q.Fn.print print_list (pair print_path print_list))
     (fun (prefix, Fun (_, f), l1, (pre, l2)) ->
        to_list
-         (Trie.union_subtree ?prefix
-            (fun ~path -> f path)
-            (of_list l1) (pre, of_list l2))
+         (Trie.union_subtree ?prefix f (of_list l1) (pre, of_list l2))
        =
-       ListAsTrie.union_subtree ?prefix
-         (fun ~path -> f path)
-         l1 (pre, l2))
+       ListAsTrie.union_subtree ?prefix f l1 (pre, l2))
 let test_union_singleton =
   Q.Test.make ~count ~name:"union_singleton"
     Q.Gen.(quad (opt gen_bwd_path) (Q.fun3 obs_bwd_path Q.Observable.int Q.Observable.int int) gen_list (pair gen_path int))
     ~print:Q.Print.(quad (option print_bwd_path) Q.Fn.print print_list (pair print_path int))
     (fun (prefix, Fun (_, f), l1, b) ->
        to_list
-         (Trie.union_singleton ?prefix
-            (fun ~path -> f path)
-            (of_list l1) b)
+         (Trie.union_singleton ?prefix f (of_list l1) b)
        =
-       ListAsTrie.union_singleton ?prefix
-         (fun ~path -> f path)
-         l1 b)
+       ListAsTrie.union_singleton ?prefix f l1 b)
 
 let test_detach_subtree =
   Q.Test.make ~count ~name:"detach_subtree" Q.Gen.(pair gen_path gen_list)
@@ -223,9 +207,9 @@ let test_of_seq_with_merger =
     Q.Gen.(triple (opt gen_bwd_path) (Q.fun3 obs_bwd_path Q.Observable.int Q.Observable.int int) (small_list @@ pair gen_path int))
     ~print:Q.Print.(triple (option print_bwd_path) Q.Fn.print (list @@ pair print_path int))
     (fun (prefix, Fun (_, f), l) ->
-       to_list (Trie.of_seq_with_merger ?prefix (fun ~path -> f path) (List.to_seq l))
+       to_list (Trie.of_seq_with_merger ?prefix f (List.to_seq l))
        =
-       ListAsTrie.of_seq_with_merger ?prefix (fun ~path -> f path) (List.to_seq l))
+       ListAsTrie.of_seq_with_merger ?prefix f (List.to_seq l))
 
 let () =
   exit @@
@@ -239,10 +223,10 @@ let () =
     ; test_find_subtree
     ; test_find_singleton
     ; test_find_root
-    ; test_iteri
-    ; test_mapi
-    ; test_filteri
-    ; test_filter_mapi
+    ; test_iter
+    ; test_map
+    ; test_filter
+    ; test_filter_map
     ; test_update_subtree
     ; test_update_singleton
     ; test_update_root

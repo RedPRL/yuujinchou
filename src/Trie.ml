@@ -7,27 +7,11 @@ type seg = string
 type path = seg list
 type bwd_path = seg bwd
 
-module SegMap =
-struct
-  include Map.Make (struct
+module SegMap = Map.Make
+    (struct
       type t = seg
       let compare = String.compare
     end)
-
-  let filter_mapi f m =
-    let f ~key ~data m =
-      match f ~key data with
-      | None -> m
-      | Some data -> add ~key ~data m
-    in
-    fold ~f m ~init:empty
-
-  let filter_mapi_endo f m =
-    let f m (key, children) =
-      update ~key ~f:(fun _ -> f ~key children) m
-    in
-    Seq.fold_left f m (to_seq m)
-end
 
 type 'a node = {
   root : 'a option;
@@ -123,7 +107,7 @@ let union_option f x y =
   | Some x', Some y' -> Some (f x' y')
 
 let rec union_node ~prefix m n n' =
-  let root = union_option (m ~path:prefix) n.root n'.root in
+  let root = union_option (m prefix) n.root n'.root in
   let children =
     let f key n n' = Some (union_node ~prefix:(prefix #< key) m n n') in
     SegMap.union ~f n.children n'.children
@@ -140,7 +124,7 @@ let union_subtree ?(prefix=Emp) m t (path, t') =
 let union_singleton ?(prefix=Emp) m t (path, v) =
   update_cont t path @@ function
   | None -> non_empty @@ root_opt_node v
-  | Some n -> non_empty {n with root = union_option (m ~path:(prefix <>< path)) n.root @@ Some v}
+  | Some n -> non_empty {n with root = union_option (m (prefix <>< path)) n.root @@ Some v}
 
 (** {1 Detaching subtrees} *)
 
@@ -186,33 +170,33 @@ let to_seq ?prefix t = Seq.map (fun (p, v) -> BwdLabels.to_list p, v) @@
 
 let of_seq_with_merger ?prefix m = Seq.fold_left (union_singleton ?prefix m) empty
 
-let of_seq s = of_seq_with_merger ~prefix:Emp (fun ~path:_ _ y -> y) s
+let of_seq s = of_seq_with_merger ~prefix:Emp (fun _ _ y -> y) s
 
 (** {1 Map} *)
 
-let rec iteri_node ~prefix f n =
-  Option.fold ~none:() ~some:(f ~path:prefix) n.root;
-  SegMap.iter ~f:(fun ~key ~data -> iteri_node ~prefix:(prefix #< key) f data) n.children
-let iteri ?(prefix=Emp) f t = Option.fold ~none:() ~some:(iteri_node ~prefix f) t
+let rec iter_node ~prefix f n =
+  Option.fold ~none:() ~some:(f prefix) n.root;
+  SegMap.iter ~f:(fun ~key ~data -> iter_node ~prefix:(prefix #< key) f data) n.children
+let iter ?(prefix=Emp) f t = Option.fold ~none:() ~some:(iter_node ~prefix f) t
 
-let rec mapi_node ~prefix f n =
-  { root = Option.map (f ~path:prefix) n.root
-  ; children = SegMap.mapi ~f:(fun key -> mapi_node ~prefix:(prefix #< key) f) n.children
+let rec map_node ~prefix f n =
+  { root = Option.map (f prefix) n.root
+  ; children = SegMap.mapi ~f:(fun key -> map_node ~prefix:(prefix #< key) f) n.children
   }
-let mapi ?(prefix=Emp) f t = Option.map (mapi_node ~prefix f) t
+let map ?(prefix=Emp) f t = Option.map (map_node ~prefix f) t
 
-let rec filteri_node ~prefix f n =
+let rec filter_node ~prefix f n =
   let root = Option.bind n.root @@
-    fun v -> if f ~path:prefix v then Some v else None in
+    fun v -> if f prefix v then Some v else None in
   let children =
-    SegMap.filter_mapi_endo
-      (fun ~key -> filteri_node ~prefix:(prefix #< key) f)
+    SegMap.filter_map
+      ~f:(fun key -> filter_node ~prefix:(prefix #< key) f)
       n.children
   in
   mk_tree root children
-let filteri ?(prefix=Emp) f t = Option.bind t @@ filteri_node ~prefix f
+let filter ?(prefix=Emp) f t = Option.bind t @@ filter_node ~prefix f
 
-let rec filter_mapi_node ~prefix f n =
-  mk_tree (Option.bind n.root @@ f ~path:prefix) @@
-  SegMap.filter_mapi (fun ~key -> filter_mapi_node ~prefix:(prefix #< key) f) n.children
-let filter_mapi ?(prefix=Emp) f t = Option.bind t @@ filter_mapi_node ~prefix f
+let rec filter_map_node ~prefix f n =
+  mk_tree (Option.bind n.root @@ f prefix) @@
+  SegMap.filter_map ~f:(fun key -> filter_map_node ~prefix:(prefix #< key) f) n.children
+let filter_map ?(prefix=Emp) f t = Option.bind t @@ filter_map_node ~prefix f

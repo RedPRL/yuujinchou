@@ -37,7 +37,7 @@ struct
   let check_nonempty ~source ~prefix t =
     if Trie.is_empty t then
       Effect.perform @@ BindingNotFound {source; prefix}
-  let merger ~source ~path former latter = Effect.perform @@ Shadowing {source; path; former; latter}
+  let merger ~source path former latter = Effect.perform @@ Shadowing {source; path; former; latter}
   let do_hook ~source ~hook ~prefix t = Effect.perform @@ Hook {source; prefix; hook; input=t}
 
   let exec ?source ?(prefix=Emp) =

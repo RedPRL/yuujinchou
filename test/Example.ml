@@ -60,8 +60,8 @@ let handle_modifier_effects f =
             fun (k : (a, _) continuation) ->
             Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
               (string_of_bwd_path prefix) (string_of_source source);
-            Trie.iteri
-              (fun ~path data ->
+            Trie.iter
+              (fun path data ->
                  Format.printf "%s => %i@;" (string_of_bwd_path path) data)
               input;
             Format.printf "@]@.";

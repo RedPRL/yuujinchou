@@ -33,16 +33,16 @@ let find_singleton p l =
   Option.map snd @@ List.find_opt l ~f:(fun (p', _) -> p = p')
 let find_root l = find_singleton [] l
 
-let iteri ?(prefix=Emp) f l =
-  List.iter l ~f:(fun (p, x) -> f ~path:(prefix <>< p) x)
-let mapi ?(prefix=Emp) f l =
-  List.map l ~f:(fun (p, x) -> (p, f ~path:(prefix <>< p) x))
-let filteri ?(prefix=Emp) f l =
-  List.filter l ~f:(fun (p, x) -> f ~path:(prefix <>< p) x)
-let filter_mapi ?(prefix=Emp) f l =
+let iter ?(prefix=Emp) f l =
+  List.iter l ~f:(fun (p, x) -> f (prefix <>< p) x)
+let map ?(prefix=Emp) f l =
+  List.map l ~f:(fun (p, x) -> (p, f (prefix <>< p) x))
+let filter ?(prefix=Emp) f l =
+  List.filter l ~f:(fun (p, x) -> f (prefix <>< p) x)
+let filter_map ?(prefix=Emp) f l =
   List.filter_map l
     ~f:(fun (p, x) ->
-        Option.map (fun x -> p, x) @@ f ~path:(prefix <>< p) x)
+        Option.map (fun x -> p, x) @@ f (prefix <>< p) x)
 
 let detach_subtree pre l =
   List.partition_map l
@@ -67,7 +67,7 @@ let rec uniquefy_sorted ~prefix ~merger =
   | [b] -> [b]
   | (p1,x1)::(p2,x2)::rest ->
     if p1 = p2 then
-      let merged = (p1, merger ~path:(prefix <>< p1) x1 x2) in
+      let merged = (p1, merger (prefix <>< p1) x1 x2) in
       uniquefy_sorted ~prefix ~merger @@ merged::rest
     else
       (p1,x1)::(uniquefy_sorted ~prefix ~merger @@ (p2,x2)::rest)
@@ -93,5 +93,5 @@ let to_seq ?(prefix=Emp) l =
 let to_seq_with_bwd_paths ?(prefix=Emp) l =
   Seq.map (fun (p, x) -> prefix <>< p, x) @@ List.to_seq l
 let to_seq_values l = Seq.map snd @@ List.to_seq l
-let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun ~path:_ _ y -> y)) empty s
+let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty s
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
