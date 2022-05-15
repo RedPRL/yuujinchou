@@ -7,11 +7,7 @@ type seg = string
 type path = seg list
 type bwd_path = seg bwd
 
-module SegMap = Map.Make
-    (struct
-      type t = seg
-      let compare = String.compare
-    end)
+module SegMap = Map.Make (String)
 
 type 'a node = {
   root : 'a option;
