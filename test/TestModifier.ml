@@ -30,7 +30,7 @@ let data : data Alcotest.testable =
   end)
 
 type empty = |
-module M = Modifier.Make (struct type nonrec data = data type hook = empty end)
+module M = Modifier.Make (struct type nonrec data = data type hook = empty type caller = empty end)
 
 exception WrappedBindingNotFound of Trie.bwd_path
 let wrap f =
