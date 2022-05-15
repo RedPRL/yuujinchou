@@ -5,7 +5,7 @@ module type Param =
 sig
   type data
   type hook
-  type caller
+  type context
 end
 
 module type S =
@@ -14,21 +14,21 @@ sig
 
   exception Locked
 
-  module Mod : Modifier.S with type data = data and type hook = hook and type caller = caller
+  module Mod : Modifier.S with type data = data and type hook = hook and type context = context
 
   val resolve : Trie.path -> data option
-  val modify_visible : ?caller:caller -> hook Language.modifier -> unit
-  val modify_export : ?caller:caller -> hook Language.modifier -> unit
-  val export_visible : ?caller:caller -> hook Language.modifier -> unit
-  val include_singleton : ?caller_visible:caller -> ?caller_export:caller -> Trie.path * data -> unit
-  val include_subtree : ?caller_visible:caller -> ?caller_export:caller -> Trie.path * data Trie.t -> unit
-  val import_subtree : ?caller:caller -> Trie.path * data Trie.t -> unit
+  val modify_visible : ?context:context -> hook Language.modifier -> unit
+  val modify_export : ?context:context -> hook Language.modifier -> unit
+  val export_visible : ?context:context -> hook Language.modifier -> unit
+  val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * data -> unit
+  val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * data Trie.t -> unit
+  val import_subtree : ?context:context -> Trie.path * data Trie.t -> unit
   val get_export : unit -> data Trie.t
-  val section : ?caller_visible:caller -> ?caller_export:caller -> Trie.path -> (unit -> 'a) -> 'a
+  val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
   val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> 'a
 end
 
-module Make (P : Param) : S with type data = P.data and type hook = P.hook and type caller = P.caller =
+module Make (P : Param) : S with type data = P.data and type hook = P.hook and type context = P.context =
 struct
   include P
 
@@ -62,50 +62,50 @@ struct
     M.exclusively @@ fun () ->
     Trie.find_singleton p (S.get ()).visible
 
-  let modify_visible ?caller m =
+  let modify_visible ?context m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with visible = Mod.exec ?caller ~prefix:Emp m s.visible}
+    {s with visible = Mod.exec ?context ~prefix:Emp m s.visible}
 
-  let modify_export ?caller m =
+  let modify_export ?context m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with export = Mod.exec ?caller ~prefix:(prefix()) m s.export}
+    {s with export = Mod.exec ?context ~prefix:(prefix()) m s.export}
 
-  let merger ~caller path former latter = Effect.perform @@ Mod.Shadowing {caller; path; former; latter}
+  let merger ~context path former latter = Effect.perform @@ Mod.Shadowing {context; path; former; latter}
 
-  let export_visible ?caller m =
+  let export_visible ?context m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ~prefix:(prefix()) (merger ~caller) s.export @@
-       Mod.exec ?caller ~prefix:Emp m s.visible }
+       Trie.union ~prefix:(prefix()) (merger ~context) s.export @@
+       Mod.exec ?context ~prefix:Emp m s.visible }
 
-  let include_singleton ?caller_visible ?caller_export (path, x) =
+  let include_singleton ?context_visible ?context_export (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { visible = Trie.union_singleton ~prefix:Emp (merger ~caller:caller_visible) s.visible (path, x);
-      export = Trie.union_singleton ~prefix:(prefix()) (merger ~caller:caller_export) s.export (path, x) }
+    { visible = Trie.union_singleton ~prefix:Emp (merger ~context:context_visible) s.visible (path, x);
+      export = Trie.union_singleton ~prefix:(prefix()) (merger ~context:context_export) s.export (path, x) }
 
-  let unsafe_include_subtree ~caller_visible ~caller_export (path, ns) =
+  let unsafe_include_subtree ~context_visible ~context_export (path, ns) =
     S.modify @@ fun s ->
-    { visible = Trie.union_subtree ~prefix:Emp (merger ~caller:caller_visible) s.visible (path, ns);
-      export = Trie.union_subtree ~prefix:(prefix()) (merger ~caller:caller_export) s.export (path, ns) }
+    { visible = Trie.union_subtree ~prefix:Emp (merger ~context:context_visible) s.visible (path, ns);
+      export = Trie.union_subtree ~prefix:(prefix()) (merger ~context:context_export) s.export (path, ns) }
 
-  let include_subtree ?caller_visible ?caller_export (path, ns) =
-    M.exclusively @@ fun () -> unsafe_include_subtree ~caller_visible ~caller_export (path, ns)
+  let include_subtree ?context_visible ?context_export (path, ns) =
+    M.exclusively @@ fun () -> unsafe_include_subtree ~context_visible ~context_export (path, ns)
 
-  let import_subtree ?caller (path, ns) =
+  let import_subtree ?context (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_subtree ~prefix:Emp (merger ~caller) s.visible (path, ns) }
+    { s with visible = Trie.union_subtree ~prefix:Emp (merger ~context) s.visible (path, ns) }
 
   let get_export () =
     M.exclusively @@ fun () -> (S.get()).export
 
-  let section ?caller_visible ?caller_export p f =
+  let section ?context_visible ?context_export p f =
     M.exclusively @@ fun () ->
     let ans, export =
       Internal.run ~prefix:(prefix() <>< p) ~init_visible:(S.get()).visible @@ fun () ->
       let ans = f () in ans, get_export ()
     in
-    unsafe_include_subtree ~caller_visible ~caller_export (p, export);
+    unsafe_include_subtree ~context_visible ~context_export (p, export);
     ans
 
   let run ?(prefix=Emp) f = Internal.run ~prefix ~init_visible:Trie.empty f
