@@ -43,7 +43,7 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
 module Trie : module type of Trie
 
-(** The {!module:Language} module defines the language of modifiers. *)
+(** The {!module:Language} module defines the language of modifiers and selectors. *)
 module Language :
 sig
   (** {1 Types} *)
@@ -124,7 +124,7 @@ sig
   val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> ('hook, 'kind) t -> unit
 end
 
-(** The {!module:Modifier} module implements the engine running the modifiers. *)
+(** The {!module:Modifier} module implements the engine running the modifiers of type {!type:Language.modifier!}. *)
 module Modifier :
 sig
 
@@ -170,7 +170,7 @@ sig
   module Make (P : Param) : S with type data = P.data and type hook = P.hook and type context = P.context
 end
 
-(** The {!module:Selector} module implements the engine running the selectors,
+(** The {!module:Selector} module implements the engine running the selectors of type {!type:Language.selector!},
     which are specialized modifiers that only allow explicit positive listing of names. *)
 module Selector :
 sig
