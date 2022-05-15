@@ -20,10 +20,7 @@ type decl =
 type program = decl list
 
 (* Specialzed Scope module with Data.t *)
-module S = Scope.Make (struct type data = int type hook = modifier_cmd end)
-
-(* New source label for imported namespaces *)
-type Modifier.source += Imported
+module S = Scope.Make (struct type data = int type hook = modifier_cmd type caller = [`Visible | `Export] end)
 
 (* Convert a backward path into a string for printing. *)
 let string_of_bwd_path =
@@ -34,32 +31,31 @@ let string_of_bwd_path =
 (* Handle effects from running the modifiers. *)
 let handle_modifier_effects f =
   let open Effect.Deep in
-  let string_of_source =
+  let string_of_caller =
     function
-    | Some Scope.Visible -> " in the visible namespace"
-    | Some Scope.Export -> " in the export namespace"
-    | Some Imported -> " in the imported namespace"
-    | _ -> " in an unknown namespace"
+    | Some `Visible -> " in the visible namespace"
+    | Some `Export -> " in the export namespace"
+    | None -> ""
   in
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
-          | S.Mod.BindingNotFound {source; prefix} -> Option.some @@
+          | S.Mod.BindingNotFound {caller; prefix} -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
-              (string_of_bwd_path prefix) (string_of_source source);
+              (string_of_bwd_path prefix) (string_of_caller caller);
             continue k ()
-          | S.Mod.Shadowing {source; path; former; latter} -> Option.some @@
+          | S.Mod.Shadowing {caller; path; former; latter} -> Option.some @@
             fun (k : (a, _) continuation) ->
             begin
               Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
-                former (string_of_bwd_path path) latter (string_of_source source);
+                former (string_of_bwd_path path) latter (string_of_caller caller);
               continue k latter
             end
-          | S.Mod.Hook {source; prefix; hook = Print; input} -> Option.some @@
+          | S.Mod.Hook {caller; prefix; hook = Print; input} -> Option.some @@
             fun (k : (a, _) continuation) ->
             Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
-              (string_of_bwd_path prefix) (string_of_source source);
+              (string_of_bwd_path prefix) (string_of_caller caller);
             Trie.iter
               (fun path data ->
                  Format.printf "%s => %i@;" (string_of_bwd_path path) data)
@@ -82,12 +78,12 @@ let silence_shadowing f =
 let rec interpret_decl : decl -> unit =
   function
   | Decl (p, x) ->
-    S.include_singleton (p, x)
+    S.include_singleton ~caller_visible:`Visible ~caller_export:`Export (p, x)
   | ShadowingDecl (p, x) ->
     silence_shadowing @@ fun () ->
     S.include_singleton (p, x)
   | Import (t, m) ->
-    let t = S.Mod.exec ~source:Imported m t in
+    let t = S.Mod.exec m t in
     S.import_subtree ([], t)
   | PrintVisible ->
     S.modify_visible (Language.hook Print)
