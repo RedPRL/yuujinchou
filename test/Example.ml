@@ -10,7 +10,7 @@ type decl =
   (* declaration, but supressing the shadowing warning *)
   | ShadowingDecl of Trie.path * int
   (* importing a trie after applying the modifier *)
-  | Import of int Trie.untagged * modifier_cmd Language.modifier
+  | Import of int Trie.untagged * modifier_cmd Language.t
   (* printing out all visible bindings *)
   | PrintVisible
   (* exporting a binding *)

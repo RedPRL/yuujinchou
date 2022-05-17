@@ -1,17 +1,13 @@
 open StdLabels
 
-type ('hook, 'kind) t_ =
-  | M_only : Trie.path -> ('hook, [< `Modifier | `Selector]) t_
-  | M_none : ('hook, [< `Modifier | `Selector]) t_
-  | M_in : Trie.path * ('hook, [< `Modifier] as 'kind) t_ -> ('hook, 'kind) t_
-  | M_renaming : Trie.path * Trie.path -> ('hook, [< `Modifier]) t_
-  | M_seq : ('hook, [< `Modifier] as 'kind) t_ list -> ('hook, 'kind) t_
-  | M_union : ('hook, [< `Modifier | `Selector] as 'kind) t_ list -> ('hook, 'kind) t_
-  | M_hook : 'hook -> ('hook, [< `Modifier | `Selector]) t_
-
-type ('hook, 'kind) t = ('hook, [< `Modifier | `Selector] as 'kind) t_
-type 'hook modifier = ('hook, [`Modifier]) t
-type 'hook selector = ('hook, [`Selector]) t
+type 'hook t =
+  | M_only of Trie.path
+  | M_none
+  | M_in of Trie.path * 'hook t
+  | M_renaming of Trie.path * Trie.path
+  | M_seq of 'hook t list
+  | M_union of 'hook t list
+  | M_hook of 'hook
 
 let any = M_only []
 let none = M_none
@@ -30,8 +26,7 @@ let hook f = M_hook f
 let union l = M_union l
 
 let (=) = List.equal ~eq:String.equal
-let rec equal : type kind . ('hook -> 'hook -> bool) -> ('hook, kind) t_ -> ('hook, kind) t_ -> bool =
-  fun equal_hook m1 m2 ->
+let rec equal equal_hook m1 m2 =
   match m1, m2 with
   | M_only p1, M_only p2 -> p1 = p2
   | M_none, M_none -> true
@@ -47,8 +42,7 @@ let rec equal : type kind . ('hook -> 'hook -> bool) -> ('hook, kind) t_ -> ('ho
 let dump_path =
   Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_char fmt '.') Format.pp_print_string
 
-let rec dump : type kind . (Format.formatter -> 'hook -> unit) -> Format.formatter -> ('hook, kind) t_ -> unit =
-  fun dump_hook fmt ->
+let rec dump dump_hook fmt =
   function
   | M_only p ->
     Format.fprintf fmt "@[<hv 1>only[@,@[%a@]]@]" dump_path p

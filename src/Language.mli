@@ -1,32 +1,28 @@
-type ('hook, 'kind) t_ =
-  | M_only : Trie.path -> ('hook, [< `Modifier | `Selector]) t_
-  | M_none : ('hook, [< `Modifier | `Selector]) t_
-  | M_in : Trie.path * ('hook, [< `Modifier] as 'kind) t_ -> ('hook, 'kind) t_
-  | M_renaming : Trie.path * Trie.path -> ('hook, [< `Modifier]) t_
-  | M_seq : ('hook, [< `Modifier] as 'kind) t_ list -> ('hook, 'kind) t_
-  | M_union : ('hook, [< `Modifier | `Selector] as 'kind) t_ list -> ('hook, 'kind) t_
-  | M_hook : 'hook -> ('hook, [< `Modifier | `Selector]) t_
+type 'hook t =
+  | M_only of Trie.path
+  | M_none
+  | M_in of Trie.path * 'hook t
+  | M_renaming of Trie.path * Trie.path
+  | M_seq of 'hook t list
+  | M_union of 'hook t list
+  | M_hook of 'hook
 
-type ('hook, 'kind) t = ('hook, [< `Modifier | `Selector] as 'kind) t_
-type 'hook modifier = ('hook, [`Modifier]) t
-type 'hook selector = ('hook, [`Selector]) t
+val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
 
-val equal : ('hook -> 'hook -> bool) -> ('hook, 'kind) t -> ('hook, 'kind) t -> bool
+val any : 'hook t
 
-val any : ('hook, 'kind) t
+val only : Trie.path -> 'hook t
 
-val only : Trie.path -> ('hook, 'kind) t
+val none : 'hook t
+val except : Trie.path -> 'hook t
+val in_ : Trie.path -> 'hook t -> 'hook t
 
-val none : ('hook, 'kind) t
-val except : Trie.path -> 'hook modifier
-val in_ : Trie.path -> 'hook modifier -> 'hook modifier
+val renaming : Trie.path -> Trie.path -> 'hook t
 
-val renaming : Trie.path -> Trie.path -> 'hook modifier
+val seq : 'hook t list -> 'hook t
 
-val seq : 'hook modifier list -> 'hook modifier
+val union : 'hook t list -> 'hook t
 
-val union : ('hook, 'kind) t list -> ('hook, 'kind) t
+val hook : 'hook -> 'hook t
 
-val hook : 'hook -> ('hook, 'kind) t
-
-val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> ('hook, 'kind) t -> unit
+val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit

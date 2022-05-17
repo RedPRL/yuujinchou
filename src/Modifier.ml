@@ -3,8 +3,6 @@ open StdLabels
 open Bwd
 open BwdNotation
 
-open Language
-
 module type Param =
 sig
   type data
@@ -22,7 +20,7 @@ sig
     | Shadowing : {context : context option; path : Trie.bwd_path; former : data * tag; latter : data * tag} -> (data * tag) Effect.t
     | Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> (data, tag) Trie.t Effect.t
 
-  val exec : ?context:context -> ?prefix:Trie.bwd_path -> hook modifier -> (data, tag) Trie.t -> (data, tag) Trie.t
+  val exec : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
 end
 
 module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context =
@@ -41,6 +39,7 @@ struct
   let do_hook ~context ~hook ~prefix t = Effect.perform @@ Hook {context; prefix; hook; input=t}
 
   let exec ?context ?(prefix=Emp) =
+    let open Language in
     let rec go ~prefix m t =
       match m with
       | M_only p ->
