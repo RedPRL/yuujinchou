@@ -83,14 +83,14 @@ let test_iter =
        Trie.iter ?prefix (fun path x -> bag_push (path, x) calls1) (of_list l);
        ListAsTrie.iter ?prefix (fun path x -> bag_push (path, x) calls2) l;
        bag_eq !calls1 !calls2)
-let test_map_data =
-  Q.Test.make ~count ~name:"map_data"
-    Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path obs_tagged int) gen_list)
+let test_map =
+  Q.Test.make ~count ~name:"map"
+    Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path obs_tagged gen_tagged) gen_list)
     ~print:Q.Print.(triple (option print_bwd_path) Q.Fn.print print_list)
     (fun (prefix, Fun (_, f), l) ->
-       to_list (Trie.map_data ?prefix f (of_list l))
+       to_list (Trie.map ?prefix f (of_list l))
        =
-       ListAsTrie.map_data ?prefix f l)
+       ListAsTrie.map ?prefix f l)
 let test_filter =
   Q.Test.make ~count ~name:"filter"
     Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path obs_tagged bool) gen_list)
@@ -99,15 +99,15 @@ let test_filter =
        to_list (Trie.filter ?prefix f (of_list l))
        =
        ListAsTrie.filter ?prefix f l)
-let test_filter_map_data =
-  Q.Test.make ~count ~name:"filter_map_data"
-    Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path Q.Observable.(pair int int) (opt int)) gen_list)
+let test_filter_map =
+  Q.Test.make ~count ~name:"filter_map"
+    Q.Gen.(triple (opt gen_bwd_path) (Q.fun2 obs_bwd_path Q.Observable.(pair int int) (opt gen_tagged)) gen_list)
     ~print:Q.Print.(triple (option print_bwd_path) Q.Fn.print print_list)
     (fun (prefix, Fun (_, f), l) ->
        to_list
-         (Trie.filter_map_data ?prefix f (of_list l))
+         (Trie.filter_map ?prefix f (of_list l))
        =
-       ListAsTrie.filter_map_data ?prefix f l)
+       ListAsTrie.filter_map ?prefix f l)
 
 let test_update_subtree =
   Q.Test.make ~count ~name:"update_subtree"
@@ -251,8 +251,11 @@ let test_untag =
   Q.Test.make ~count ~name:"untag" gen_list ~print:print_list
     (fun l -> to_untagged_list (Trie.untag (of_list l)) = ListAsTrie.untag l)
 let test_retag =
-  Q.Test.make ~count ~name:"tag" Q.Gen.(pair int gen_list) ~print:Q.Print.(pair int print_list)
+  Q.Test.make ~count ~name:"retag" Q.Gen.(pair int gen_list) ~print:Q.Print.(pair int print_list)
     (fun (t, l) -> to_list (Trie.retag t (of_list l)) = ListAsTrie.retag t l)
+let test_retag_subtree =
+  Q.Test.make ~count ~name:"retag_subtree" Q.Gen.(triple gen_path int gen_list) ~print:Q.Print.(triple print_path int print_list)
+    (fun (p, t, l) -> to_list (Trie.retag_subtree p t (of_list l)) = ListAsTrie.retag_subtree p t l)
 
 module Untagged =
 struct
@@ -299,9 +302,9 @@ let () =
     ; test_find_singleton
     ; test_find_root
     ; test_iter
-    ; test_map_data
+    ; test_map
     ; test_filter
-    ; test_filter_map_data
+    ; test_filter_map
     ; test_update_subtree
     ; test_update_singleton
     ; test_update_root
@@ -321,6 +324,7 @@ let () =
     ; test_tag
     ; test_untag
     ; test_retag
+    ; test_retag_subtree
     ; Untagged.test_to_seq
     ; Untagged.test_to_seq_with_bwd_paths
     ; Untagged.test_to_seq_values

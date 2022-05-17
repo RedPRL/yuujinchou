@@ -8,7 +8,12 @@ type path = string list
 (** The type of hierarchical names, but using backward lists. The name [x.y.z] is represented by the backward list [Emp #< "x" #< "y" #< "z"]. *)
 type bwd_path = string bwd
 
-(** The abstract type of a trie. *)
+(** The abstract type of a trie.
+    ['data] represents the information surviving retagging, and ['tag] represents the data to be reset during retagging.
+    See {!val:retag}, which could reset all tags in a trie in O(1) time while keeping all data intact.
+
+    A possible usage is to put the definitions in ['data] and the identities of the import statements in ['tag]
+    to implement efficient detection of unused imports. *)
 type (+!'data, +!'tag) t
 
 (** {1 Basic Operations} *)
@@ -19,16 +24,16 @@ val empty : ('data, 'tag) t
 (** Check whether the trie is empty. *)
 val is_empty : ('data, 'tag) t -> bool
 
-(** [root (d, t)] makes a trie with the only binding: the root and its associated value [d] and tag [t]. It is equivalent to {!val:root_opt}[ (Some (d, t))]. *)
+(** [root (d, t)] makes a trie with the only one binding: the root and its associated data [d] and tag [t]. It is equivalent to {!val:root_opt}[ (Some (d, t))]. *)
 val root : 'data * 'tag -> ('data, 'tag) t
 
-(** [root_opt v] is equivalent to [match v with None -> ]{!val:empty}[ | Some v -> ]{!val:rot}[ v]. In other words, [root_opt None] will make an empty trie and [root_opt (Some (d, t))] will make a trie with only one binding: the root associated with the value [d] and the tag [t]. If the input is always [Some v], use {!val:root}. *)
+(** [root_opt v] is equivalent to [match v with None -> ]{!val:empty}[ | Some v -> ]{!val:root}[ v]. In other words, [root_opt None] will make an empty trie and [root_opt (Some (d, t))] will make a trie with only one binding: the root associated with the data [d] and the tag [t]. If the input is always [Some v], use {!val:root}. *)
 val root_opt : ('data * 'tag) option -> ('data, 'tag) t
 
 (** [prefix p t] makes a minimum trie with [t] rooted at [p]. *)
 val prefix : path -> ('data, 'tag) t -> ('data, 'tag) t
 
-(** [singleton (p, d)] makes a trie with the only binding: [p] and its associated value [d]. It is equivalent to {!val:prefix}[ p @@ ]{!val:root}[ d] *)
+(** [singleton (p, (d, t))] makes a trie with the only binding: [p] and its associated data [d] and tag [t]. It is equivalent to {!val:prefix}[ p @@ ]{!val:root}[ (d, t)] *)
 val singleton : path * ('data * 'tag) -> ('data, 'tag) t
 
 (** [equal eq_data eq_tag t1 t2] checks whether two tries are equal. *)
@@ -38,48 +43,48 @@ val equal : ('data -> 'data -> bool) -> ('tag -> 'tag -> bool) -> ('data, 'tag) 
 
 (** [find_subtree p t] returns the subtree rooted at [p].
 
-    @return The subtrie with all the bindings under [p], including the binding at [p] itself (which will be the root). If there are no such bindings with the prefix [p], an empty trie is returned.
+    @return The subtree with all the bindings under [p], including the binding at [p] itself (which will be the root). If there are no such bindings with the prefix [p], an empty trie is returned.
 *)
 val find_subtree : path -> ('data, 'tag) t -> ('data, 'tag) t
 
-(** [find_singleton p t] returns the value at [p]. *)
+(** [find_singleton p t] returns the data and tag at [p]. *)
 val find_singleton : path -> ('data, 'tag) t -> ('data * 'tag) option
 
-(** [find_root t] returns the value at the root. This is equivalent to {!val:find_singleton}[ [] t]. *)
+(** [find_root t] returns the data and tag at the root. This is equivalent to {!val:find_singleton}[ [] t]. *)
 val find_root : ('data, 'tag) t -> ('data * 'tag) option
 
 (** {1 Mapping and Filtering} *)
 
-(** [iter ~prefix f t] applies the function [f] to each value [v] in the trie.
+(** [iter ~prefix f t] applies the function [f] to each data and tag in the trie.
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
 val iter : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> unit) -> ('data, 'tag) t -> unit
 
-(** [map_data ~prefix f t] applies the function [f] to each value [v] in the trie.
+(** [map ~prefix f trie] applies the function [f] to each data and tag in the trie.
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val map_data : ?prefix:bwd_path -> (bwd_path -> 'data1 * 'tag -> 'data2) -> ('data1, 'tag) t -> ('data2, 'tag) t
+val map : ?prefix:bwd_path -> (bwd_path -> 'data1 * 'tag1 -> 'data2 * 'tag2) -> ('data1, 'tag1) t -> ('data2, 'tag2) t
 
-(** [filter ~prefix f t] removes all values [v] at path [p] such that [f ~prefix:p v] returns [false].
+(** [filter ~prefix f trie] removes all data [d] with tag [t] at path [p] such that [f ~prefix:p (d, t)] returns [false].
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
 val filter : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> bool) -> ('data, 'tag) t -> ('data, 'tag) t
 
-(** [filter_map_data ~prefix f t] applies the function [f] to each value [v] at [p] in the trie. If [f ~prefix:p v] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some v'], then the value will be replaced by [v'].
+(** [filter_map ~prefix f trie] applies the function [f] to each data [d] with tag [t] at [p] in [trie]. If [f ~prefix:p (d, t)] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some d'], then the data will be replaced by [d'].
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
-val filter_map_data : ?prefix:bwd_path -> (bwd_path -> 'data1 * 'tag -> 'data2 option) -> ('data1, 'tag) t -> ('data2, 'tag) t
+val filter_map : ?prefix:bwd_path -> (bwd_path -> 'data1 * 'tag1 -> ('data2 * 'tag2) option) -> ('data1, 'tag1) t -> ('data2, 'tag2) t
 
 (** {1 Updating} *)
 
 (** [update_subtree p f t] replaces the subtree [t'] rooted at [p] in [t] with [f t']. *)
 val update_subtree : path -> (('data, 'tag) t -> ('data, 'tag) t) -> ('data, 'tag) t -> ('data, 'tag) t
 
-(** [update_singleton p f t] replaces the value [v] at [p] in [t] with the result of [f]. If there was no binding at [p], [f None] is evaluated. Otherwise, [f (Some v)] is used. If the result is [None], the old binding at [p] (if any) is removed. Otherwise, if the result is [Some v'], the value at [p] is replaced by [v']. *)
+(** [update_singleton p f trie] replaces the data and tag at [p] in [trie] with the result of [f]. If there was no binding at [p], [f None] is evaluated. Otherwise, [f (Some (d, t))] is used where [d] and [t] are the data and the tag. If the result is [None], the old binding at [p] (if any) is removed. Otherwise, if the result is [Some (d', t')], the data and the tag at [p] are replaced by [d'] and [t']. *)
 val update_singleton : path -> (('data * 'tag) option -> ('data * 'tag) option) -> ('data, 'tag) t -> ('data, 'tag) t
 
 (** [update_root f t] updates the value at root with [f]. It is equivalent to {!val:update_singleton}[ [] f t]. *)
@@ -99,13 +104,13 @@ val union : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data * 'tag -> 'da
 *)
 val union_subtree : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag) -> ('data, 'tag) t -> path * ('data, 'tag) t -> ('data, 'tag) t
 
-(** [union_singleton merger t binding] is equivalent to {!val:union}[ merger t1 (singleton binding)], but potentially more efficient.
+(** [union_singleton ~prefix merger t binding] is equivalent to {!val:union}[ ~prefix merger t1 (singleton binding)], but potentially more efficient.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
 val union_singleton : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag) -> ('data, 'tag) t -> path * ('data * 'tag) -> ('data, 'tag) t
 
-(** [union_root merger t r] is equivalent to {!val:union_singleton}[ merger t ([], r)], but potentially more efficient.
+(** [union_root ~prefix merger t r] is equivalent to {!val:union_singleton}[ ~prefix merger t ([], r)], but potentially more efficient.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
@@ -130,7 +135,8 @@ val detach_root : ('data, 'tag) t -> ('data * 'tag) option * ('data, 'tag) t
 *)
 val to_seq : ?prefix:bwd_path -> ('data, 'tag) t -> (path * ('data * 'tag)) Seq.t
 
-(** [to_seq_with_bwd_paths] is like {!val:to_seq}. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped.
+(** [to_seq_with_bwd_paths] is like {!val:to_seq}, but with paths in the backward direction.
+    This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped.
 
     @param prefix The prefix prepended to any path in the output. The default is the empty prefix ([Emp]).
 *)
@@ -156,14 +162,17 @@ val of_seq_with_merger : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data 
 (** The abstract type of an untagged trie. *)
 type +!'data untagged
 
-(** Attach a tag to all existing bindings in O(1) time. *)
+(** Attach the same tag to all existing bindings in O(1) time. *)
 val tag : 'tag -> 'data untagged -> ('data, 'tag) t
 
 (** [untag t] strips off tags from tries in O(1) time. *)
 val untag : ('data, _) t -> 'data untagged
 
-(** [retag tag t] changes all tags within [t] to [tag] in O(1) time. *)
+(** [retag tag t] changes all tags within [t] to [tag] in O(1) time. The data remain intact. *)
 val retag : 'tag -> ('data, _) t -> ('data, 'tag) t
+
+(** [retag_subtree tag path t] changes all tags within the subtrie rooted at [path] to [tag] efficiently. The data remain intact. *)
+val retag_subtree : path -> 'tag -> ('data, 'tag) t -> ('data, 'tag) t
 
 module Untagged :
 sig

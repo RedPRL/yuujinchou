@@ -35,14 +35,14 @@ let find_root l = find_singleton [] l
 
 let iter ?(prefix=Emp) f l =
   List.iter l ~f:(fun (p, x) -> f (prefix <>< p) x)
-let map_data ?(prefix=Emp) f l =
-  List.map l ~f:(fun (p, (d, t)) -> (p, (f (prefix <>< p) (d, t), t)))
+let map ?(prefix=Emp) f l =
+  List.map l ~f:(fun (p, (d, t)) -> (p, f (prefix <>< p) (d, t)))
 let filter ?(prefix=Emp) f l =
   List.filter l ~f:(fun (p, (d, t)) -> f (prefix <>< p) (d, t))
-let filter_map_data ?(prefix=Emp) f l =
+let filter_map ?(prefix=Emp) f l =
   List.filter_map l
     ~f:(fun (p, (d, t)) ->
-        Option.map (fun d -> p, (d, t)) @@ f (prefix <>< p) (d, t))
+        Option.map (fun x -> p, x) @@ f (prefix <>< p) (d, t))
 
 let detach_subtree pre l =
   List.partition_map l
@@ -110,6 +110,8 @@ type +!'a untagged = (path * 'a) list
 let untag l = List.map ~f:(fun (p, (d, _)) -> p, d) l
 let tag t l = List.map ~f:(fun (p, d) -> p, (d, t)) l
 let retag t l = List.map ~f:(fun (p, (d, _)) -> p, (d, t)) l
+let retag_subtree pre t l = List.map l
+    ~f:(fun ((p, (d, _)) as b) -> if Option.is_some (split_path pre p) then p, (d, t) else b)
 
 module Untagged =
 struct
