@@ -9,11 +9,10 @@ type path = string list
 type bwd_path = string bwd
 
 (** The abstract type of a trie.
-    ['data] represents the information surviving retagging, and ['tag] represents the data to be reset during retagging.
-    See {!val:retag}, which could reset all tags in a trie in O(1) time while keeping all data intact.
-
-    A possible usage is to put the definitions in ['data] and the identities of the import statements in ['tag]
-    to implement efficient detection of unused imports. *)
+    ['data] represents the information surviving retagging, and ['tag] represents the information to be reset during retagging.
+    See {!val:retag}, which could reset all tags in O(1) time while keeping data intact.
+    A possible usage when making a proof assistant is to put top-level definitions into ['data]
+    and identities of the import statements into ['tag] for efficient detection of unused imports. *)
 type (+!'data, +!'tag) t
 
 (** {1 Basic Operations} *)
