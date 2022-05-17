@@ -10,7 +10,7 @@ type decl =
   (* declaration, but supressing the shadowing warning *)
   | ShadowingDecl of Trie.path * int
   (* importing a trie after applying the modifier *)
-  | Import of int Trie.t * modifier_cmd Language.modifier
+  | Import of int Trie.untagged * modifier_cmd Language.modifier
   (* printing out all visible bindings *)
   | PrintVisible
   (* exporting a binding *)
@@ -20,7 +20,12 @@ type decl =
 type program = decl list
 
 (* Specialzed Scope module with Data.t *)
-module S = Scope.Make (struct type data = int type hook = modifier_cmd type context = [`Visible | `Export] end)
+module S = Scope.Make (struct
+    type data = int
+    type tag = [`Imported | `Local]
+    type hook = modifier_cmd
+    type context = [`Visible | `Export]
+  end)
 
 (* Convert a backward path into a string for printing. *)
 let string_of_bwd_path =
@@ -37,6 +42,11 @@ let handle_modifier_effects f =
     | Some `Export -> " in the export namespace"
     | None -> ""
   in
+  let string_of_tag =
+    function
+    | `Imported -> " (imported)"
+    | `Local -> " (local)"
+  in
   try_with f ()
     { effc = fun (type a) (eff : a Effect.t) ->
           match eff with
@@ -49,7 +59,7 @@ let handle_modifier_effects f =
             fun (k : (a, _) continuation) ->
             begin
               Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
-                former (string_of_bwd_path path) latter (string_of_context context);
+                (fst former) (string_of_bwd_path path) (fst latter) (string_of_context context);
               continue k latter
             end
           | S.Mod.Hook {context; prefix; hook = Print; input} -> Option.some @@
@@ -57,8 +67,8 @@ let handle_modifier_effects f =
             Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
               (string_of_bwd_path prefix) (string_of_context context);
             Trie.iter
-              (fun path data ->
-                 Format.printf "%s => %i@;" (string_of_bwd_path path) data)
+              (fun path (data, tag) ->
+                 Format.printf "%s => %i%s@;" (string_of_bwd_path path) data (string_of_tag tag))
               input;
             Format.printf "@]@.";
             continue k input
@@ -78,12 +88,12 @@ let silence_shadowing f =
 let rec interpret_decl : decl -> unit =
   function
   | Decl (p, x) ->
-    S.include_singleton ~context_visible:`Visible ~context_export:`Export (p, x)
+    S.include_singleton ~context_visible:`Visible ~context_export:`Export (p, (x, `Local))
   | ShadowingDecl (p, x) ->
     silence_shadowing @@ fun () ->
-    S.include_singleton (p, x)
+    S.include_singleton (p, (x, `Local))
   | Import (t, m) ->
-    let t = S.Mod.exec m t in
+    let t = S.Mod.exec m (Trie.tag `Imported t) in
     S.import_subtree ([], t)
   | PrintVisible ->
     S.modify_visible (Language.hook Print)
@@ -104,7 +114,7 @@ let () = interpret [
     PrintVisible;
     ShadowingDecl (["x"], 10);
     PrintVisible;
-    Import (Trie.of_seq (List.to_seq [["y"], 20]), Language.renaming [] ["z"]);
+    Import (Trie.Untagged.of_seq (List.to_seq [["y"], 20]), Language.renaming [] ["z"]);
     PrintVisible;
     Export ["z"; "y"];
     Section (["w"], [

@@ -7,7 +7,7 @@ type path = seg list
 type bwd_path = seg bwd
 
 (* invariant: items are sorted and uniquefied *)
-type +'a t = (path * 'a) list
+type (+!'a, +!'b) t = (path * ('a * 'b)) list
 
 let empty = []
 let is_empty l = l = []
@@ -18,8 +18,8 @@ let prefix pre l = List.map l ~f:(fun (p, x) -> pre @ p, x)
 let singleton x = [x]
 
 let (=) = List.equal ~eq:String.equal
-let equal eq l1 l2 =
-  List.equal ~eq:(fun (p1, x1) (p2, x2) -> p1 = p2 && eq x1 x2) l1 l2
+let equal eq_data eq_tag l1 l2 =
+  List.equal ~eq:(fun (p1, (d1, t1)) (p2, (d2, t2)) -> p1 = p2 && eq_data d1 d2 && eq_tag t1 t2) l1 l2
 
 let rec split_path pre p =
   match pre, p with
@@ -36,13 +36,13 @@ let find_root l = find_singleton [] l
 let iter ?(prefix=Emp) f l =
   List.iter l ~f:(fun (p, x) -> f (prefix <>< p) x)
 let map ?(prefix=Emp) f l =
-  List.map l ~f:(fun (p, x) -> (p, f (prefix <>< p) x))
+  List.map l ~f:(fun (p, (d, t)) -> (p, f (prefix <>< p) (d, t)))
 let filter ?(prefix=Emp) f l =
-  List.filter l ~f:(fun (p, x) -> f (prefix <>< p) x)
+  List.filter l ~f:(fun (p, (d, t)) -> f (prefix <>< p) (d, t))
 let filter_map ?(prefix=Emp) f l =
   List.filter_map l
-    ~f:(fun (p, x) ->
-        Option.map (fun x -> p, x) @@ f (prefix <>< p) x)
+    ~f:(fun (p, (d, t)) ->
+        Option.map (fun x -> p, x) @@ f (prefix <>< p) (d, t))
 
 let detach_subtree pre l =
   List.partition_map l
@@ -54,6 +54,12 @@ let detach_singleton p l =
   let l1, l2 =
     List.partition_map l
       ~f:(fun b -> if fst b = p then Either.Left b else Either.Right b)
+  in
+  Option.map snd (List.nth_opt l1 0), l2
+let detach_root l =
+  let l1, l2 =
+    List.partition_map l
+      ~f:(fun b -> if fst b = [] then Either.Left b else Either.Right b)
   in
   Option.map snd (List.nth_opt l1 0), l2
 
@@ -78,6 +84,8 @@ let union_subtree ?prefix:p m l1 (pre, l2) =
   union ?prefix:p m l1 @@ prefix pre l2
 let union_singleton ?prefix m l1 (p, x) =
   union ?prefix m l1 @@ singleton (p, x)
+let union_root ?prefix m l1 x =
+  union ?prefix m l1 @@ root x
 
 let update_subtree p f l =
   let sub, rest = detach_subtree p l in
@@ -92,6 +100,27 @@ let to_seq ?(prefix=Emp) l =
   Seq.map (fun (p, x) -> prefix <>> p, x) @@ List.to_seq l
 let to_seq_with_bwd_paths ?(prefix=Emp) l =
   Seq.map (fun (p, x) -> prefix <>< p, x) @@ List.to_seq l
-let to_seq_values l = Seq.map snd @@ List.to_seq l
+let to_seq_values l = Seq.map (fun (_, (d, _)) -> d) @@ List.to_seq l
+let to_seq_values_with_tags l = Seq.map snd @@ List.to_seq l
 let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty s
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
+
+type +!'a untagged = (path * 'a) list
+
+let untag l = List.map ~f:(fun (p, (d, _)) -> p, d) l
+let tag t l = List.map ~f:(fun (p, d) -> p, (d, t)) l
+let retag t l = List.map ~f:(fun (p, (d, _)) -> p, (d, t)) l
+let retag_subtree pre t l = List.map l
+    ~f:(fun ((p, (d, _)) as b) -> if Option.is_some (split_path pre p) then p, (d, t) else b)
+
+module Untagged =
+struct
+  type 'a t = 'a untagged
+
+  let to_seq ?(prefix=Emp) l =
+    Seq.map (fun (p, x) -> prefix <>> p, x) @@ List.to_seq l
+  let to_seq_with_bwd_paths ?(prefix=Emp) l =
+    Seq.map (fun (p, x) -> prefix <>< p, x) @@ List.to_seq l
+  let to_seq_values l = Seq.map snd @@ List.to_seq l
+  let of_seq s = untag @@ Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty (Seq.map (fun (p, d) -> (p, (d, ()))) s)
+end

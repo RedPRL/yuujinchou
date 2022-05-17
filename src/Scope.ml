@@ -4,6 +4,7 @@ open BwdNotation
 module type Param =
 sig
   type data
+  type tag
   type hook
   type context
 end
@@ -14,21 +15,21 @@ sig
 
   exception Locked
 
-  module Mod : Modifier.S with type data = data and type hook = hook and type context = context
+  module Mod : Modifier.S with type data = data and type tag = tag and type hook = hook and type context = context
 
-  val resolve : Trie.path -> data option
+  val resolve : Trie.path -> (data * tag) option
   val modify_visible : ?context:context -> hook Language.modifier -> unit
   val modify_export : ?context:context -> hook Language.modifier -> unit
   val export_visible : ?context:context -> hook Language.modifier -> unit
-  val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * data -> unit
-  val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * data Trie.t -> unit
-  val import_subtree : ?context:context -> Trie.path * data Trie.t -> unit
-  val get_export : unit -> data Trie.t
+  val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
+  val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * (data, tag) Trie.t -> unit
+  val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
+  val get_export : unit -> (data, tag) Trie.t
   val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
   val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> 'a
 end
 
-module Make (P : Param) : S with type data = P.data and type hook = P.hook and type context = P.context =
+module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context =
 struct
   include P
 
@@ -38,7 +39,7 @@ struct
 
     module M = Algaeff.Mutex.Make()
 
-    type scope = {visible : data Trie.t; export : data Trie.t}
+    type scope = {visible : (data, tag) Trie.t; export : (data, tag) Trie.t}
     module S = Algaeff.State.Make(struct type state = scope end)
 
     type env = {prefix : Trie.bwd_path}
