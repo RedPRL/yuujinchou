@@ -18,9 +18,9 @@ sig
   module Mod : Modifier.S with type data = data and type tag = tag and type hook = hook and type context = context
 
   val resolve : Trie.path -> (data * tag) option
-  val modify_visible : ?context:context -> hook Language.modifier -> unit
-  val modify_export : ?context:context -> hook Language.modifier -> unit
-  val export_visible : ?context:context -> hook Language.modifier -> unit
+  val modify_visible : ?context:context -> hook Language.t -> unit
+  val modify_export : ?context:context -> hook Language.t -> unit
+  val export_visible : ?context:context -> hook Language.t -> unit
   val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
   val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * (data, tag) Trie.t -> unit
   val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit

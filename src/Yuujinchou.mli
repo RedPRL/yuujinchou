@@ -37,34 +37,26 @@ import math # Python: the sqrt function is available as `math.sqrt`.
 
    {2 Library Organization}
 
-   The library code is split into five parts:
+   The library code is split into four parts:
 *)
 
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
 module Trie : module type of Trie
 
-(** The {!module:Language} module defines the language of modifiers and selectors. *)
+(** The {!module:Language} module defines the language of modifiers. *)
 module Language :
 sig
   (** {1 Types} *)
 
-  (** The type of generic modifiers, parametrized by the type of hook labels. *)
-  type (!'hook, !'kind) t constraint 'kind = [< `Modifier | `Selector]
-
-  (** The type of modifiers, parametrized by the type of hook labels. See {!val:hook}. *)
-  type 'hook modifier = ('hook, [`Modifier]) t
-
-  (** The type of selectors, parametrized by the type of hook labels.
-      Selectors are specialized modifiers that use explicit, positive listing of names to
-      produce sets of data. Only {!val:any}, {!val:only}, {!val:none}, {!val:union}, and {!val:hook} are allowed. *)
-  type 'hook selector = ('hook, [`Selector]) t
+  (** The abstract type of modifiers, parametrized by the type of hook labels. See {!val:hook}. *)
+  type 'hook t
 
   (**
      The modifier type is abstract---you should build a modifier using the following builders and execute it by {!val:Modifier.S.exec}.
   *)
 
   (** Checking equality. *)
-  val equal : ('hook -> 'hook -> bool) -> ('hook, 'kind) t -> ('hook, 'kind) t -> bool
+  val equal : ('hook -> 'hook -> bool) -> 'hook t -> 'hook t -> bool
 
   (** {1 Modifier Builders} *)
 
@@ -72,59 +64,55 @@ sig
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
       To avoid the emptiness checking, use the identity modifier {!val:seq}[ []].
-      This is equivalent to {!val:only}[ []].
-
-      While this could technically can be a selector for completeness (as a degenerate case of the {!val:only} selector),
-      one should avoid using this selector that selects everything.
-  *)
-  val any : ('hook, 'kind) t
+      This is equivalent to {!val:only}[ []]. *)
+  val any : 'hook t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
-  val only : Trie.path -> ('hook, 'kind) t
+  val only : Trie.path -> 'hook t
 
   (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"] ]{!val:any} will keep [y] (if existing), while {!val:only}[ ["x"]] will drop [y]. *)
-  val in_ : Trie.path -> 'hook modifier -> 'hook modifier
+  val in_ : Trie.path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop).
       To avid the emptiness checking, use the empty modifier {!val:union}[ []]. *)
-  val none : ('hook, 'kind) t
+  val none : 'hook t
 
   (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[ p ]{!val:none}. *)
-  val except : Trie.path -> 'hook modifier
+  val except : Trie.path -> 'hook t
 
   (** {2 Renaming} *)
 
   (** [renaming path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty (nothing to move). *)
-  val renaming : Trie.path -> Trie.path -> 'hook modifier
+  val renaming : Trie.path -> Trie.path -> 'hook t
 
   (** {2 Sequencing} *)
 
   (** [seq [m0; m1; m2; ...; mn]] runs the modifiers [m0], [m1], [m2], ..., [mn] in order.
       In particular, [seq []] is the identity modifier. *)
-  val seq : 'hook modifier list -> 'hook modifier
+  val seq : 'hook t list -> 'hook t
 
   (** {2 Union} *)
 
   (** [union [m0; m1; m2; ...; mn]] calculates the union of the results of individual modifiers [m0], [m1], [m2], ..., [mn].
-      In particular, [union []] is the empty modifier. As a selector, it produces the union set of the results of sub-selectors. *)
-  val union : ('hook, 'kind) t list -> ('hook, 'kind) t
+      In particular, [union []] is the empty modifier. *)
+  val union : 'hook t list -> 'hook t
 
   (** {2 Custom Hooks} *)
 
-  (** [hook h] applies the hook labelled [h] to the entire trie. See {!module-type:Modifier.S} for the effect [Hook] that will be performed when processing this modifier.
-      As a selector, it applies the hook labelled [h] to calculate the data set. *)
-  val hook : 'hook -> ('hook, 'kind) t
+  (** [hook h] applies the hook labelled [h] to the entire trie.
+      See {!module-type:Modifier.S} for the effect [Hook] that will be performed when processing this modifier. *)
+  val hook : 'hook -> 'hook t
 
   (** {2 Ugly Printing} *)
 
   (** [dump dump_hook m] dumps the internal representation of [m] for debugging,
       where [dump_hook] is the ugly printer for hook labels (see {!val:hook}). *)
-  val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> ('hook, 'kind) t -> unit
+  val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit
 end
 
-(** The {!module:Modifier} module implements the engine running the modifiers of type {!type:Language.modifier}. *)
+(** The {!module:Modifier} module implements the engine running the modifiers of type {!type:Language.t}. *)
 module Modifier :
 sig
 
@@ -166,51 +154,7 @@ sig
 
         @return The new trie after the transformation.
     *)
-    val exec : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.modifier -> (data, tag) Trie.t -> (data, tag) Trie.t
-  end
-
-  (** The functor to generate an engine. *)
-  module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
-end
-
-(** The {!module:Selector} module implements the engine running the selectors of type {!type:Language.selector},
-    which are specialized modifiers that only allow explicit positive listing of names. *)
-module Selector :
-sig
-
-  (** The parameters of an engine. *)
-  module type Param =
-  sig
-    include Modifier.Param
-    (** @open *)
-
-    (** The comparator for {!type:data}. *)
-    val compare_data : data -> data -> int
-  end
-
-  (** The signature of the engine. *)
-  module type S =
-  sig
-    (** @open *)
-    include Param
-
-    (** The types of data sets. *)
-    module DataSet : Set.S with type elt = data
-
-    (** The effect [BindingNotFound {context; prefix}] means that the engine expected at least one binding within the subtree at [path], but could not find any. The selector {!val:Language.only} expects at least one matching binding. For example, the selector {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the selector will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. See {!type:context} for the argument [context]. *)
-    type _ Effect.t += BindingNotFound : {context : context option; prefix : Trie.bwd_path} -> unit Effect.t
-
-    (** The effect [Hook {context; prefix; hook; input}] is triggered by selectors created by {!val:Language.hook}. When the engine encounters the selector generated by {!val:Language.hook}[ hook] while handling the subtree [input] at [prefix], it will perform the effect [Hook {context; path; hook; input}], which may be continued with the resulting set of data. See {!type:context} for the argument [context]. *)
-    type _ Effect.t += Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> DataSet.t Effect.t
-
-    (** [exec ~prefix modifier trie] runs the [modifier] on the [trie] and return the transformed trie. It can perform effects [BindingNotFound] and [Hook].
-
-        @param context The context attached to the performed modifier effects. If unspecified, effects come with {!constructor:None} as their context. Note that this does not affect the resulting trie but only the effects performed by the engine. A typical use case is for the same effect handler to know in what context the effect is performed.
-        @param prefix The prefix prepended to any path or prefix in the effects, but in reverse. The default is the empty unit path ([Emp]).
-
-        @return The new trie after the transformation.
-    *)
-    val exec : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.selector -> (data, tag) Trie.t -> DataSet.t
+    val exec : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   end
 
   (** The functor to generate an engine. *)
@@ -252,19 +196,19 @@ sig
     (** [resolve p] looks up the name [p] in the current scope
         and return the data associated with the binding. *)
 
-    val modify_visible : ?context:context -> hook Language.modifier -> unit
+    val modify_visible : ?context:context -> hook Language.t -> unit
     (** [modify_visible m] modifies the visible namespace by
         running the modifier [m] on it, using {!val:Mod.exec}.
 
         @param context The context attached to the modifier effects. *)
 
-    val modify_export : ?context:context -> hook Language.modifier -> unit
+    val modify_export : ?context:context -> hook Language.t -> unit
     (** [modify_visible m] modifies the export namespace by
         running the modifier [m] on it, using {!val:Mod.exec}.
 
         @param context The context attached to the modifier effects. *)
 
-    val export_visible : ?context:context -> hook Language.modifier -> unit
+    val export_visible : ?context:context -> hook Language.t -> unit
     (** [export_visible m] runs the modifier on the visible namespace,
         using {!val:Mod.exec}, but then merge the result into the export namespace.
         Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
@@ -338,7 +282,7 @@ end
        (* declaration, but supressing the shadowing warning *)
        | ShadowingDecl of Trie.path * int
        (* importing a trie after applying the modifier *)
-       | Import of int Trie.untagged * modifier_cmd Language.modifier
+       | Import of int Trie.untagged * modifier_cmd Language.t
        (* printing out all visible bindings *)
        | PrintVisible
        (* exporting a binding *)
