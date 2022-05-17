@@ -3,11 +3,11 @@ open BwdNotation
 open Yuujinchou
 open Language
 
-let trie (type a) (elem : a Alcotest.testable) : a Trie.t Alcotest.testable =
+let trie (type a) (elem : a Alcotest.testable) : (a, unit) Trie.t Alcotest.testable =
   (module struct
-    type t = a Trie.t
-    let pp fmt t = Alcotest.(pp @@ list @@ pair (list string) elem) fmt (List.of_seq @@ Trie.to_seq t)
-    let equal = Trie.equal (Alcotest.equal elem)
+    type t = (a, unit) Trie.t
+    let pp fmt t = Alcotest.(pp @@ list @@ pair (list string) (pair elem unit)) fmt (List.of_seq @@ Trie.to_seq t)
+    let equal = Trie.equal (Alcotest.equal elem) Alcotest.(equal unit)
   end)
 
 let bwd (type a) (elem : a Alcotest.testable) : a bwd Alcotest.testable =
@@ -30,7 +30,7 @@ let data : data Alcotest.testable =
   end)
 
 type empty = |
-module M = Modifier.Make (struct type nonrec data = data type hook = empty type context = empty end)
+module M = Modifier.Make (struct type nonrec data = data type tag = unit type hook = empty type context = empty end)
 
 exception WrappedBindingNotFound of Trie.bwd_path
 let wrap f =
@@ -41,16 +41,16 @@ let wrap f =
           | M.BindingNotFound {prefix; _} -> Option.some @@
             fun (k : (a, _) continuation) ->
             discontinue k @@ WrappedBindingNotFound prefix
-          | M.Shadowing {path; former; latter; _} -> Option.some @@
+          | M.Shadowing {path; former = former, (); latter = latter, (); _} -> Option.some @@
             fun (k : (a, _) continuation) ->
-            continue k @@ U (path, former, latter)
+            continue k @@ (U (path, former, latter), ())
           | M.Hook _ -> .
           | _ -> None
     }
 
 let wrap_error f = fun () -> wrap @@ fun () -> ignore (f ())
 
-let of_list l = Trie.of_seq (List.to_seq l)
+let of_list l = Trie.(tag () @@ Untagged.of_seq (List.to_seq l))
 
 let test_none_1 () =
   Alcotest.(check @@ trie data) "ok"
