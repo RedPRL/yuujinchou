@@ -56,7 +56,7 @@ sig
 
   (** The type of selectors, parametrized by the type of hook labels.
       Selectors are specialized modifiers that use explicit, positive listing of names to
-      produce sets of data. Only {!val:any}, {!val:only}, {!val:union}, and {!val:hook} are allowed. *)
+      produce sets of data. Only {!val:any}, {!val:only}, {!val:none}, {!val:union}, and {!val:hook} are allowed. *)
   type 'hook selector = ('hook, [`Selector]) t
 
   (**
@@ -89,7 +89,7 @@ sig
 
   (** [none] drops everything. It is an error if the tree was already empty (nothing to drop).
       To avid the emptiness checking, use the empty modifier {!val:union}[ []]. *)
-  val none : 'hook modifier
+  val none : ('hook, 'kind) t
 
   (** [except p] drops the subtree rooted at [p]. It is an error if there was nothing in the subtree. This is equivalent to {!val:in_}[ p ]{!val:none}. *)
   val except : Trie.path -> 'hook modifier

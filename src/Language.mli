@@ -1,6 +1,6 @@
 type ('hook, 'kind) t_ =
   | M_only : Trie.path -> ('hook, [< `Modifier | `Selector]) t_
-  | M_none : ('hook, [< `Modifier]) t_
+  | M_none : ('hook, [< `Modifier | `Selector]) t_
   | M_in : Trie.path * ('hook, [< `Modifier] as 'kind) t_ -> ('hook, 'kind) t_
   | M_renaming : Trie.path * Trie.path -> ('hook, [< `Modifier]) t_
   | M_seq : ('hook, [< `Modifier] as 'kind) t_ list -> ('hook, 'kind) t_
@@ -17,7 +17,7 @@ val any : ('hook, 'kind) t
 
 val only : Trie.path -> ('hook, 'kind) t
 
-val none : 'hook modifier
+val none : ('hook, 'kind) t
 val except : Trie.path -> 'hook modifier
 val in_ : Trie.path -> 'hook modifier -> 'hook modifier
 

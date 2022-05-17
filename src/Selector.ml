@@ -51,6 +51,9 @@ struct
         let t = Trie.find_subtree p t in
         check_nonempty ~context ~prefix:(prefix <>< p) t;
         to_set t
+      | M_none ->
+        check_nonempty ~context ~prefix t;
+        DataSet.empty
       | M_union fs ->
         let f ss f = DataSet.union ss (go ~prefix f t) in
         List.fold_left ~f ~init:DataSet.empty fs
