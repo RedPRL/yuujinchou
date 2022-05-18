@@ -16,7 +16,7 @@ depends: [
   "bwd" {>= "1.0.0"}
   "alcotest" {>= "1.5.0" & with-test}
   "qcheck-core" {>= "0.18" & with-test}
-  "odoc" {with-doc}
+  "odoc" {>= "2.0" & with-doc}
   "algaeff"
 ]
 pin-depends: [

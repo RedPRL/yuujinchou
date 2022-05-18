@@ -105,22 +105,6 @@ let to_seq_values_with_tags l = Seq.map snd @@ List.to_seq l
 let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty s
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
 
-type +!'a untagged = (path * 'a) list
-
-let untag l = List.map ~f:(fun (p, (d, _)) -> p, d) l
-let tag t l = List.map ~f:(fun (p, d) -> p, (d, t)) l
 let retag t l = List.map ~f:(fun (p, (d, _)) -> p, (d, t)) l
 let retag_subtree pre t l = List.map l
     ~f:(fun ((p, (d, _)) as b) -> if Option.is_some (split_path pre p) then p, (d, t) else b)
-
-module Untagged =
-struct
-  type 'a t = 'a untagged
-
-  let to_seq ?(prefix=Emp) l =
-    Seq.map (fun (p, x) -> prefix <>> p, x) @@ List.to_seq l
-  let to_seq_with_bwd_paths ?(prefix=Emp) l =
-    Seq.map (fun (p, x) -> prefix <>< p, x) @@ List.to_seq l
-  let to_seq_values l = Seq.map snd @@ List.to_seq l
-  let of_seq s = untag @@ Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty (Seq.map (fun (p, d) -> (p, (d, ()))) s)
-end
