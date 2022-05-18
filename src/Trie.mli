@@ -141,11 +141,14 @@ val to_seq : ?prefix:bwd_path -> ('data, 'tag) t -> (path * ('data * 'tag)) Seq.
 *)
 val to_seq_with_bwd_paths : ?prefix:bwd_path -> ('data, 'tag) t -> (bwd_path * ('data * 'tag)) Seq.t
 
-(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped. *)
-val to_seq_values : ('data, 'tag) t -> 'data Seq.t
+(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated data and tags. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped. *)
+val to_seq_values : ('data, 'tag) t -> ('data * 'tag) Seq.t
 
-(** [to_seq_values_with_tags t] traverses through the trie [t] in the lexicographical order but only returns the associated values and tags. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped. *)
-val to_seq_values_with_tags : ('data, 'tag) t -> ('data * 'tag) Seq.t
+(** [to_seq_data t] is similar to [to_seq_values t] but returns only the associated data. *)
+val to_seq_data : ('data, 'tag) t -> 'data Seq.t
+
+(** [to_seq_tags t] is similar to [to_seq_values t] but returns only the associated tags. *)
+val to_seq_tags : ('data, 'tag) t -> 'tag Seq.t
 
 (** [of_seq ~prefix s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Later bindings will shadow previous ones if the paths of bindings are not unique. *)
 val of_seq : (path * ('data * 'tag)) Seq.t -> ('data, 'tag) t

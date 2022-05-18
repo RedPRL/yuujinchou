@@ -387,10 +387,13 @@ and children_to_seq_with_bwd_paths ~prefix (ds, dt, ts) =
 let to_seq_with_bwd_paths ?(prefix=Emp) t =
   Option.fold ~none:Seq.empty ~some:(node_to_seq_with_bwd_paths ~prefix) t
 
-let to_seq_values t = Seq.map (fun (_, (d, _)) -> d) @@
+let to_seq_values t = Seq.map snd @@
   to_seq_with_bwd_paths t
 
-let to_seq_values_with_tags t = Seq.map snd @@
+let to_seq_data t = Seq.map (fun (_, (d, _)) -> d) @@
+  to_seq_with_bwd_paths t
+
+let to_seq_tags t = Seq.map (fun (_, (_, t)) -> t) @@
   to_seq_with_bwd_paths t
 
 let to_seq ?prefix t = Seq.map (fun (p, v) -> Bwd.to_list p, v) @@

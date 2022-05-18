@@ -65,7 +65,7 @@ let to_seq ?prefix (v : _ t) : _ Seq.t = Seq.map (fun (p, d) -> p, (untag d)) @@
 
 let to_seq_with_bwd_paths ?prefix (v : _ t) : _ Seq.t = Seq.map (fun (p, d) -> p, (untag d)) @@ to_seq_with_bwd_paths ?prefix v
 
-let to_seq_values : _ t -> _ Seq.t = to_seq_values
+let to_seq_values (v : _ t) : _ Seq.t = Seq.map untag @@ to_seq_values v
 
 let of_seq s : _ t = of_seq @@ Seq.map (fun (p, d) -> p, tag d) s
 

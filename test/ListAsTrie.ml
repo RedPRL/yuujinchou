@@ -100,8 +100,9 @@ let to_seq ?(prefix=Emp) l =
   Seq.map (fun (p, x) -> prefix <>> p, x) @@ List.to_seq l
 let to_seq_with_bwd_paths ?(prefix=Emp) l =
   Seq.map (fun (p, x) -> prefix <>< p, x) @@ List.to_seq l
-let to_seq_values l = Seq.map (fun (_, (d, _)) -> d) @@ List.to_seq l
-let to_seq_values_with_tags l = Seq.map snd @@ List.to_seq l
+let to_seq_values l = Seq.map snd @@ List.to_seq l
+let to_seq_data l = Seq.map (fun (_, (d, _)) -> d) @@ List.to_seq l
+let to_seq_tags l = Seq.map (fun (_, (_, t)) -> t) @@ List.to_seq l
 let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty s
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
 
