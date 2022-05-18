@@ -402,25 +402,9 @@ let of_seq s = of_seq_with_merger ~prefix:Emp (fun _ _ y -> y) s
 
 (** {1 Tags} *)
 
-type 'data untagged = 'data data_node option
-
-let[@inline] untag (v : _ t) : _ untagged = Option.map fst v
-
-let[@inline] tag t : _ untagged -> _ t = Option.map (fun d -> mk_node' d t)
-
-let[@inline] retag t (v : _ t) : _ t = tag t (untag v)
+let[@inline] retag t : _ t -> _ t =
+  function
+  | None -> None
+  | Some (d, _) -> non_empty @@ mk_node' d t
 
 let retag_subtree path t (v : _ t) : _ t = update_subtree path (retag t) v
-
-module Untagged =
-struct
-  type 'data t = 'data untagged
-
-  let to_seq ?prefix v = Seq.map (fun (p, (d, ())) -> p, d) @@ to_seq ?prefix (tag () v)
-
-  let to_seq_with_bwd_paths ?prefix v = Seq.map (fun (p, (d, ())) -> p, d) @@ to_seq_with_bwd_paths ?prefix (tag () v)
-
-  let to_seq_values v = to_seq_values (tag () v)
-
-  let of_seq s = untag @@ of_seq @@ Seq.map (fun (p, d) -> (p, (d, ()))) s
-end

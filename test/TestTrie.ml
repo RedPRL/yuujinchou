@@ -8,22 +8,17 @@ let cmp (p1, _) (p2, _) = cmp_path p1 p2
 
 let rawlist_to_list l = ListAsTrie.of_seq @@ List.to_seq l
 let list_to_rawlist l = List.of_seq @@ ListAsTrie.to_seq l
-let rawlist_to_untagged_list l = ListAsTrie.Untagged.of_seq @@ List.to_seq l
-let untagged_list_to_rawlist l = List.of_seq @@ ListAsTrie.Untagged.to_seq l
 
 let print_path = Q.Print.(list string)
 let print_bwd_path = Q.Print.contramap Bwd.BwdLabels.to_list print_path
 let print_tagged = Q.Print.(pair int int)
 let print_list = Q.Print.(contramap list_to_rawlist (list @@ pair print_path print_tagged))
-let print_untagged_list = Q.Print.(contramap untagged_list_to_rawlist (list @@ pair print_path int))
 
 let gen_path = Q.Gen.(small_list @@ small_string ~gen:printable)
 let gen_bwd_path = Q.Gen.map Bwd.BwdLabels.of_list gen_path
 let gen_tagged = Q.Gen.(pair int small_int)
 let gen_list = Q.Gen.map (fun l -> rawlist_to_list @@ List.sort_uniq ~cmp l)
     Q.Gen.(small_list @@ pair gen_path gen_tagged)
-let gen_untagged_list = Q.Gen.map (fun l -> rawlist_to_untagged_list @@ List.sort_uniq ~cmp l)
-    Q.Gen.(small_list @@ pair gen_path int)
 
 let obs_path = Q.Observable.(list string)
 let obs_bwd_path = Q.Observable.contramap Bwd.BwdLabels.to_list obs_path
@@ -32,8 +27,6 @@ let obs_list = Q.Observable.(contramap list_to_rawlist @@ list @@ pair obs_path 
 
 let of_list l = Trie.of_seq @@ ListAsTrie.to_seq l
 let to_list t = ListAsTrie.of_seq @@ Trie.to_seq t
-let of_untagged_list l = Trie.Untagged.of_seq @@ ListAsTrie.Untagged.to_seq l
-let to_untagged_list t = ListAsTrie.Untagged.of_seq @@ Trie.Untagged.to_seq t
 
 (* for iter *)
 let bag_create () = ref []
@@ -244,50 +237,12 @@ let test_of_seq_with_merger =
        to_list (Trie.of_seq_with_merger ?prefix f (List.to_seq l))
        =
        ListAsTrie.of_seq_with_merger ?prefix f (List.to_seq l))
-let test_tag =
-  Q.Test.make ~count ~name:"tag" Q.Gen.(pair int gen_untagged_list) ~print:Q.Print.(pair int print_untagged_list)
-    (fun (t, l) -> to_list (Trie.tag t (of_untagged_list l)) = ListAsTrie.tag t l)
-let test_untag =
-  Q.Test.make ~count ~name:"untag" gen_list ~print:print_list
-    (fun l -> to_untagged_list (Trie.untag (of_list l)) = ListAsTrie.untag l)
 let test_retag =
   Q.Test.make ~count ~name:"retag" Q.Gen.(pair int gen_list) ~print:Q.Print.(pair int print_list)
     (fun (t, l) -> to_list (Trie.retag t (of_list l)) = ListAsTrie.retag t l)
 let test_retag_subtree =
   Q.Test.make ~count ~name:"retag_subtree" Q.Gen.(triple gen_path int gen_list) ~print:Q.Print.(triple print_path int print_list)
     (fun (p, t, l) -> to_list (Trie.retag_subtree p t (of_list l)) = ListAsTrie.retag_subtree p t l)
-
-module Untagged =
-struct
-  let test_to_seq =
-    Q.Test.make ~count ~name:"Untagged.to_seq" Q.Gen.(pair (opt gen_bwd_path) gen_untagged_list)
-      ~print:Q.Print.(pair (option print_bwd_path) print_untagged_list)
-      (fun (prefix, l) ->
-         List.of_seq (Trie.Untagged.to_seq ?prefix (of_untagged_list l))
-         =
-         List.of_seq (ListAsTrie.Untagged.to_seq ?prefix l))
-  let test_to_seq_with_bwd_paths =
-    Q.Test.make ~count ~name:"Untagged.to_seq_with_bwd_paths" Q.Gen.(pair (opt gen_bwd_path) gen_untagged_list)
-      ~print:Q.Print.(pair (option print_bwd_path) print_untagged_list)
-      (fun (prefix, l) ->
-         List.of_seq (Trie.Untagged.to_seq_with_bwd_paths ?prefix (of_untagged_list l))
-         =
-         List.of_seq (ListAsTrie.Untagged.to_seq_with_bwd_paths ?prefix l))
-  let test_to_seq_values =
-    Q.Test.make ~count ~name:"Untagged.to_seq_values" gen_untagged_list ~print:print_untagged_list
-      (fun l ->
-         List.of_seq (Trie.Untagged.to_seq_values (of_untagged_list l))
-         =
-         List.of_seq (ListAsTrie.Untagged.to_seq_values l))
-  let test_of_seq =
-    Q.Test.make ~count ~name:"Untagged.of_seq"
-      Q.Gen.(small_list @@ pair gen_path int)
-      ~print:Q.Print.(list @@ pair print_path int)
-      (fun l ->
-         to_untagged_list (Trie.Untagged.of_seq (List.to_seq l))
-         =
-         ListAsTrie.Untagged.of_seq (List.to_seq l))
-end
 
 let () =
   exit @@
@@ -321,12 +276,6 @@ let () =
     ; test_to_seq_values_with_tags
     ; test_of_seq
     ; test_of_seq_with_merger
-    ; test_tag
-    ; test_untag
     ; test_retag
     ; test_retag_subtree
-    ; Untagged.test_to_seq
-    ; Untagged.test_to_seq_with_bwd_paths
-    ; Untagged.test_to_seq_values
-    ; Untagged.test_of_seq
     ]

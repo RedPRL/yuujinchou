@@ -10,7 +10,7 @@ type decl =
   (* declaration, but supressing the shadowing warning *)
   | ShadowingDecl of Trie.path * int
   (* importing a trie after applying the modifier *)
-  | Import of int Trie.untagged * modifier_cmd Language.t
+  | Import of int Trie.Untagged.t * modifier_cmd Language.t
   (* printing out all visible bindings *)
   | PrintVisible
   (* exporting a binding *)
@@ -93,7 +93,7 @@ let rec interpret_decl : decl -> unit =
     silence_shadowing @@ fun () ->
     S.include_singleton (p, (x, `Local))
   | Import (t, m) ->
-    let t = S.Mod.exec m (Trie.tag `Imported t) in
+    let t = S.Mod.exec m (Trie.Untagged.tag `Imported t) in
     S.import_subtree ([], t)
   | PrintVisible ->
     S.modify_visible (Language.hook Print)

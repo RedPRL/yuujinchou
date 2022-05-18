@@ -158,40 +158,8 @@ val of_seq_with_merger : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data 
 
 (** {1 Tags} *)
 
-(** The abstract type of an untagged trie. *)
-type +!'data untagged
-
-(** Attach the same tag to all existing bindings in O(1) time. *)
-val tag : 'tag -> 'data untagged -> ('data, 'tag) t
-
-(** [untag t] strips off tags from tries in O(1) time. *)
-val untag : ('data, _) t -> 'data untagged
-
 (** [retag tag t] changes all tags within [t] to [tag] in O(1) time. The data remain intact. *)
 val retag : 'tag -> ('data, _) t -> ('data, 'tag) t
 
 (** [retag_subtree tag path t] changes all tags within the subtrie rooted at [path] to [tag] efficiently. The data remain intact. *)
 val retag_subtree : path -> 'tag -> ('data, 'tag) t -> ('data, 'tag) t
-
-module Untagged :
-sig
-  type 'data t = 'data untagged
-
-  (** [to_seq ~prefix t] traverses through the trie [t] in the lexicographical order.
-
-      @param prefix The prefix prepended to any path in the output. The default is the empty prefix ([Emp]).
-  *)
-  val to_seq : ?prefix:bwd_path -> 'data t -> (path * 'data) Seq.t
-
-  (** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated values. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped. *)
-  val to_seq_values : 'data t -> 'data Seq.t
-
-  (** [to_seq_with_bwd_paths] is like {!val:to_seq}. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped.
-
-      @param prefix The prefix prepended to any path in the output. The default is the empty prefix ([Emp]).
-  *)
-  val to_seq_with_bwd_paths : ?prefix:bwd_path -> 'data t -> (bwd_path * 'data) Seq.t
-
-  (** [of_seq ~prefix s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Later bindings will shadow previous ones if the paths of bindings are not unique. *)
-  val of_seq : (path * 'data) Seq.t -> 'data t
-end
