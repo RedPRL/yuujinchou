@@ -12,19 +12,20 @@ sig
   exception Locked
 
   val resolve : Trie.path -> (data * tag) option
-  val modify_visible : ?context:context -> hook Language.t -> unit
-  val modify_export : ?context:context -> hook Language.t -> unit
-  val export_visible : ?context:context -> hook Language.t -> unit
   val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
   val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * (data, tag) Trie.t -> unit
   val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
+  val modify_visible : ?context:context -> hook Language.t -> unit
+  val modify_export : ?context:context -> hook Language.t -> unit
+  val export_visible : ?context:context -> hook Language.t -> unit
   val get_export : unit -> (data, tag) Trie.t
-  val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
-  val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
 
+  val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
+
+  val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
   val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   val reperform : (data, tag, hook, context) handler
+  val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
 end
 
 module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context =
@@ -40,15 +41,15 @@ struct
     type scope = {visible : (data, tag) Trie.t; export : (data, tag) Trie.t}
     module S = Algaeff.State.Make(struct type state = scope end)
 
-    type env = {prefix : Trie.bwd_path}
+    type env = {export_prefix : Trie.bwd_path}
     module R = Algaeff.Reader.Make(struct type nonrec env = env end)
 
-    let run ~prefix ~init_visible f =
-      let env = {prefix} in
+    let run ~export_prefix ~init_visible f =
+      let env = {export_prefix} in
       let init = {visible = init_visible; export = Trie.empty} in
       M.run @@ fun () -> R.run ~env @@ fun () -> S.run ~init f
 
-    let prefix () = (R.read()).prefix
+    let export_prefix () = (R.read()).export_prefix
   end
 
   open Internal
@@ -65,24 +66,24 @@ struct
 
   let modify_export ?context m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with export = Mod.modify ?context ~prefix:(prefix()) m s.export}
+    {s with export = Mod.modify ?context ~prefix:(export_prefix()) m s.export}
 
   let export_visible ?context m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ~prefix:(prefix()) (Mod.reperform.shadow ?context) s.export @@
+       Trie.union ~prefix:(export_prefix()) (Mod.reperform.shadow ?context) s.export @@
        Mod.modify ?context ~prefix:Emp m s.visible }
 
   let include_singleton ?context_visible ?context_export (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     { visible = Trie.union_singleton ~prefix:Emp (Mod.reperform.shadow ?context:context_visible) s.visible (path, x);
-      export = Trie.union_singleton ~prefix:(prefix()) (Mod.reperform.shadow ?context:context_export) s.export (path, x) }
+      export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.reperform.shadow ?context:context_export) s.export (path, x) }
 
   let unsafe_include_subtree ~context_visible ~context_export (path, ns) =
     S.modify @@ fun s ->
     { visible = Trie.union_subtree ~prefix:Emp (Mod.reperform.shadow ?context:context_visible) s.visible (path, ns);
-      export = Trie.union_subtree ~prefix:(prefix()) (Mod.reperform.shadow ?context:context_export) s.export (path, ns) }
+      export = Trie.union_subtree ~prefix:(export_prefix()) (Mod.reperform.shadow ?context:context_export) s.export (path, ns) }
 
   let include_subtree ?context_visible ?context_export (path, ns) =
     M.exclusively @@ fun () -> unsafe_include_subtree ~context_visible ~context_export (path, ns)
@@ -97,16 +98,15 @@ struct
   let section ?context_visible ?context_export p f =
     M.exclusively @@ fun () ->
     let ans, export =
-      Internal.run ~prefix:(prefix() <>< p) ~init_visible:(S.get()).visible @@ fun () ->
+      Internal.run ~export_prefix:(export_prefix() <>< p) ~init_visible:(S.get()).visible @@ fun () ->
       let ans = f () in ans, get_export ()
     in
     unsafe_include_subtree ~context_visible ~context_export (p, export);
     ans
 
-  let run ?(prefix=Emp) f h =
-    Mod.run (fun () -> Internal.run ~prefix ~init_visible:Trie.empty f) h
-
+  let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f h =
+    Mod.run (fun () -> Internal.run ~export_prefix ~init_visible f) h
   let run_modifier = Mod.run
-  let modify = Mod.modify
   let reperform = Mod.reperform
+  let modify = Mod.modify
 end

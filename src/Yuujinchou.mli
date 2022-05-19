@@ -207,6 +207,29 @@ sig
     (** [resolve p] looks up the name [p] in the current scope
         and return the data associated with the binding. *)
 
+    val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
+    (** [include_singleton (p, x)] adds a new binding to both the visible
+        and export namespaces, where the binding is associating the data [x] to the path [p].
+        Conflicting names during the final merge will trigger the effect [shadow].
+
+        @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
+        @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
+
+    val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * (data, tag) Trie.t -> unit
+    (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
+        both the visible and export namespaces. Conflicting names during the final merge
+        will trigger the effect [shadow].
+
+        @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
+        @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
+
+    val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
+    (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
+        the visible namespace (while keeping the export namespace intact).
+        Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
+
+        @param context The context attached to the modifier effects. *)
+
     val modify_visible : ?context:context -> hook Language.t -> unit
     (** [modify_visible m] modifies the visible namespace by
         running the modifier [m] on it, using the internal modifier engine.
@@ -222,29 +245,6 @@ sig
     val export_visible : ?context:context -> hook Language.t -> unit
     (** [export_visible m] runs the modifier [m] on the visible namespace,
         and then merge the result into the export namespace.
-        Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
-
-        @param context The context attached to the modifier effects. *)
-
-    val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
-    (** [include_singleton (p, x)] adds a new binding to both the visible
-        and export namespaces, where the binding is associating the data [x] to the path [p].
-        Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
-
-        @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
-        @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
-
-    val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * (data, tag) Trie.t -> unit
-    (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
-        both the visible and export namespaces. Conflicting names during the final merge
-        will trigger the effect [Mod.Shadowing].
-
-        @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
-        @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
-
-    val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
-    (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
-        the visible namespace (while keeping the export namespace intact).
         Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
         @param context The context attached to the modifier effects. *)
@@ -267,30 +267,33 @@ sig
 
     (** {1 Runners} *)
 
-    val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-    (** Execute the code that performs scoping effects.
+    val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
+    (** [run f h] executes [f] that performs scoping effects, using [h] to handle internal
+        modifier effects.
 
-        @param prefix The additional global prefix prepended to the reported paths originating
-        from export namespaces. The default is the empty unit path ([Emp]).
-        This does not affect paths originating from visible namespaces. *)
-
-    (** {1 Internal modifier engine} *)
+        @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
+        originating from export namespaces. The default is the empty path ([Emp]).
+        This does not affect paths originating from visible namespaces.
+        @init_visible The initial visible namespace. The default is the empty trie. *)
 
     val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
     (** Execute the code and handles the internal modifier effects. This can be used to intercept
         or reperform those effects; for example, the following function silences the [shadow] effects.
         See also {!val:Modifier.S.run}.
 
+        Note that {!val:run} runs the code with a fresh empty scope,
+        while {!val:run_modifier} remains in the current scope.
+
         {[
           let silence_shadow f = run_modifier f {reperform with shadow = fun ?context:_ _ _ y -> y}
         ]}
     *)
 
-    val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-    (** Call the internal modifier engine directly on some trie. See {!val:Modifier.S.modify}. *)
-
     val reperform : (data, tag, hook, context) handler
     (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.reperform}. *)
+
+    val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+    (** Call the internal modifier engine directly on some trie. See {!val:Modifier.S.modify}. *)
   end
 
   module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
