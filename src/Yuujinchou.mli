@@ -150,7 +150,7 @@ sig
   (** The signature of the engine. *)
   module type S =
   sig
-    (** @open *)
+    (** @closed *)
     include Param
 
     (** {1 Basics} *)
@@ -189,13 +189,13 @@ sig
   module type S =
   sig
     include Param
-    (** @open *)
+    (** @closed *)
 
     exception Locked
     (** The exception [Locked] is raised when an operation on a scope starts before another operation on the same scope is finished.
         This could happen when the user, for example, calls {!val:modify_visible} and then calls {!val:modify_export} when handling the effects.
 
-        The principle is that one should not access any scope in its intermediate states, including looking up a variable via {!val:resolve}.
+        The principle is that one should not access any scope in its intermediate states, including looking up a name via {!val:resolve}.
         Any attempt to do so will raise the exception [Locked].
 
         Note: {!val:section} only locks the parent scope; the child scope is initially unlocked.
@@ -209,19 +209,19 @@ sig
 
     val modify_visible : ?context:context -> hook Language.t -> unit
     (** [modify_visible m] modifies the visible namespace by
-        running the modifier [m] on it, using the internal modifier.
+        running the modifier [m] on it, using the internal modifier engine.
 
         @param context The context attached to the modifier effects. *)
 
     val modify_export : ?context:context -> hook Language.t -> unit
     (** [modify_visible m] modifies the export namespace by
-        running the modifier [m] on it, using the internal modifier.
+        running the modifier [m] on it, using the internal modifier engine.
 
         @param context The context attached to the modifier effects. *)
 
     val export_visible : ?context:context -> hook Language.t -> unit
-    (** [export_visible m] runs the internal modifier on the visible namespace,
-        but then merge the result into the export namespace.
+    (** [export_visible m] runs the modifier [m] on the visible namespace,
+        and then merge the result into the export namespace.
         Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
         @param context The context attached to the modifier effects. *)
@@ -274,7 +274,7 @@ sig
         from export namespaces. The default is the empty unit path ([Emp]).
         This does not affect paths originating from visible namespaces. *)
 
-    (** {1 Internal modifier} *)
+    (** {1 Internal modifier engine} *)
 
     val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
     (** Execute the code and handles the internal modifier effects. This can be used to intercept
@@ -287,7 +287,7 @@ sig
     *)
 
     val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-    (** Call the internal modifier directly on some trie. See {!val:Modifier.S.modify}. *)
+    (** Call the internal modifier engine directly on some trie. See {!val:Modifier.S.modify}. *)
 
     val reperform : (data, tag, hook, context) handler
     (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.reperform}. *)
