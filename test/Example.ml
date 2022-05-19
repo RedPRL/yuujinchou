@@ -1,4 +1,3 @@
-(* The following shim does nothing for OCaml >= 5, but is needed for OCaml < 5. *)
 open Yuujinchou
 open Bwd
 
@@ -27,15 +26,13 @@ module S = Scope.Make (struct
     type context = [`Visible | `Export]
   end)
 
-(* Convert a backward path into a string for printing. *)
-let string_of_bwd_path =
-  function
-  | Emp -> "(root)"
-  | path -> String.concat "." (BwdLabels.to_list path)
-
-(* Handle effects from running the modifiers. *)
-let handle_modifier_effects f =
-  let open Effect.Deep in
+(* Handle scoping effects *)
+let handler : _ Scope.handler =
+  let string_of_bwd_path =
+    function
+    | Emp -> "(root)"
+    | path -> String.concat "." (BwdLabels.to_list path)
+  in
   let string_of_context =
     function
     | Some `Visible -> " in the visible namespace"
@@ -47,42 +44,33 @@ let handle_modifier_effects f =
     | `Imported -> " (imported)"
     | `Local -> " (local)"
   in
-  try_with f ()
-    { effc = fun (type a) (eff : a Effect.t) ->
-          match eff with
-          | S.Mod.BindingNotFound {context; prefix} -> Option.some @@
-            fun (k : (a, _) continuation) ->
-            Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
-              (string_of_bwd_path prefix) (string_of_context context);
-            continue k ()
-          | S.Mod.Shadowing {context; path; former; latter} -> Option.some @@
-            fun (k : (a, _) continuation) ->
-            begin
-              Format.printf "[Warning] Data %i assigned at %s was shadowed by data %i%s.@."
-                (fst former) (string_of_bwd_path path) (fst latter) (string_of_context context);
-              continue k latter
-            end
-          | S.Mod.Hook {context; prefix; hook = Print; input} -> Option.some @@
-            fun (k : (a, _) continuation) ->
-            Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
-              (string_of_bwd_path prefix) (string_of_context context);
-            Trie.iter
-              (fun path (data, tag) ->
-                 Format.printf "%s => %i%s@;" (string_of_bwd_path path) data (string_of_tag tag))
-              input;
-            Format.printf "@]@.";
-            continue k input
-          | _ -> None }
+  { not_found =
+      (fun ?context prefix ->
+         Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
+           (string_of_bwd_path prefix) (string_of_context context));
+    shadow =
+      (fun ?context path x y ->
+         Format.printf "[Warning] Data %i%s assigned at %s was shadowed by data %i%s%s.@."
+           (fst x) (string_of_tag (snd x))
+           (string_of_bwd_path path)
+           (fst y) (string_of_tag (snd y))
+           (string_of_context context);
+         y);
+    hook =
+      (fun ?context prefix hook input ->
+         match hook with
+         | Print ->
+           Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
+             (string_of_bwd_path prefix) (string_of_context context);
+           Trie.iter
+             (fun path (data, tag) ->
+                Format.printf "%s => %i%s@;" (string_of_bwd_path path) data (string_of_tag tag))
+             input;
+           Format.printf "@]@.";
+           input)}
 
-(* Mute the shadowing effects. *)
-let silence_shadowing f =
-  let open Effect.Deep in
-  try_with f ()
-    { effc = fun (type a) (eff : a Effect.t) ->
-          match eff with
-          | S.Mod.Shadowing {latter; _} -> Option.some @@
-            fun (k : (a, _) continuation) -> continue k latter
-          | _ -> None }
+(* Mute the [shadow] effects. *)
+let silence_shadow f = S.run_modifier f {S.reperform with shadow = fun ?context:_ _ _ y -> y}
 
 (* The interpreter *)
 let rec interpret_decl : decl -> unit =
@@ -90,10 +78,10 @@ let rec interpret_decl : decl -> unit =
   | Decl (p, x) ->
     S.include_singleton ~context_visible:`Visible ~context_export:`Export (p, (x, `Local))
   | ShadowingDecl (p, x) ->
-    silence_shadowing @@ fun () ->
+    silence_shadow @@ fun () ->
     S.include_singleton (p, (x, `Local))
   | Import (t, m) ->
-    let t = S.Mod.exec m (Trie.Untagged.tag `Imported t) in
+    let t = S.modify m (Trie.Untagged.tag `Imported t) in
     S.import_subtree ([], t)
   | PrintVisible ->
     S.modify_visible (Language.hook Print)
@@ -103,8 +91,7 @@ let rec interpret_decl : decl -> unit =
     S.section p @@ fun () -> List.iter interpret_decl sec
 
 let interpret (prog : program) =
-  handle_modifier_effects @@ fun () ->
-  S.run (fun () -> List.iter interpret_decl prog)
+  S.run (fun () -> List.iter interpret_decl prog) handler
 
 (* Some code in action *)
 let () = interpret [

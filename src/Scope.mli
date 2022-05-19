@@ -1,3 +1,5 @@
+type ('data, 'tag, 'hook, 'context) handler = ('data, 'tag, 'hook, 'context) Modifier.handler
+
 module type Param = Modifier.Param
 
 module type S =
@@ -5,8 +7,6 @@ sig
   include Param
 
   exception Locked
-
-  module Mod : Modifier.S with type data = data and type tag = tag and type hook = hook and type context = context
 
   val resolve : Trie.path -> (data * tag) option
   val modify_visible : ?context:context -> hook Language.t -> unit
@@ -17,7 +17,11 @@ sig
   val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
   val get_export : unit -> (data, tag) Trie.t
   val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
-  val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> 'a
+  val run : ?prefix:Trie.bwd_path -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
+
+  val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
+  val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+  val reperform : (data, tag, hook, context) handler
 end
 
 module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
