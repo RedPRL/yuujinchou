@@ -150,21 +150,17 @@ sig
   (** The signature of the engine. *)
   module type S =
   sig
-    (** @closed *)
     include Param
+    (** @closed *)
 
-    (** {1 Basics} *)
-
-    (** [exec ~prefix modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
+    val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+    (** [modify modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
 
         @param context The context sent to the effect handlers. If unspecified, effects come with {!constructor:None} as their context.
         @param prefix The prefix prepended to any path or prefix sent to the effect handlers. The default is the empty path ([Emp]). *)
-    val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
 
-    (** [run f h] runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)
     val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-
-    (** {1 Manual effect triggers} *)
+    (** [run f h] runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)
 
     val reperform : (data, tag, hook, context) handler
     (** A handler that reperforms the effects. It can also be used to manually trigger the effects;
