@@ -277,12 +277,12 @@ sig
         or reperform those effects; for example, the following function silences the [shadow] effects.
         See also {!val:Modifier.S.run}.
 
-        Note that {!val:run} runs the code with a fresh empty scope,
-        while {!val:run_modifier} remains in the current scope.
-
         {[
           let silence_shadow f = run_modifier f {reperform with shadow = fun ?context:_ _ _ y -> y}
         ]}
+
+        Note that {!val:run} runs the code with a fresh empty scope,
+        while {!val:run_modifier} remains in the current scope.
     *)
 
     val reperform : (data, tag, hook, context) handler
