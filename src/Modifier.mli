@@ -1,3 +1,9 @@
+type ('data, 'tag, 'hook, 'context) handler = {
+  not_found : ?context:'context -> Trie.bwd_path -> unit;
+  shadow : ?context:'context -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
+  hook : ?context:'context -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
+}
+
 module type Param =
 sig
   type data
@@ -10,12 +16,10 @@ module type S =
 sig
   include Param
 
-  type _ Effect.t +=
-    | BindingNotFound : {context : context option; prefix : Trie.bwd_path} -> unit Effect.t
-    | Shadowing : {context : context option; path : Trie.bwd_path; former : data * tag; latter : data * tag} -> (data * tag) Effect.t
-    | Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> (data, tag) Trie.t Effect.t
+  val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+  val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
 
-  val exec : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+  val reperform : (data, tag, hook, context) handler
 end
 
 module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
