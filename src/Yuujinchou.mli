@@ -164,7 +164,7 @@ sig
 
     val reperform : (data, tag, hook, context) handler
     (** A handler that reperforms the effects. It can also be used to manually trigger the effects;
-        for example, [reperform.not_found ["a"; "b"]] will perform the [not_found] effect
+        for example, [reperform.not_found (Emp #< "a" #< "b")] will perform the [not_found] effect
         to be handled by the outer handler. *)
   end
 
