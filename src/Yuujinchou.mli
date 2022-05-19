@@ -333,43 +333,45 @@ end
 
      (* Handle scoping effects *)
      let handler : _ Scope.handler =
-       let string_of_bwd_path =
+       let pp_path fmt =
          function
-         | Emp -> "(root)"
-         | path -> String.concat "." (BwdLabels.to_list path)
+         | Emp -> Format.pp_print_string fmt "(root)"
+         | path -> Format.pp_print_string fmt @@ String.concat "." (Bwd.to_list path)
        in
-       let string_of_context =
+       let pp_context fmt =
          function
-         | Some `Visible -> " in the visible namespace"
-         | Some `Export -> " in the export namespace"
-         | None -> ""
+         | Some `Visible -> Format.pp_print_string fmt " in the visible namespace"
+         | Some `Export -> Format.pp_print_string fmt " in the export namespace"
+         | None -> ()
        in
-       let string_of_tag =
+       let pp_item fmt =
          function
-         | `Imported -> " (imported)"
-         | `Local -> " (local)"
+         | (x, `Imported) -> Format.fprintf fmt "%i (imported)" x
+         | (x, `Local) -> Format.fprintf fmt "%i (local)" x
        in
        { not_found =
            (fun ?context prefix ->
-              Format.printf "[Warning] Could not find any data within the subtree at %s%s.@."
-                (string_of_bwd_path prefix) (string_of_context context));
+              Format.printf
+                "[Warning] Could not find any data within the subtree at %a%a.@."
+                pp_path prefix pp_context context);
          shadow =
            (fun ?context path x y ->
-              Format.printf "[Warning] Data %i%s assigned at %s was shadowed by data %i%s%s.@."
-                (fst x) (string_of_tag (snd x))
-                (string_of_bwd_path path)
-                (fst y) (string_of_tag (snd y))
-                (string_of_context context);
+              Format.printf
+                "[Warning] Data %a assigned at %a was shadowed by data %a%a.@."
+                pp_item x
+                pp_path path
+                pp_item y
+                pp_context context;
               y);
          hook =
            (fun ?context prefix hook input ->
               match hook with
               | Print ->
-                Format.printf "@[<v 2>[Info] Got the following bindings at %s%s:@;"
-                  (string_of_bwd_path prefix) (string_of_context context);
+                Format.printf "@[<v 2>[Info] Got the following bindings at %a%a:@;"
+                  pp_path prefix pp_context context;
                 Trie.iter
-                  (fun path (data, tag) ->
-                     Format.printf "%s => %i%s@;" (string_of_bwd_path path) data (string_of_tag tag))
+                  (fun path x ->
+                     Format.printf "%a => %a@;" pp_path path pp_item x)
                   input;
                 Format.printf "@]@.";
                 input)}

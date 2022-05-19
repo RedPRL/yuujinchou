@@ -10,18 +10,18 @@ let rawlist_to_list l = ListAsTrie.of_seq @@ List.to_seq l
 let list_to_rawlist l = List.of_seq @@ ListAsTrie.to_seq l
 
 let print_path = Q.Print.(list string)
-let print_bwd_path = Q.Print.contramap Bwd.BwdLabels.to_list print_path
+let print_bwd_path = Q.Print.contramap Bwd.Bwd.to_list print_path
 let print_tagged = Q.Print.(pair int int)
 let print_list = Q.Print.(contramap list_to_rawlist (list @@ pair print_path print_tagged))
 
 let gen_path = Q.Gen.(small_list @@ small_string ~gen:printable)
-let gen_bwd_path = Q.Gen.map Bwd.BwdLabels.of_list gen_path
+let gen_bwd_path = Q.Gen.map Bwd.Bwd.of_list gen_path
 let gen_tagged = Q.Gen.(pair int small_int)
 let gen_list = Q.Gen.map (fun l -> rawlist_to_list @@ List.sort_uniq ~cmp l)
     Q.Gen.(small_list @@ pair gen_path gen_tagged)
 
 let obs_path = Q.Observable.(list string)
-let obs_bwd_path = Q.Observable.contramap Bwd.BwdLabels.to_list obs_path
+let obs_bwd_path = Q.Observable.contramap Bwd.Bwd.to_list obs_path
 let obs_tagged = Q.Observable.(pair int int)
 let obs_list = Q.Observable.(contramap list_to_rawlist @@ list @@ pair obs_path (pair int int))
 
