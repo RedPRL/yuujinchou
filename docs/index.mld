@@ -1,0 +1,251 @@
+{0 Yuujinchou: Name Modifiers}
+
+{1 Introduction}
+
+{2 Motivation}
+
+This library was motivated by the name modifiers in the "import" or "include" statements present in all practical programming languages.
+Here are a few examples of such statements but without modifiers:
+
+{v open import M -- Agda v}
+
+{v import foo # Python v}
+
+The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
+
+{v
+open import M renaming (a to b) public
+-- (Agda) renaming a to b, and then re-exporting the content
+v}
+
+Another way to address this is to place the imported content under some namespace. For example, in Python,
+
+{v
+import math # Python: the sqrt function is available as `math.sqrt`.
+v}
+
+Arguably, common designs of these hiding or renaming mechanisms are quite limited. The goal of the Yuujinchou library is to provide a compositional calculus of these modifiers of names. Currently, the library supports renaming, scopes, sequencing, unions, and custom hooks for extending the engine.
+
+{2 Namespaces and Modules}
+
+This package intends to treat a namespace as the shared prefix of a group of names; there is no standalone namespace [a], but a group of unrelated declarations that happen to have names sharing the prefix [a]. This design is different from many others that attempt to group a collection of bindings as a standalone module.
+
+There are fundamental differences between modules (records) and namespaces. A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but enables flexible operations such as direct injection of a definition into a namespace. It seems impossible to have a unified design that is typed and supports flexible manipulations. Thus, we (the authors) believe that equating these two will necessarily limit operators on namespaces, which is the case in Standard ML and OCaml. (The modules in Haskell and Agda are namespaces in the above discussion.) Another approach is to have separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt.
+
+{1 Example Code}
+
+Here is a tiny interpreter for a language with nested lexical scopes.
+
+{[
+open Yuujinchou
+open Bwd
+
+(* A tiny language demonstrating some power of the Scope module. *)
+type modifier_cmd = Print
+type decl =
+  (* declaration *)
+  | Decl of Trie.path * int
+  (* declaration, but supressing the shadowing warning *)
+  | ShadowingDecl of Trie.path * int
+  (* importing a trie after applying the modifier *)
+  | Import of int Trie.Untagged.t * modifier_cmd Language.t
+  (* printing out all visible bindings *)
+  | PrintVisible
+  (* exporting a binding *)
+  | Export of Trie.path
+  (* section *)
+  | Section of Trie.path * decl list
+type program = decl list
+
+(* Specialzed Scope module with Data.t *)
+module S = Scope.Make (struct
+    type data = int
+    type tag = [`Imported | `Local]
+    type hook = modifier_cmd
+    type context = [`Visible | `Export]
+  end)
+
+(* Handle scoping effects *)
+let handler : _ Scope.handler =
+  let pp_path fmt =
+    function
+    | Emp -> Format.pp_print_string fmt "(root)"
+    | path -> Format.pp_print_string fmt @@ String.concat "." (Bwd.to_list path)
+  in
+  let pp_context fmt =
+    function
+    | Some `Visible -> Format.pp_print_string fmt " in the visible namespace"
+    | Some `Export -> Format.pp_print_string fmt " in the export namespace"
+    | None -> ()
+  in
+  let pp_item fmt =
+    function
+    | (x, `Imported) -> Format.fprintf fmt "%i (imported)" x
+    | (x, `Local) -> Format.fprintf fmt "%i (local)" x
+  in
+  { not_found =
+      (fun ?context prefix ->
+         Format.printf
+           "[Warning] Could not find any data within the subtree at %a%a.@."
+           pp_path prefix pp_context context);
+    shadow =
+      (fun ?context path x y ->
+         Format.printf
+           "[Warning] Data %a assigned at %a was shadowed by data %a%a.@."
+           pp_item x
+           pp_path path
+           pp_item y
+           pp_context context;
+         y);
+    hook =
+      (fun ?context prefix hook input ->
+         match hook with
+         | Print ->
+           Format.printf "@[<v 2>[Info] Got the following bindings at %a%a:@;"
+             pp_path prefix pp_context context;
+           Trie.iter
+             (fun path x ->
+                Format.printf "%a => %a@;" pp_path path pp_item x)
+             input;
+           Format.printf "@]@.";
+           input)}
+
+(* Mute the [shadow] effects. *)
+let silence_shadow f = S.run_modifier f {S.reperform with shadow = fun ?context:_ _ _ y -> y}
+
+(* The interpreter *)
+let rec interpret_decl : decl -> unit =
+  function
+  | Decl (p, x) ->
+    S.include_singleton ~context_visible:`Visible ~context_export:`Export (p, (x, `Local))
+  | ShadowingDecl (p, x) ->
+    silence_shadow @@ fun () ->
+    S.include_singleton (p, (x, `Local))
+  | Import (t, m) ->
+    let t = S.modify m (Trie.Untagged.tag `Imported t) in
+    S.import_subtree ([], t)
+  | PrintVisible ->
+    S.modify_visible (Language.hook Print)
+  | Export p ->
+    S.export_visible (Language.only p)
+  | Section (p, sec) ->
+    S.section p @@ fun () -> List.iter interpret_decl sec
+
+let interpret (prog : program) =
+  S.run (fun () -> List.iter interpret_decl prog) handler
+]}
+
+{1 Rosetta of Imports}
+
+This section shows how mechanisms in other languages can be implemented using this package. We use Haskell and Racket as examples.
+
+{3 Haskell}
+
+- Haskell syntax:
+{v
+import Mod -- x is available an both x and Mod.x
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(union [any; renaming [] ["Mod"]])
+]}
+
+- Haskell syntax:
+{v
+import Mod (x,y)
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(union [only ["x"]; only ["y"]])
+]}
+
+- Haskell syntax:
+{v
+import qualified Mod
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.renaming [] ["Mod"]
+]}
+
+- Haskell syntax:
+{v
+import qualified Mod hiding (x,y)
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(seq [except ["x"]; except ["y"]; renaming [] ["Mod"]])
+]}
+
+{3 Racket}
+
+- Racket syntax:
+{v
+(require (only-in ... id0 [old-id1 new-id1]))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(seq [...; union [only ["id0"]; seq [only ["old-id1"]; renaming ["old-id1"] ["new-id1"]]]])
+]}
+
+- Racket syntax:
+{v
+(require (except-in ... id0 id1]))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(seq [...; except ["id0"]; except ["id1"]])
+]}
+
+- Racket syntax:
+{v
+(require (prefix-in p: ...))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(seq [...; renaming [] ["p"]])
+]}
+Note: Racket does not support hierarchical names, so the prefixing operator in Racket is directly prepending the prefix to the affected names.
+
+- Racket syntax:
+{v
+(require (rename-in ... [old-id0 new-id0] [old-id1 new-id1]))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(seq [...; renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]])
+]}
+
+- Racket syntax:
+{v
+(require (combine-in require-spec0 require-spec1 ...))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Modifier.(union [require-spec0; require-spec1; ...])
+]}
+
+{1 API Reference}
+
+The top-level module is {!module:Yuujinchou}.
+
+{1 Installation}
+
+You need a OCaml >= 5.0.
+The package is available in the OPAM repository:
+{v
+opam install yuujinchou
+v}
+
+You could also pin the latest version in development:
+{v
+opam pin https://github.com/RedPRL/yuujinchou.git
+v}
+
+{1 What is "Yuujinchou"?}
+
+"Yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". It is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
+
+This magical book will automatically turn to the page with the correct name when the protagonist pictures the youkai in his mind. This package is also about finding real names of youkais.
+
+Notes on the transliteration: "Yuujinchou" is in the Wāpuro style so that it uses only the English alphabet; otherwise, its Hepburn romanization would be "Yūjin-chō".

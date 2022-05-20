@@ -1,27 +1,5 @@
-# 👹 Yuujinchou (友人帳): Name Modifiers
+# 👹 Yuujinchou 友人帳: Name Modifiers
 
-_Yuujinchou_ is an OCaml package of name modifiers. Please consult the [API documentation](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou) for more details.
+_Yuujinchou_ is an OCaml package of name modifiers.
 
-## Components
-
-- [Yuujinchou.Trie](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Trie): efficient namespaces for hierarchical names
-- [Yuujinchou.Language](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Language): the language of modifiers
-- [Yuujinchou.Modifier](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Modifier): the engine running modifiers
-- [Yuujinchou.Scope](https://redprl.org/yuujinchou/yuujinchou/Yuujinchou/Scope): nested scopes
-
-## Example Code
-
-- [A tiny interpreter using Yuujinchou.Scope](test/Example.ml)
-
-## Installation
-
-You need a OCaml >= 5.0.
-The package is available in the OPAM repository:
-```
-opam install yuujinchou
-```
-
-You could also pin the latest version in development:
-```
-opam pin https://github.com/RedPRL/yuujinchou.git
-```
+Please consult the [package website](https://redprl.org/yuujinchou/yuujinchou/) for more information.
