@@ -123,8 +123,8 @@ We have {{!val:Yuujinchou.Language.union}union} dedicated to the union operation
 One interesting case is renaming. According to this principle,
 the renaming from [x] to [y] should either (1) drop all bindings with the prefix [y] or (2) simply err
 when there exists at least one binding with the prefix [y].
-To facilitate API patching, however, we will silently drop [y] so that
-the users can more easily provide a group of new bindings without worrying
+To facilitate API patching, however, we silently drop bindings with the prefix [y] so that
+users can more easily provide a group of new bindings without worrying
 whether such bindings already exist in the newer version of the library.
 
 {1 Decouple Modifiers from Export Control}
