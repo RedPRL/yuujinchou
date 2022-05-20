@@ -270,7 +270,7 @@ sig
         @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
         originating from export namespaces. The default is the empty path ([Emp]).
         This does not affect paths originating from visible namespaces.
-        @init_visible The initial visible namespace. The default is the empty trie. *)
+        @param init_visible The initial visible namespace. The default is the empty trie. *)
 
     val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
     (** Execute the code and handles the internal modifier effects. This can be used to intercept
