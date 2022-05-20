@@ -14,7 +14,7 @@ We believe hierarchical names are essential in organizing top-level definitions,
 
 {2 Implicit Namespaces}
 
-Contrary to most designs, the namespaces in this library are implicit. The "namespace" [a] is simply all bindings whose name has the prefix [a], or equivalently, the subtree rooted at [a]. The two names [a] and [a.x] can coexist and they are independent of each other. This might be our most surprising move to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
+Contrary to most designs, the namespaces in this library are implicit. The "namespace" [a] is simply a collection of bindings which happen to share the prefix [a], or equivalently, the subtree rooted at [a]. The two names [a] and [a.x] can coexist and they are independent of each other. This might be our most surprising move to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
 
 This principle has profound impact on the implementation---in particular, the union operation is effectively recursive. Consider the following pseudocode:
 {v
@@ -58,7 +58,7 @@ To recover efficient group operations on implicit namespaces as one might expect
 
 {2 Side Notes on Modules}
 
-There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), it seems difficult to have a typed grouping mechanism that supports all flexible operations. As a result, equating the more restricted, typed grouping mechanism with the potentially freer, untyped mechanism might unnecessarily limit the latter; both Standard ML and OCaml arguably suffer from this. In the context of proof assistants, one should also recognize that top-level definitions might not have a type in an internalized universe. (The [module]s in Haskell and Agda are namespaces for the discussion here.) Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
+There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. There has been work on supporting flexible operations on modules (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), but we are not obliged to maintain valid signatures for namespaces and can derive a much simpler design. In the context of proof assistants, one should also recognize that top-level definitions might not have a type in an internalized universe anyway. Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
 
 {1 Guards against Typos}
 
@@ -72,9 +72,7 @@ As a consequence of this principle, a modifier cannot be understood as a functio
 
 Arbitrary unions should be allowed for easy API patching, but they should not happen without using [import], [include], [section], or a dedicated operator. We have {{!val:Yuujinchou.Language.union}union} dedicated to the union operation.
 
-One interesting case is renaming. According to this principle, the renaming from [x] to [y] should either (1) drop all bindings with the prefix [y] or (2) simply err when there exists at least one binding with the prefix [y]. To facilitate API patching, however, we silently drop bindings with the prefix [y] so that users can more easily provide a group of new bindings without worrying whether such bindings already exist in the newer version of the library.
-
-In the event that there is accidental silent dropping due to renaming, it is likely that the expected bindings will be missing and the code will not scope check, and thus the user is still protected.
+One interesting case is renaming. According to this principle, the renaming from [x] to [y] should either (1) drop all bindings with the prefix [y] or (2) simply err when there exists at least one binding with the prefix [y]. It is tempting to err for rigorous programming; to facilitate API patching, however, we silently drop bindings with the prefix [y] so that users do not have to worry about existing bindings in the newer version of the library. In the event that there is accidental dropping due to renaming, it is likely that the expected bindings will be missing and the code will not scope check, and thus the user is still protected.
 
 {1 Decoupling from Export Control}
 
