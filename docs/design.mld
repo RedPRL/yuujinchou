@@ -6,15 +6,11 @@ One common mistake in other languages is the lack of explicit ordering between e
 
 {1 Facilitation of API Patching}
 
-One important use case is to patch existing libraries for backward compatibility. Often, minor revisions of the same API only add more bindings, and support of older versions can be done by supplying missing functions.
-
-For example, if there is a missing function [is_prefix] in the [string] namespace, it should be easy to {e inject} such a function into the namespace. If multiple parts of the client are patching the same API, it should also be easy to take the union of all the patches.
-
-Many of our decisions are guided by making API patching as easy as possible.
+One important use case is to make the code compatible with libraries across minor revisions. Often, a minor revision of the same API only introduces more bindings, and support of older versions can be done by supplying missing functions. For example, if the function [is_prefix] is newly introduced in the [string] namespace, the client can supply its own [is_prefix] to work with both the current and earlier versions. To make this possible, it should be easy to {e inject} bindings into a namespace. If multiple parts of the client are patching the same API, it should also be easy to take the union of all the patches. Many of our decisions are guided by making API patching as easy as possible.
 
 {1 Hierarchical Names}
 
-We believe hierarchical names are essential in organizing top-level definitions, and perhaps even local definitions and record fields as well.
+We believe hierarchical names are essential in organizing top-level definitions, and perhaps even local definitions and record field names as well.
 
 {2 Implicit Namespaces}
 
