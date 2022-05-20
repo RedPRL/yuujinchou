@@ -20,7 +20,7 @@ We believe hierarchical names are essential in organizing top-level definitions,
 
 Contrary to most designs, the namespaces in this library are implicit, which means that [a] does not {e own} [a.x]. In Yuujinchou, the two names [a] and [a.x] can coexist and are independent of each other. This might be the most surprising move we made to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
 
-This principle has profound impact on the implementation; for example, consider the following pseudocode:
+This principle has profound impact on the implementation---in particular, the union operation is effectively recursive. Consider the following pseudocode:
 {v
 section a {
   def x := 1
@@ -32,7 +32,7 @@ section b {
 }
 modify_visible [union [any; renaming ["b"] []]]
 v}
-Both [a.x] and [a.y] will be available after the modification of the visible namespace. In contrary, the binding [a.x] would be gone if it were OCaml code:
+Both [a.x] and [a.y] will be available after the modification of the visible namespace because [b.a] and [a] will be recursively merge. In contrary, the binding [a.x] would be shadowed if it were OCaml code:
 {[
 module A =
   struct
@@ -54,21 +54,15 @@ def a.x = 1
 def b.a.y = 2
 modify_visible [union [any; renaming ["b"] []]]
 v}
-where the union of the original namespace (via {{!val:Yuujinchou.Language.any}any}), which contains [a.x] and [b.a.y], and the output of {{!val:Yuujinchou.Language.renaming}renaming}, which contains [a.y], results into a namespace with [a.x], [a.y], and [b.a.y]. The binding [a.y] does not hide [a.x] because there is no explicit namespace [a] to hide [a.x]. In comparison, there was an OCaml module [A] to shadow another module [A], leading its member [A.x].
-
-This radically different treatment provides an easy mental model for recursive patching or extending another library. If recursive merging with existing bindings is not desirable, one can drop the [union] to remove the influence from them. For example, use
-{v
-modify_visible [renaming ["b"] []]
-v}
-which will purge all existing bindings except the content of [b] that is now available at the root.
+where the union of the original namespace (via {{!val:Yuujinchou.Language.any}any}), which contains [a.x] and [b.a.y], and the output of {{!val:Yuujinchou.Language.renaming}renaming}, which contains [a.y], results into a namespace with [a.x], [a.y], and [b.a.y]. The binding [a.y] does not hide [a.x] because there is no explicit namespace [a] to hide [a.x]. In comparison, there was an OCaml module [A] to shadow another module [A] and its member [A.x]. This radically different treatment makes it easy to patch a deeply nested namespace with one union operator.
 
 {2 Operations on Subtrees}
 
-To recover efficient group operations on namespaces as one would expect for modules/records, all modifiers in {{!Yuujinchou.Language}Language} work on subtrees instead of individual bindings. For example, [only ["x"]] will select {e all} bindings with the prefix [x], not just the binding [x]. Therefore, in most cases, one can still pretend that namespaces exist. (We have experimented with providing modifiers for both subtrees and individual bindings, but the ones for individual bindings seem useless.)
+To recover efficient group operations on implicit namespaces as one might expect for explicit namespaces, all modifiers in {{!Yuujinchou.Language}Language} work on subtrees instead of individual bindings. For example, [only ["x"]] will select {e all} bindings with the prefix [x], not just the binding [x]. Therefore, in most cases, one can pretend that namespaces exist. (We tried providing modifiers for both subtrees and individual bindings, but the ones for individual bindings seem useless.)
 
 {2 Side Notes on Modules}
 
-There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), it seems difficult to have a typed grouping mechanism that supports all flexible operations. As a result, equating the more restricted, typed grouping mechanism with the potentially freer, untyped mechanism might unnecessarily limit the latter; both Standard ML and OCaml arguably suffer from this. (The [module]s in Haskell and Agda are namespaces for the discussion here.) Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
+There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), it seems difficult to have a typed grouping mechanism that supports all flexible operations. As a result, equating the more restricted, typed grouping mechanism with the potentially freer, untyped mechanism might unnecessarily limit the latter; both Standard ML and OCaml arguably suffer from this. In the context of proof assistants, one should also recognize that top-level definitions might not have a type in an internalized universe. (The [module]s in Haskell and Agda are namespaces for the discussion here.) Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
 
 {1 Guards against Typos}
 
@@ -80,7 +74,7 @@ As a consequence of this principle, a modifier cannot be understood as a functio
 
 {2 Explicit Unions}
 
-Unions (or shadowing in general) should be allowed for easy API patching, but they must be explicit to prevent accidental merging. We have {{!val:Yuujinchou.Language.union}union} dedicated to the union operation.
+Arbitrary unions should be allowed for easy API patching, but they should not happen without using [import], [include], [section], or a dedicated operator. We have {{!val:Yuujinchou.Language.union}union} dedicated to the union operation.
 
 One interesting case is renaming. According to this principle, the renaming from [x] to [y] should either (1) drop all bindings with the prefix [y] or (2) simply err when there exists at least one binding with the prefix [y]. To facilitate API patching, however, we silently drop bindings with the prefix [y] so that users can more easily provide a group of new bindings without worrying whether such bindings already exist in the newer version of the library.
 
