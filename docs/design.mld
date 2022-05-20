@@ -86,16 +86,19 @@ modify_visible [renaming ["a"] []]
 v}
 which will purge all existing bindings before making the content of [a] available at the root.
 
-On a separate note, we also believe the ownership makes more sense for ML-style modules,
-records, or any group of names that enjoys abstraction.
-Providing good support of {e both} modules/records and namespaces could lead to the best design.
+{2 Operations on Subtrees}
 
-To recover efficient group operations on namespaces,
+To recover efficient group operations on namespaces as one would expect for modules/records,
 all modifiers in {{!Yuujinchou.Language}Language} work on subtrees instead of individual bindings.
 For example, [only ["x"]] will select {e all} bindings with the prefix [x], not just the binding [x].
 Therefore, in most cases, one can still pretend that namespaces exist.
 (We have experimented with providing modifiers for both subtrees and individual bindings,
 but the ones for individual bindings seem useless.)
+
+{2 Side Note on Modules}
+
+On a separate note, there are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic, it seems difficult to have a unified grouping mechanism that is typed and supports all flexible operations. Thus, we believe that equating these two will unnecessarily limit operators on namespaces, and both Standard ML and OCaml suffer from this. (The "module"s in Haskell and Agda are namespaces in the above discussion.)
+Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
 
 {1 Guards against Typos}
 
