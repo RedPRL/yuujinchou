@@ -46,7 +46,7 @@ section a {
 modify_visible [union [any; renaming ["a"] []]]
 v}
 Both [inner.x] and [inner.y] will be available after the modification of the visible namespace.
-In contrary, the binding [inner.x] will be gone if it were OCaml code:
+In contrary, the binding [inner.x] would be gone if it were OCaml code:
 {[
 module Inner =
   struct
@@ -97,7 +97,7 @@ but the ones for individual bindings seem useless.)
 
 {2 Side Note on Modules}
 
-On a separate note, there are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic, it seems difficult to have a unified grouping mechanism that is typed and supports all flexible operations. Thus, we believe that equating these two will unnecessarily limit operators on namespaces, and both Standard ML and OCaml suffer from this. (The "module"s in Haskell and Agda are namespaces in the above discussion.)
+On a separate note, there are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), it seems difficult to have a unified grouping mechanism that is typed and supports all flexible operations. Thus, we believe that equating these two will unnecessarily limit operators on namespaces, and both Standard ML and OCaml suffer from this. (The "module"s in Haskell and Agda are namespaces in the above discussion.)
 Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
 
 {1 Guards against Typos}
