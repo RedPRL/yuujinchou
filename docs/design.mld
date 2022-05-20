@@ -18,7 +18,7 @@ We believe hierarchical names are essential in organizing top-level definitions,
 
 {2 Implicit Namespaces}
 
-Contrary to most designs, the namespaces in this library are implicit, which means that [a] does not {e own} [a.x]. In Yuujinchou, the two names [a] and [a.x] can coexist and are independent of each other. This might be the most surprising move we made to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
+Contrary to most designs, the namespaces in this library are implicit. The "namespace" [a] is simply all bindings whose name has the prefix [a], or equivalently, the subtree rooted at [a]. The two names [a] and [a.x] can coexist and they are independent of each other. This might be our most surprising move to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
 
 This principle has profound impact on the implementation---in particular, the union operation is effectively recursive. Consider the following pseudocode:
 {v
