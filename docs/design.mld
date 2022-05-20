@@ -127,6 +127,10 @@ To facilitate API patching, however, we silently drop bindings with the prefix [
 users can more easily provide a group of new bindings without worrying
 whether such bindings already exist in the newer version of the library.
 
+In the event that there is accidental silent dropping due to renaming,
+it is likely that the expected bindings will be missing and the code will not scope check,
+and thus the user is still protected.
+
 {1 Decoupling from Export Control}
 
 In many designs, the name modifiers are coupled with export control (public v.s. private).
