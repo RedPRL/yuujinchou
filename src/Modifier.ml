@@ -62,7 +62,7 @@ struct
       | L.M_renaming (p1, p2) ->
         let t, remaining = Trie.detach_subtree p1 t in
         check_nonempty ~context (prefix <>< p1) t;
-        Trie.union_subtree ~prefix (shadow ~context) remaining (p2, t)
+        Trie.update_subtree p2 (fun _ -> t) remaining
       | L.M_seq ms ->
         let f t m = go prefix m t in
         List.fold_left ~f ~init:t ms

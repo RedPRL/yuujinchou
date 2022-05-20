@@ -163,6 +163,13 @@ let test_renaming_5 () =
     t
     (wrap @@ fun () -> M.modify (renaming ["x"; "y"] ["x"; "y"]) t)
 
+let test_renaming_6 () =
+  let t1 = of_list [["x"; "y"], N 10; ["x"; "w"], N 20; ["y"], N 30] in
+  let t2 = of_list [["y"; "y"], N 10; ["y"; "w"], N 20] in
+  Alcotest.(check @@ trie data) "ok"
+    t2
+    (wrap @@ fun () -> M.modify (renaming ["x"] ["y"]) t1)
+
 let test_seq_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["w"], N 10; ["y"], N 20])
@@ -249,6 +256,7 @@ let () =
       test_case "renaming" `Quick test_renaming_3;
       test_case "renaming" `Quick test_renaming_4;
       test_case "renaming" `Quick test_renaming_5;
+      test_case "renaming" `Quick test_renaming_6;
     ];
     "seq", [
       test_case "seq" `Quick test_seq_1;
