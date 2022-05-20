@@ -18,9 +18,9 @@ We believe hierarchical names are essential in organizing top-level definitions,
 
 {2 Implicit Namespaces}
 
-Contrary to most designs, the namespaces in this library are implicit, which means that [a] does not {e own} [a.x]. In Yuujinchou, the two names [a] and [a.x] can coexist and are independent of each other. This is by far the most radical change we made, and it is to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
+Contrary to most designs, the namespaces in this library are implicit, which means that [a] does not {e own} [a.x]. In Yuujinchou, the two names [a] and [a.x] can coexist and are independent of each other. This might be the most surprising move we made to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
 
-The implication of this principle runs deep; for example, consider the following pseudocode:
+This principle has profound impact on the implementation; for example, consider the following pseudocode:
 {v
 section a {
   def x := 1
@@ -56,11 +56,11 @@ modify_visible [union [any; renaming ["b"] []]]
 v}
 where the union of the original namespace (via {{!val:Yuujinchou.Language.any}any}), which contains [a.x] and [b.a.y], and the output of {{!val:Yuujinchou.Language.renaming}renaming}, which contains [a.y], results into a namespace with [a.x], [a.y], and [b.a.y]. The binding [a.y] does not hide [a.x] because there is no explicit namespace [a] to hide [a.x]. In comparison, there was an OCaml module [A] to shadow another module [A], leading its member [A.x].
 
-The benefit of this radical move is to facilitate patching or extending another library that may have nested namespaces. If recursive merging with existing bindings is not desirable, one can drop the [union] to remove the influence from them. For example, use
+This radically different treatment provides an easy mental model for recursive patching or extending another library. If recursive merging with existing bindings is not desirable, one can drop the [union] to remove the influence from them. For example, use
 {v
-modify_visible [renaming ["a"] []]
+modify_visible [renaming ["b"] []]
 v}
-which will purge all existing bindings except the content of [a] that is available at the root.
+which will purge all existing bindings except the content of [b] that is now available at the root.
 
 {2 Operations on Subtrees}
 
@@ -68,7 +68,7 @@ To recover efficient group operations on namespaces as one would expect for modu
 
 {2 Side Notes on Modules}
 
-There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), it seems difficult to have a unified grouping mechanism that is typed and supports all flexible operations. In other words, equating these two might unnecessarily limit possible operators on namespaces, and both Standard ML and OCaml suffer from this limitation. (The [module]s in Haskell and Agda are namespaces for the discussion here.) Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
+There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. Despite the amount of prior work on this topic (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), it seems difficult to have a typed grouping mechanism that supports all flexible operations. As a result, equating the more restricted, typed grouping mechanism with the potentially freer, untyped mechanism might unnecessarily limit the latter; both Standard ML and OCaml arguably suffer from this. (The [module]s in Haskell and Agda are namespaces for the discussion here.) Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistant cooltt, could lead to a better design.
 
 {1 Guards against Typos}
 
