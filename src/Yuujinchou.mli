@@ -47,7 +47,8 @@ sig
 
   (** {2 Renaming} *)
 
-  (** [renaming path path'] relocates the subtree rooted at [path] to [path']. It is an error if the subtree was empty (nothing to move). *)
+  (** [renaming path path'] relocates the subtree rooted at [path] to [path']. The existing bindings at [path'] (if any) will be dropped.
+      It is an error if the subtree was empty (nothing to move). *)
   val renaming : Trie.path -> Trie.path -> 'hook t
 
   (** {2 Sequencing} *)
@@ -59,13 +60,15 @@ sig
   (** {2 Union} *)
 
   (** [union [m0; m1; m2; ...; mn]] calculates the union of the results of individual modifiers [m0], [m1], [m2], ..., [mn].
-      In particular, [union []] is the empty modifier. *)
+      In particular, [union []] is the empty modifier.
+      The {!field:Modifier.shadow} effect will be performed to resolve name conflicts,
+      with an intention for results of a modifier to shadow those of previous ones. *)
   val union : 'hook t list -> 'hook t
 
   (** {2 Custom Hooks} *)
 
-  (** [hook h] applies the hook labelled [h] to the entire trie.
-      See {!module-type:Modifier.S} for the effect [Hook] that will be performed when processing this modifier. *)
+  (** [hook h] applies the hook labelled [h] to the entire trie
+      by performing the {!field:Modifier.hook} effect. *)
   val hook : 'hook -> 'hook t
 
   (** {2 Ugly Printing} *)
