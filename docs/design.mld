@@ -1,0 +1,162 @@
+{0 Design Principles of Yuujinchou}
+
+{1 Explicit Sequencing}
+
+One common mistake in other languages is the lack of explicit ordering between
+effectful operations such as
+hiding ({{!val:Yuujinchou.Language.except}except}),
+renaming ({{!val:Yuujinchou.Language.renaming}renaming}),
+and selecting ({{!val:Yuujinchou.Language.only}only}).
+Therefore, the sequencing operator must be explicit, and we have {{!val:Yuujinchou.Language.seq}seq} for this purpose.
+
+{1 Facilitation of API Patching}
+
+One important use case is to patch existing libraries for backward compatibility.
+Often, minor revisions of the same API only add more bindings,
+and support of older versions can be done by supplying missing functions.
+
+For example, if there is a missing function [is_prefix] in the [string] namespace,
+it should be easy to {e inject} such a function into the namespace.
+If multiple parts of the client are patching the same API,
+it should also be easy to take the union of all the patches.
+
+Many of our decisions are guided by making API patching as easy as possible.
+
+{1 Hierarchical Names}
+
+We believe hierarchical names are essential in organizing top-level definitions,
+and perhaps even local definitions and record fields as well.
+
+{2 Implicit Namespaces}
+
+Contrary to most designs, the namespaces in this library are implicit,
+which means that [a] does not {e own} [a.x]. In Yuujinchou, the two names [a] and [a.x] can coexist and are independent of each other.
+This is by far the most radical change we made, and it is to trivialize API patching.
+
+The implication of this principle runs deep; for example, consider the following pseudocode:
+{v
+section inner {
+  def x = 1
+}
+section a {
+  section inner {
+    def y = 2
+  }
+}
+modify_visible [union [any; renaming ["a"] []]]
+v}
+Both [inner.x] and [inner.y] will be available after the modification of the visible namespace.
+In contrary, the binding [inner.x] will be gone if it were OCaml code:
+{[
+module Inner =
+  struct
+    let x = 1
+  end
+module A =
+  struct
+    module Inner =
+      struct
+        let y = 2
+      end
+  end
+open A (* [Inner.x] is gone *)
+]}
+
+The reason is that the previous pseudocode is equivalent to the following:
+{v
+def inner.x = 1
+def a.inner.y = 2
+modify_visible [union [any; renaming ["a"] []]]
+v}
+where the union of the original namespace (via {{!val:Yuujinchou.Language.any}any}),
+which contains [inner.x] and [a.inner.y],
+and the output of {{!val:Yuujinchou.Language.renaming}renaming},
+which contains [inner.y],
+results into a namespace with [inner.x], [inner.y], and [a.inner.y].
+The binding [inner.y] does not hide [inner.x] because
+there is no explicit namespace [inner] to hide [inner.x].
+In comparison, there was an OCaml module [Inner] to shadow another module [Inner],
+leading to the hiding of [Inner.x].
+
+The benefit of this radical move is to facilitate patching or extending another library.
+If recursive merging with existing bindings is not desirable,
+one can drop the [union] to remove the influence from them. For example, use
+{v
+modify_visible [renaming ["a"] []]
+v}
+which will purge all existing bindings before making the content of [a] available at the root.
+
+On a separate note, we also believe the ownership makes more sense for ML-style modules,
+records, or any group of names that enjoys abstraction.
+Providing good support of {e both} modules/records and namespaces could lead to the best design.
+
+To recover efficient group operations on namespaces,
+all modifiers in {{!Yuujinchou.Language}Language} work on subtrees instead of individual bindings.
+For example, [only ["x"]] will select {e all} bindings with the prefix [x], not just the binding [x].
+Therefore, in most cases, one can still pretend that namespaces exist.
+(We have experimented with providing modifiers for both subtrees and individual bindings,
+but the ones for individual bindings seem useless.)
+
+{1 Guards against Typos}
+
+{2 No No-Ops}
+
+Hiding, renaming, selecting, and excluding modifiers must match at least one existing binding.
+For example, if there is no binding with the prefix [x],
+then selecting the namespace rooted at [x] should fail or at least produce a warning.
+The reason is that the lack of matching bindings strongly indicates a typo.
+In this library, such an error will trigger the effect {{!field:Yuujinchou.Modifier.not_found}not_found}.
+
+As a consequence of this principle, a modifier cannot be understood as a function from an old name to a set of new names,
+but a function from an old namespace (implemented as a {{!module:Yuujinchou.Trie}trie} in this library) to a new namespace.
+Otherwise, it is difficult or impossible to detect whether there are unexpected no-ops.
+
+{2 Explicit Unions}
+
+Unions (or shadowing in general) should be allowed for easy API patching,
+but they must be explicit to prevent accidental merging.
+We have {{!val:Yuujinchou.Language.union}union} dedicated to the union operation.
+
+One interesting case is renaming. According to this principle,
+the renaming from [x] to [y] should either (1) drop all bindings with the prefix [y] or (2) simply err
+when there exists at least one binding with the prefix [y].
+To facilitate API patching, however, we will silently drop [y] so that
+the users can more easily provide a group of new bindings without worrying
+whether such bindings already exist in the newer version of the library.
+
+{1 Decouple Modifiers from Export Control}
+
+In many designs, the namespace control is coupled with export control (public v.s. private).
+We believe these two concerns can be completely separated.
+As a proof, we have built {{!module:Yuujinchou.Scope}Scope} that handles visible and export namespaces,
+on top of the modifier engine {{!module:Yuujinchou.Modifier}Modifier} that is oblivious to how it's used.
+
+{1 Expressiveness and Extensibility}
+
+The modifier language should be able to approximate all features in popular programming languages.
+Language-specific features (such as phases in Racket) can be added via modifier {!val:Yuujinchou.Language.hook}.
+
+{1 Conciseness and Compositionality}
+
+The core language should be small, possibly exploiting the compositionality to remove redundent constructors.
+For example, the core language does not have {{!val:Yuujinchou.Language.except}except}[ p] because
+it can be defined as {{!val:Yuujinchou.Language.in_}in_}[ p ]{{!val:Yuujinchou.Language.none}none}.
+This, however, does not mean the number of constructors should be theoretically minimal:
+For example, in earlier versions of Yuujinchou,
+we have a "split" modifier that applies one modifier to a subtree and another to all bindings outside the subtree,
+but such a "mega-modifier" only complicates the core language and the engine implementation.
+To the extreme, one can even have just one constructor in the core language to handle all the cases,
+but that would not be helpful.
+
+The current design has seven constructors in the core languages:
+- {{!val:Yuujinchou.Language.only}only}
+- {{!val:Yuujinchou.Language.none}none}
+- {{!val:Yuujinchou.Language.in_}in_}
+- {{!val:Yuujinchou.Language.renaming}renaming}
+- {{!val:Yuujinchou.Language.seq}seq}
+- {{!val:Yuujinchou.Language.union}union}
+- {{!val:Yuujinchou.Language.hook}hook}
+
+{1 Algebraic Effects}
+
+We believe algebraic effects are the future.
