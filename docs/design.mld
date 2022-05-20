@@ -137,7 +137,7 @@ on top of the modifier engine {{!module:Yuujinchou.Modifier}Modifier} that is ob
 {1 Expressiveness and Extensibility}
 
 The modifier language should be able to approximate all features in popular programming languages.
-Language-specific features (such as phases in Racket) can be added via modifier {!val:Yuujinchou.Language.hook}.
+Language-specific features (such as phases in Racket) can be implemented using the modifier {{!val:Yuujinchou.Language.hook}hook}.
 
 {1 Conciseness and Compositionality}
 
