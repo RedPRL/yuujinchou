@@ -127,9 +127,9 @@ To facilitate API patching, however, we silently drop bindings with the prefix [
 users can more easily provide a group of new bindings without worrying
 whether such bindings already exist in the newer version of the library.
 
-{1 Decouple Modifiers from Export Control}
+{1 Decoupling from Export Control}
 
-In many designs, the namespace control is coupled with export control (public v.s. private).
+In many designs, the name modifiers are coupled with export control (public v.s. private).
 We believe these two concerns can be completely separated.
 As a proof, we have built {{!module:Yuujinchou.Scope}Scope} that handles visible and export namespaces,
 on top of the modifier engine {{!module:Yuujinchou.Modifier}Modifier} that is oblivious to how it's used.
@@ -148,7 +148,7 @@ This, however, does not mean the number of constructors should be theoretically 
 For example, in earlier versions of Yuujinchou,
 we have a "split" modifier that applies one modifier to a subtree and another to all bindings outside the subtree,
 but such a "mega-modifier" only complicates the core language and the engine implementation.
-To the extreme, one can even have just one constructor in the core language to handle all the cases,
+To the extreme, one can have one single constructor in the core language to handle all features,
 but that would not be helpful.
 
 The current design has seven constructors in the core languages:
