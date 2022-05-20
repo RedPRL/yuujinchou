@@ -7,7 +7,7 @@ effectful operations such as
 hiding ({{!val:Yuujinchou.Language.except}except}),
 renaming ({{!val:Yuujinchou.Language.renaming}renaming}),
 and selecting ({{!val:Yuujinchou.Language.only}only}).
-Therefore, the sequencing operator must be explicit, and we have {{!val:Yuujinchou.Language.seq}seq} for this purpose.
+The sequencing operator must be explicit, and we have {{!val:Yuujinchou.Language.seq}seq} for this purpose.
 
 {1 Facilitation of API Patching}
 
