@@ -145,7 +145,7 @@ import Mod -- x is available an both x and Mod.x
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(union [any; renaming [] ["Mod"]])
+  Language.(union [any; renaming [] ["Mod"]])
 ]}
 
 - Haskell syntax:
@@ -154,7 +154,7 @@ import Mod (x,y)
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(union [only ["x"]; only ["y"]])
+  Language.(union [only ["x"]; only ["y"]])
 ]}
 
 - Haskell syntax:
@@ -163,7 +163,7 @@ import qualified Mod
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.renaming [] ["Mod"]
+  Language.(renaming [] ["Mod"])
 ]}
 
 - Haskell syntax:
@@ -172,7 +172,7 @@ import qualified Mod hiding (x,y)
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(seq [except ["x"]; except ["y"]; renaming [] ["Mod"]])
+  Language.(seq [except ["x"]; except ["y"]; renaming [] ["Mod"]])
 ]}
 
 {3 Racket}
@@ -183,7 +183,7 @@ Corresponding Yuujinchou modifier:
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(seq [...; union [only ["id0"]; seq [only ["old-id1"]; renaming ["old-id1"] ["new-id1"]]]])
+  Language.(seq [...; union [only ["id0"]; seq [only ["old-id1"]; renaming ["old-id1"] ["new-id1"]]]])
 ]}
 
 - Racket syntax:
@@ -192,7 +192,7 @@ Corresponding Yuujinchou modifier:
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(seq [...; except ["id0"]; except ["id1"]])
+  Language.(seq [...; except ["id0"]; except ["id1"]])
 ]}
 
 - Racket syntax:
@@ -201,7 +201,7 @@ Corresponding Yuujinchou modifier:
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(seq [...; renaming [] ["p"]])
+  Language.(seq [...; renaming [] ["p"]])
 ]}
 Note: Racket does not support hierarchical names, so the prefixing operator in Racket is directly prepending the prefix to the affected names.
 
@@ -211,7 +211,7 @@ Note: Racket does not support hierarchical names, so the prefixing operator in R
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(seq [...; renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]])
+  Language.(seq [...; renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]])
 ]}
 
 - Racket syntax:
@@ -220,7 +220,7 @@ Corresponding Yuujinchou modifier:
 v}
 Corresponding Yuujinchou modifier:
 {[
-  Modifier.(union [require-spec0; require-spec1; ...])
+  Language.(union [require-spec0; require-spec1; ...])
 ]}
 
 {1 API Reference}
