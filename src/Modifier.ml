@@ -51,10 +51,6 @@ struct
     let module L = Language in
     let rec go prefix m t =
       match m with
-      | L.M_only p ->
-        let t = Trie.find_subtree p t in
-        check_nonempty ~context (prefix <>< p) t;
-        Trie.prefix p t
       | L.M_none ->
         check_nonempty ~context prefix t; Trie.empty
       | L.M_in (p, m) ->
