@@ -1,4 +1,5 @@
 type 'hook t =
+  | M_only of Trie.path
   | M_none
   | M_in of Trie.path * 'hook t
   | M_renaming of Trie.path * Trie.path

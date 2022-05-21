@@ -1,6 +1,7 @@
 open StdLabels
 
 type 'hook t =
+  | M_only of Trie.path
   | M_none
   | M_in of Trie.path * 'hook t
   | M_renaming of Trie.path * Trie.path
@@ -8,12 +9,12 @@ type 'hook t =
   | M_union of 'hook t list
   | M_hook of 'hook
 
-let any = M_renaming ([], [])
+let any = M_only []
 let none = M_none
 
 let in_ p m = M_in (p, m)
 
-let only p = M_seq [M_renaming (p, []); M_renaming ([], p)]
+let only p = M_only p
 let except p = in_ p none
 
 let renaming p p' = M_renaming (p, p')
@@ -27,6 +28,7 @@ let union l = M_union l
 let (=) = List.equal ~eq:String.equal
 let rec equal equal_hook m1 m2 =
   match m1, m2 with
+  | M_only p1, M_only p2 -> p1 = p2
   | M_none, M_none -> true
   | M_in (p1, m1), M_in (p2, m2) -> p1 = p2 && equal equal_hook m1 m2
   | M_renaming (p1, p1'), M_renaming (p2, p2') -> p1 = p2 && p1' = p2'
@@ -42,6 +44,8 @@ let dump_path =
 
 let rec dump dump_hook fmt =
   function
+  | M_only p ->
+    Format.fprintf fmt "@[<hv 1>only[@,@[%a@]]@]" dump_path p
   | M_none ->
     Format.pp_print_string fmt "none"
   | M_in (p, m) ->
