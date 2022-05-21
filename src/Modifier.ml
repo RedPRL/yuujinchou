@@ -40,9 +40,6 @@ struct
     let not_found ~context prefix = Effect.perform @@ NotFound {context; prefix}
     let shadow ~context path former latter = Effect.perform @@ Shadow {context; path; former; latter}
     let hook ~context prefix hook input = Effect.perform @@ Hook {context; prefix; hook; input}
-
-    let check_nonempty ~context prefix t =
-      if Trie.is_empty t then not_found ~context prefix
   end
 
   open Internal
@@ -51,17 +48,12 @@ struct
     let module L = Language in
     let rec go prefix m t =
       match m with
-      | L.M_only p ->
-        let t = Trie.find_subtree p t in
-        check_nonempty ~context (prefix <>< p) t;
-        Trie.prefix p t
-      | L.M_none ->
-        check_nonempty ~context prefix t; Trie.empty
+      | L.M_assert_nonempty ->
+        if Trie.is_empty t then not_found ~context prefix; t
       | L.M_in (p, m) ->
         Trie.update_subtree p (go (prefix <>< p) m) t
       | L.M_renaming (p1, p2) ->
         let t, remaining = Trie.detach_subtree p1 t in
-        check_nonempty ~context (prefix <>< p1) t;
         Trie.update_subtree p2 (fun _ -> t) remaining
       | L.M_seq ms ->
         let f t m = go prefix m t in

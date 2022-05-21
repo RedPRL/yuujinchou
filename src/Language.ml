@@ -1,23 +1,22 @@
 open StdLabels
 
 type 'hook t =
-  | M_only of Trie.path
-  | M_none
+  | M_assert_nonempty
   | M_in of Trie.path * 'hook t
   | M_renaming of Trie.path * Trie.path
   | M_seq of 'hook t list
   | M_union of 'hook t list
   | M_hook of 'hook
 
-let any = M_only []
-let none = M_none
+let any = M_assert_nonempty
+let none = M_seq [M_assert_nonempty; M_union []]
 
 let in_ p m = M_in (p, m)
 
-let only p = M_only p
+let only p = M_seq [M_in (p, M_assert_nonempty); M_renaming (p, []); M_renaming ([], p)]
 let except p = in_ p none
 
-let renaming p p' = M_renaming (p, p')
+let renaming p p' = M_seq [M_in (p, M_assert_nonempty); M_renaming (p, p')]
 
 let seq ms = M_seq ms
 
@@ -28,8 +27,7 @@ let union l = M_union l
 let (=) = List.equal ~eq:String.equal
 let rec equal equal_hook m1 m2 =
   match m1, m2 with
-  | M_only p1, M_only p2 -> p1 = p2
-  | M_none, M_none -> true
+  | M_assert_nonempty, M_assert_nonempty -> true
   | M_in (p1, m1), M_in (p2, m2) -> p1 = p2 && equal equal_hook m1 m2
   | M_renaming (p1, p1'), M_renaming (p2, p2') -> p1 = p2 && p1' = p2'
   | M_seq ps1, M_seq ps2 ->
@@ -44,10 +42,8 @@ let dump_path =
 
 let rec dump dump_hook fmt =
   function
-  | M_only p ->
-    Format.fprintf fmt "@[<hv 1>only[@,@[%a@]]@]" dump_path p
-  | M_none ->
-    Format.pp_print_string fmt "none"
+  | M_assert_nonempty ->
+    Format.pp_print_string fmt "assert_nonempty"
   | M_in (p, m) ->
     Format.fprintf fmt "@[<hv 1>in[@,@[%a@];@,@[%a@]]@]" dump_path p (dump dump_hook) m
   | M_renaming (p1, p2) ->

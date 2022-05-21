@@ -86,14 +86,13 @@ The modifier language should be able to approximate all features in popular prog
 
 The core language should be small, possibly exploiting the compositionality to remove redundant constructors. For example, the core language does not have {{!val:Yuujinchou.Language.except}except}[ p] because it can be defined as {{!val:Yuujinchou.Language.in_}in_}[ p ]{{!val:Yuujinchou.Language.none}none}. This, however, does not mean the number of constructors should be theoretically minimal: For example, in earlier versions of Yuujinchou, we have a "split" modifier that applies one modifier to a subtree and another to all bindings outside the subtree, but such a "mega-modifier" only complicates the core language and the engine implementation. To the extreme, one can have one single constructor in the core language to handle all features, but that would not be helpful.
 
-The current design has seven constructors in the core languages:
-- {{!val:Yuujinchou.Language.only}only}: selecting
-- {{!val:Yuujinchou.Language.none}none}: dropping everything
-- {{!val:Yuujinchou.Language.in_}in_}: scoping
-- {{!val:Yuujinchou.Language.renaming}renaming}: renaming
-- {{!val:Yuujinchou.Language.seq}seq}: sequencing
-- {{!val:Yuujinchou.Language.union}union}: union
-- {{!val:Yuujinchou.Language.hook}hook}: custom hooks
+The current design has six constructors in the core languages:
+1. asserting non-emptiness.
+2. scoping, which is the same as {{!val:Yuujinchou.Language.in_}in_}.
+3. renaming, which is {{!val:Yuujinchou.Language.renaming}renaming} but without emptiness checking.
+4. sequencing, which is the same as {{!val:Yuujinchou.Language.seq}seq}.
+5. union, which is the same as {{!val:Yuujinchou.Language.union}union}.
+6. hooks, which are the same as {{!val:Yuujinchou.Language.hook}hook}.
 
 {1 Algebraic Effects}
 

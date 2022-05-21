@@ -1,6 +1,5 @@
 type 'hook t =
-  | M_only of Trie.path
-  | M_none
+  | M_assert_nonempty
   | M_in of Trie.path * 'hook t
   | M_renaming of Trie.path * Trie.path
   | M_seq of 'hook t list
