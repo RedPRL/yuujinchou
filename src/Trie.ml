@@ -33,9 +33,9 @@ let[@inline] get_root_tag_opt t =
 type ('data, 'tag) node = 'data data_node * 'tag tag_node
 (*
   Invariants:
-  1. Without default tags, the tag trie must be a subset of the data trie
-  2. With the help of default tags, the tag trie must be a superset of the data trie
-  3. The default tags must be actually used to prevent memory leak
+  1. Without the default tags, the tag trie must be a subset of the data trie
+  2. With the default tags, the tag trie must be a superset of the data trie
+  3. Every default tag must be actually used by some data to prevent memory leak
 
   Non-invariants:
   1. The tag trie need not be minimum.
@@ -53,26 +53,29 @@ let[@inline] non_empty (n : _ node) : _ t = Some n
 (** {1 Making (non-empty) trees} *)
 
 (* invariants: input tag tree must be a subset (if default tags were ignored) *)
-let mk_node ({root; children} as n) (default_tag, root_tag, child_tags) : _ node =
-  n,
+let mk_tag_node n (default_tag, root_tag, child_tags) : _ tag_node =
   match default_tag with
-  | Some default_tag when Int.equal (SegMap.cardinal children) (SegMap.cardinal child_tags) ->
+  | Some default_tag when Int.equal (SegMap.cardinal n.children) (SegMap.cardinal child_tags) ->
     (* Remove unused default tags to prevent memory leak *)
     { default_tag = None;
       root_tag =
-        (match root, root_tag with
+        (match n.root, root_tag with
          | Some _, None -> Some default_tag
          | _ -> root_tag);
       child_tags }
   | _ ->
     { default_tag; root_tag; child_tags }
-let mk_node' n t : _ node = mk_node n (Some t, None, SegMap.empty)
+let mk_tag_node' n t : _ tag_node = mk_tag_node n (Some t, None, SegMap.empty)
+let mk_node n tag_params : _ node = n, mk_tag_node n tag_params
+let mk_node' n tag_params : _ node = n, mk_tag_node' n tag_params
 
 (* invariants: input tag tree must be a subset (if default tags were ignored) *)
 let mk_tree (root, children) (default_tag, root_tag, child_tags) : _ t =
   if Option.is_none root && SegMap.is_empty children
   then empty
-  else non_empty @@ mk_node {root; children} (default_tag, root_tag, child_tags)
+  else
+    let n = {root; children} in
+    non_empty @@ mk_node n (default_tag, root_tag, child_tags)
 
 let[@inline] root_node (data, tag) =
   {root = Some data; children = SegMap.empty},
