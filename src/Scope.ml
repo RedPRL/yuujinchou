@@ -24,7 +24,7 @@ sig
 
   val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
   val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val reperform : (data, tag, hook, context) handler
+  val perform : (data, tag, hook, context) handler
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
 end
 
@@ -72,25 +72,25 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ~prefix:(export_prefix()) (Mod.reperform.shadow ?context) s.export @@
+       Trie.union ~prefix:(export_prefix()) (Mod.perform.shadow ?context) s.export @@
        Mod.modify ?context ~prefix:Emp m s.visible }
 
   let include_singleton ?context_visible ?context_export (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { visible = Trie.union_singleton ~prefix:Emp (Mod.reperform.shadow ?context:context_visible) s.visible (path, x);
-      export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.reperform.shadow ?context:context_export) s.export (path, x) }
+    { visible = Trie.union_singleton ~prefix:Emp (Mod.perform.shadow ?context:context_visible) s.visible (path, x);
+      export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.perform.shadow ?context:context_export) s.export (path, x) }
 
   let unsafe_include_subtree ~context_visible ~context_export (path, ns) =
     S.modify @@ fun s ->
-    { visible = Trie.union_subtree ~prefix:Emp (Mod.reperform.shadow ?context:context_visible) s.visible (path, ns);
-      export = Trie.union_subtree ~prefix:(export_prefix()) (Mod.reperform.shadow ?context:context_export) s.export (path, ns) }
+    { visible = Trie.union_subtree ~prefix:Emp (Mod.perform.shadow ?context:context_visible) s.visible (path, ns);
+      export = Trie.union_subtree ~prefix:(export_prefix()) (Mod.perform.shadow ?context:context_export) s.export (path, ns) }
 
   let include_subtree ?context_visible ?context_export (path, ns) =
     M.exclusively @@ fun () -> unsafe_include_subtree ~context_visible ~context_export (path, ns)
 
   let import_subtree ?context (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_subtree ~prefix:Emp (Mod.reperform.shadow ?context) s.visible (path, ns) }
+    { s with visible = Trie.union_subtree ~prefix:Emp (Mod.perform.shadow ?context) s.visible (path, ns) }
 
   let get_export () =
     M.exclusively @@ fun () -> (S.get()).export
@@ -107,6 +107,6 @@ struct
   let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f h =
     Mod.run (fun () -> Internal.run ~export_prefix ~init_visible f) h
   let run_modifier = Mod.run
-  let reperform = Mod.reperform
+  let perform = Mod.perform
   let modify = Mod.modify
 end

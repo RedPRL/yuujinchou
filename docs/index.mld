@@ -109,7 +109,7 @@ let handler : _ Scope.handler =
            input)}
 
 (* Mute the [shadow] effects. *)
-let silence_shadow f = S.run_modifier f {S.reperform with shadow = fun ?context:_ _ _ y -> y}
+let silence_shadow f = S.run_modifier f {S.perform with shadow = fun ?context:_ _ _ y -> y}
 
 (* The interpreter *)
 let rec interpret_decl : decl -> unit =

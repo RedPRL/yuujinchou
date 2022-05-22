@@ -21,7 +21,7 @@ sig
 
   val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
   val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val reperform : (data, tag, hook, context) handler
+  val perform : (data, tag, hook, context) handler
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
 end
 
