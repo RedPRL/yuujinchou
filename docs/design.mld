@@ -94,7 +94,7 @@ The current design has six constructors in the core languages:
 + union: {{!val:Yuujinchou.Language.union}union}.
 + hooks: {{!val:Yuujinchou.Language.hook}hook}.
 
-If not for the emptiness checking, we could have just five constructors. One might consider merging emptiness checking with renaming and implementing {{!val:Yuujinchou.Language.open}open}[ p] as {{!val:Yuujinchou.Language.open}seq}[ [renaming p []; renaming [] p]], but this would perform {e two} effects when the subtree at [p] is empty, and moreover the second effect will have the wrong path. (That is, for example [open a.b] would warn about the emptiness of both the subtree at [a.b] and the entire tree.) Therefore, the emptiness checking is separated from the renaming in the core language.
+If not for the emptiness checking, we could have just five constructors. One might consider merging emptiness checking with renaming and implementing {{!val:Yuujinchou.Language.only}only}[ p] as {{!val:Yuujinchou.Language.seq}seq}[ [renaming p []; renaming [] p]], but this would perform {e two} effects when the subtree at [p] is empty, and moreover the second effect will have the wrong path. (That is, for example [only a.b] would warn about the emptiness of both the subtree at [a.b] and the entire tree.) Therefore, the emptiness checking is separated from the renaming in the core language.
 
 {1 Algebraic Effects}
 

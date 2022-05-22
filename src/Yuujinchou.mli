@@ -125,9 +125,9 @@ sig
     val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
     (** [run f h] runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)
 
-    val reperform : (data, tag, hook, context) handler
+    val perform : (data, tag, hook, context) handler
     (** A handler that reperforms the effects. It can also be used to manually trigger the effects;
-        for example, [reperform.not_found (Emp #< "a" #< "b")] will perform the [not_found] effect
+        for example, [perform.not_found (Emp #< "a" #< "b")] will perform the [not_found] effect
         to be handled by the outer handler. *)
   end
 
@@ -241,15 +241,15 @@ sig
         See also {!val:Modifier.S.run}.
 
         {[
-          let silence_shadow f = run_modifier f {reperform with shadow = fun ?context:_ _ _ y -> y}
+          let silence_shadow f = run_modifier f {perform with shadow = fun ?context:_ _ _ y -> y}
         ]}
 
         Note that {!val:run} runs the code with a fresh empty scope,
         while {!val:run_modifier} remains in the current scope.
     *)
 
-    val reperform : (data, tag, hook, context) handler
-    (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.reperform}. *)
+    val perform : (data, tag, hook, context) handler
+    (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.perform}. *)
 
     val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
     (** Call the internal modifier engine directly on some trie. See {!val:Modifier.S.modify}. *)

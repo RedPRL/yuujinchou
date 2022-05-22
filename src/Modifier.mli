@@ -19,7 +19,7 @@ sig
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
 
-  val reperform : (data, tag, hook, context) handler
+  val perform : (data, tag, hook, context) handler
 end
 
 module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
