@@ -13,39 +13,21 @@ type 'a data_node = {
 }
 
 type 'a tag_node = {
-  tag_default : 'a option;
   tag_root : 'a option;
+  tag_default_child : 'a option;
   tag_children : 'a tag_node SegMap.t
 }
-
-let[@inline] get_tag_root t =
-  match t.tag_root with
-  | Some t -> t
-  | None -> Option.get t.tag_default
-
-let[@inline] tag_default_node tag_default : _ tag_node =
-  {tag_default; tag_root = None; tag_children = SegMap.empty}
-
-let[@inline] get_tag_child seg t : _ tag_node =
-  match SegMap.find_opt seg t.tag_children with
-  | Some t -> t
-  | None -> tag_default_node t.tag_default
-
-let[@inline] get_tag_root_opt t =
-  match t.tag_root with
-  | Some t -> Some t
-  | None -> t.tag_default
 
 type ('data, 'tag) node = 'data data_node * 'tag tag_node
 (*
   Invariants:
-  1. Without the default tags, the tag trie must be a subset of the data trie
-  2. With the default tags, the tag trie must be a superset of the data trie
-  3. Every default tag must be actually used by some data to prevent memory leak
+  1. t.tag_children must be a subset of d.children
+  2. t.tag_root must be used by d.root
+  3. t.tag_default_child must be used by some d.children
 
   Non-invariants:
   1. The tag trie need not be minimum.
-  2. This implementation prefers removing default tags. (See mk_node.)
+  2. This implementation prefers removing tag_default_child.
 *)
 
 type ('data, 'tag) t = ('data, 'tag) node option
@@ -58,35 +40,28 @@ let[@inline] non_empty (n : _ node) : _ t = Some n
 
 (** {1 Making (non-empty) trees} *)
 
-(* invariants: the input tag parameters must be correct except the tag_default *)
-let mk_tag_node n (tag_default, tag_root, tag_children) : _ tag_node =
-  match tag_default with
-  | Some _ when Int.equal (SegMap.cardinal n.children) (SegMap.cardinal tag_children) ->
-    (* Remove unused default tags to prevent memory leak *)
-    { tag_default = None;
-      tag_root =
-        (match n.root, tag_root with
-         | Some _, None -> tag_default
-         | _ -> tag_root);
-      tag_children }
-  | _ ->
-    { tag_default; tag_root; tag_children }
-let tag_to_params t = Some t, None, SegMap.empty
-let mk_tag_node' n t : _ tag_node = mk_tag_node n @@ tag_to_params t
-let mk_node n tag_params : _ node = n, mk_tag_node n tag_params
-let mk_node' n tag_params : _ node = n, mk_tag_node' n tag_params
+(* invariants: the input tag_children must already be a subset of d.children (invariant 1) *)
+let mk_tag_node d (tag_root, (tag_default_child, tag_children)) : _ tag_node =
+  let tag_root = match d.root with None -> None | _ -> tag_root in
+  let tag_default_child =
+    if Int.equal (SegMap.cardinal d.children) (SegMap.cardinal tag_children)
+    then None
+    else tag_default_child
+  in
+  { tag_root; tag_default_child; tag_children }
+let mk_tag_node' d t : _ tag_node = mk_tag_node d (t, (t, SegMap.empty))
+let mk_node d tag_params : _ node = d, mk_tag_node d tag_params
+let mk_node' d tag : _ node = d, mk_tag_node' d tag
 
 (* invariants: input tag tree must be a subset (if default tags were ignored) *)
-let mk_tree (root, children) (tag_default, tag_root, tag_children) : _ t =
+let mk_tree (root, children) tag_params : _ t =
   if Option.is_none root && SegMap.is_empty children
   then empty
-  else
-    let n = {root; children} in
-    non_empty @@ mk_node n (tag_default, tag_root, tag_children)
+  else non_empty @@ mk_node {root; children} tag_params
 
 let[@inline] root_node (data, tag) =
   {root = Some data; children = SegMap.empty},
-  {tag_default = None; tag_root = Some tag; tag_children = SegMap.empty}
+  {tag_root = Some tag; tag_default_child = None; tag_children = SegMap.empty}
 
 let[@inline] root_opt v = Option.map root_node v
 
@@ -95,7 +70,7 @@ let[@inline] root v = non_empty @@ root_node v
 let[@inline] prefix_node path n : _ node =
   let f seg (d, t) =
     {root = None; children = SegMap.singleton seg d},
-    {tag_default = None; tag_root = None; tag_children = SegMap.singleton seg t}
+    {tag_root = None; tag_default_child = None; tag_children = SegMap.singleton seg t}
   in
   List.fold_right f path n
 
@@ -105,40 +80,34 @@ let[@inline] singleton (path, (d, t)) = prefix path (root (d, t))
 
 (** {1 Equality} *)
 
-let comb_d_t ds (def, ts) =
+let get_children_node (d, t) =
   SegMap.merge
-    (fun _ d t ->
-       match d, t with
+    (fun _ d' t' ->
+       match d', t' with
        | None, _ -> None
-       | Some d, None -> Some (d, tag_default_node def)
+       | Some d, None -> Some (d, mk_tag_node' d t.tag_default_child)
        | Some d, Some t -> Some (d, t))
-    ds ts
-let comb_d_t2 ds (def1, ts1) (def2, ts2) =
+    d.children t.tag_children
+let get_children_node2 (d, t1, t2) =
   SegMap.merge
-    (fun _ d_t1 t2 ->
-       match d_t1, t2 with
+    (fun _ d_t1 t2' ->
+       match d_t1, t2' with
        | None, _ -> None
-       | Some (d, t1), None -> Some (d, t1, tag_default_node def2)
+       | Some (d, t1), None -> Some (d, t1, mk_tag_node' d t2.tag_default_child)
        | Some (d, t1), Some t2 -> Some (d, t1, t2))
-    (comb_d_t ds (def1, ts1)) ts2
-let split_d_t combined = SegMap.map fst combined, SegMap.map snd combined
+    (get_children_node (d, t1)) t2.tag_children
+let split_children combined = SegMap.map fst combined, SegMap.map snd combined
 let split_option = function None -> None, None | Some (d, t) -> Some d, Some t
 
-let equal_tag_default_node eq_tag t1 t2 =
-  Option.equal eq_tag t1.tag_default t2.tag_default &&
-  Option.is_none t1.tag_root && Option.is_none t2.tag_root &&
-  SegMap.is_empty t1.tag_children && SegMap.is_empty t2.tag_children
-
-let rec equal_tag_node d eq_tag t1 t2 =
+let rec equal_tag_node eq_tag (d, t1, t2) =
   t1 == t2 ||
-  equal_tag_default_node eq_tag t1 t2 ||
-  (Option.is_none d.root || eq_tag (get_tag_root t1) (get_tag_root t2)) &&
-  equal_tag_children d.children eq_tag (t1.tag_default, t1.tag_children) (t2.tag_default, t2.tag_children)
+  Option.equal eq_tag t1.tag_root t2.tag_root &&
+  equal_tag_children eq_tag (d, t1, t2)
 
-and equal_tag_children ds eq_tag (def_t1, ts1) (def_t2, ts2) =
-  SegMap.for_all
-    (fun _ (d, t1, t2) -> equal_tag_node d eq_tag t1 t2)
-    (comb_d_t2 ds (def_t1, ts1) (def_t2, ts2))
+and equal_tag_children eq_tag (d, t1, t2) =
+  (Option.equal eq_tag t1.tag_default_child t2.tag_default_child &&
+   SegMap.is_empty t1.tag_children && SegMap.is_empty t2.tag_children) ||
+  SegMap.for_all (fun _ -> equal_tag_node eq_tag) (get_children_node2 (d, t1, t2))
 
 let rec equal_data_node eq n1 n2 =
   n1 == n2 ||
@@ -147,23 +116,34 @@ let rec equal_data_node eq n1 n2 =
 
 let equal_node eq_data eq_tag (d1, t1) (d2, t2) =
   (d1 == d2 || equal_data_node eq_data d1 d2) &&
-  (t1 == t2 || equal_tag_node d1 eq_tag t1 t2)
+  (t1 == t2 || equal_tag_node eq_tag (d1, t1, t2))
 
 let equal eq_data eq_tag = Option.equal (equal_node eq_data eq_tag)
 
 (** {1 Getting data} *)
 
-let rec find_node_cont path (d, t) k =
+let find_child_node seg (d, t) : _ node option =
+  match SegMap.find_opt seg d.children with
+  | None -> None
+  | Some d ->
+    match SegMap.find_opt seg t.tag_children with
+    | Some t -> Some (d, t)
+    | None -> Some (mk_node' d t.tag_default_child)
+
+let rec find_node_cont path n k =
   match path with
-  | [] -> k (d, t)
+  | [] -> k n
   | seg::path ->
-    Option.bind (SegMap.find_opt seg d.children) @@ fun d ->
-    find_node_cont path (d, get_tag_child seg t) k
+    Option.bind (find_child_node seg n) @@ fun n ->
+    find_node_cont path n k
 
 let find_subtree path v =
   Option.bind v @@ fun n -> find_node_cont path n non_empty
 
-let find_root_node (d, t) = Option.map (fun r -> r, get_tag_root t) d.root
+let find_root_node (d, t) =
+  match d.root with
+  | None -> None
+  | Some r -> Some (r, Option.get t.tag_root)
 
 let find_singleton path v =
   Option.bind v @@ fun n -> find_node_cont path n find_root_node
@@ -178,14 +158,14 @@ let rec update_node_cont path (d, t) (k : (_, 'tag) t -> (_, 'tag) t) =
   | seg::path ->
     let child, tag_child =
       split_option @@
-      match SegMap.find_opt seg d.children with
+      match find_child_node seg (d, t) with
       | None -> prefix path @@ k empty
-      | Some d -> update_node_cont path (d, get_tag_child seg t) k
+      | Some n -> update_node_cont path n k
     in
     let children = SegMap.update seg (fun _ -> child) d.children
     and tag_children = SegMap.update seg (fun _ -> tag_child) t.tag_children
     in
-    mk_tree (d.root, children) (t.tag_default, t.tag_root, tag_children)
+    mk_tree (d.root, children) (t.tag_root, (t.tag_default_child, tag_children))
 
 let update_cont path v k =
   match v with
@@ -198,38 +178,31 @@ let update_root f =
   function
   | None -> root_opt @@ f None
   | Some (d, t) ->
-    match f (Option.map (fun r -> r, get_tag_root t) d.root) with
-    | None -> mk_tree (None, d.children) (t.tag_default, None, t.tag_children)
-    | Some (r, rt) -> mk_tree (Some r, d.children) (t.tag_default, Some rt, t.tag_children)
+    let root, tag_root = split_option @@ f (find_root_node (d, t)) in
+    mk_tree (root, d.children) (tag_root, (t.tag_default_child, t.tag_children))
 
 let update_singleton path f v = update_cont path v (update_root f)
 
 (** {1 Union} *)
 
-let union_root m (r1, rt1) (r2, rt2) =
+let union_option m r1 r2 =
   match r1, r2 with
-  | None, None -> None, None
-  | Some _, None -> r1, rt1
-  | None, Some _ -> r2, rt2
-  | Some r1, Some r2 ->
-    let r, rt = m (r1, Option.get rt1) (r2, Option.get rt2) in
-    Some r, Some rt
+  | None, None -> None
+  | Some r, None | None, Some r -> Some r
+  | Some r1, Some r2 -> Some (m r1 r2)
 
-let rec union_node ~prefix m (d1, t1) (d2, t2) =
-  let root, tag_root = union_root (m prefix) (d1.root, get_tag_root_opt t1) (d2.root, get_tag_root_opt t2) in
-  let children, tag_children =
-    split_d_t @@ SegMap.union
-      (fun seg n n' -> Some (union_node ~prefix:(prefix #< seg) m n n'))
-      (comb_d_t d1.children (t1.tag_default, t1.tag_children))
-      (comb_d_t d2.children (t2.tag_default, t2.tag_children))
+let rec union_node ~prefix m n1 n2 =
+  let root, tag_root = split_option @@
+    union_option (m prefix) (find_root_node n1) (find_root_node n2)
   in
-  {root; children}, {tag_default = None; tag_root; tag_children}
+  let children, tag_children =
+    split_children @@ SegMap.union
+      (fun seg n1 n2 -> Some (union_node ~prefix:(prefix #< seg) m n1 n2))
+      (get_children_node n1) (get_children_node n2)
+  in
+  {root; children}, {tag_root; tag_default_child = None; tag_children}
 
-let union_ ~prefix m v1 v2 =
-  match v1, v2 with
-  | None, v | v, None -> v
-  | Some n1, Some n2 ->
-    Some (union_node ~prefix m n1 n2)
+let union_ ~prefix m = union_option (union_node ~prefix m)
 
 let[@inline] union ?(prefix=Emp) m = union_ ~prefix m
 
@@ -240,7 +213,9 @@ let union_root ?(prefix=Emp) m v1 v2 =
   match v1 with
   | None -> root v2
   | Some (d1, t1) ->
-    let root, tag_root = union_root (m prefix) (d1.root, get_tag_root_opt t1) (Some (fst v2), Some (snd v2)) in
+    let root, tag_root = split_option @@
+      union_option (m prefix) (find_root_node (d1, t1)) (Some v2)
+    in
     non_empty ({d1 with root}, {t1 with tag_root})
 
 let union_singleton ?(prefix=Emp) m v1 (path, v2) =
@@ -262,29 +237,25 @@ let detach_root =
   function
   | None -> None, empty
   | Some (d, t) ->
-    Option.map (fun r -> r, get_tag_root t) d.root,
-    mk_tree (None, d.children) (t.tag_default, None, t.tag_children)
+    find_root_node (d, t),
+    mk_tree (None, d.children) (None, (t.tag_default_child, t.tag_children))
 
 let detach_singleton path t = apply_and_update_cont path t detach_root
 
 (** {1 Iteration} *)
 
-let rec iter_node ~prefix f (d, t) =
-  Option.fold ~none:() ~some:(fun r -> f prefix (r, get_tag_root t)) d.root;
-  SegMap.iter
-    (fun seg (d, t) -> iter_node ~prefix:(prefix #< seg) f (d, t))
-    (comb_d_t d.children (t.tag_default, t.tag_children))
+let rec iter_node ~prefix f n =
+  Option.iter (f prefix) (find_root_node n);
+  SegMap.iter (fun seg -> iter_node ~prefix:(prefix #< seg) f) (get_children_node n)
 let iter ?(prefix=Emp) f v = Option.fold ~none:() ~some:(iter_node ~prefix f) v
 
-let rec filter_map_node ~prefix f (d, t) : _ t =
-  let root, tag_root = split_option @@ Option.bind d.root (fun r -> f prefix (r, get_tag_root t)) in
+let rec filter_map_node ~prefix f n : _ t =
+  let root, tag_root = split_option @@ Option.bind (find_root_node n) (f prefix) in
   let children, tag_children =
-    split_d_t @@
-    SegMap.filter_map
-      (fun seg -> filter_map_node ~prefix:(prefix #< seg) f)
-      (comb_d_t d.children (t.tag_default, t.tag_children))
+    split_children @@
+    SegMap.filter_map (fun seg -> filter_map_node ~prefix:(prefix #< seg) f) (get_children_node n)
   in
-  mk_tree (root, children) (None, tag_root, tag_children)
+  mk_tree (root, children) (tag_root, (None, tag_children))
 let filter_map ?(prefix=Emp) f v = Option.bind v @@ filter_map_node ~prefix f
 
 let map ?prefix f = filter_map ?prefix @@ fun prefix (d, t) -> Some (f prefix (d, t))
@@ -294,14 +265,17 @@ let filter ?prefix f = filter_map ?prefix @@
 
 (** {1 Conversion from/to Seq} *)
 
-let rec node_to_seq_with_bwd_paths ~prefix (d, t) () =
-  let kont () = children_to_seq_with_bwd_paths ~prefix (d.children, t.tag_default, t.tag_children) () in
-  match d.root with
+let rec node_to_seq_with_bwd_paths ~prefix n () =
+  let kont () =
+    children_to_seq_with_bwd_paths ~prefix n ()
+  in
+  match find_root_node n with
   | None -> kont ()
-  | Some v -> Seq.Cons ((prefix, (v, get_tag_root t)), kont)
-and children_to_seq_with_bwd_paths ~prefix (ds, dt, ts) =
-  SegMap.to_seq (comb_d_t ds (dt, ts)) |> Seq.flat_map @@ fun (seg, (d, t)) ->
-  node_to_seq_with_bwd_paths ~prefix:(prefix #< seg) (d, t)
+  | Some r -> Seq.Cons ((prefix, r), kont)
+and children_to_seq_with_bwd_paths ~prefix n =
+  Seq.flat_map
+    (fun (seg, n) -> node_to_seq_with_bwd_paths ~prefix:(prefix #< seg) n)
+    (SegMap.to_seq (get_children_node n))
 
 let to_seq_with_bwd_paths ?(prefix=Emp) t =
   Option.fold ~none:Seq.empty ~some:(node_to_seq_with_bwd_paths ~prefix) t
@@ -327,6 +301,6 @@ let of_seq s = of_seq_with_merger ~prefix:Emp (fun _ _ y -> y) s
 let[@inline] retag t : _ t -> _ t =
   function
   | None -> None
-  | Some (d, _) -> non_empty @@ mk_node' d t
+  | Some (d, _) -> non_empty @@ mk_node' d (Some t)
 
 let retag_subtree path t (v : _ t) : _ t = update_subtree path (retag t) v
