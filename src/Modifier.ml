@@ -1,5 +1,3 @@
-open StdLabels
-
 open Bwd
 open BwdNotation
 
@@ -57,13 +55,13 @@ struct
         Trie.update_subtree p2 (fun _ -> t) remaining
       | L.M_seq ms ->
         let f t m = go prefix m t in
-        List.fold_left ~f ~init:t ms
+        List.fold_left f t ms
       | L.M_union ms ->
         let f ts m =
           let ti = go prefix m t in
           Trie.union ~prefix (shadow ~context) ts ti
         in
-        List.fold_left ~f ~init:Trie.empty ms
+        List.fold_left f Trie.empty ms
       | L.M_hook id -> hook ~context prefix id t
     in go prefix
 

@@ -16,7 +16,7 @@ let print_list = Q.Print.(contramap list_to_rawlist (list @@ pair print_path pri
 
 let gen_path = Q.Gen.(small_list @@ small_string ~gen:printable)
 let gen_bwd_path = Q.Gen.map Bwd.Bwd.of_list gen_path
-let gen_tagged = Q.Gen.(pair int small_int)
+let gen_tagged = Q.Gen.(pair int small_nat)
 let gen_list = Q.Gen.map (fun l -> rawlist_to_list @@ List.sort_uniq ~cmp l)
     Q.Gen.(small_list @@ pair gen_path gen_tagged)
 

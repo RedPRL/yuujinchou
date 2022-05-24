@@ -1,5 +1,3 @@
-open StdLabels
-
 type 'hook t =
   | M_assert_nonempty
   | M_in of Trie.path * 'hook t
@@ -24,16 +22,16 @@ let hook f = M_hook f
 
 let union l = M_union l
 
-let (=) = List.equal ~eq:String.equal
+let (=) = List.equal String.equal
 let rec equal equal_hook m1 m2 =
   match m1, m2 with
   | M_assert_nonempty, M_assert_nonempty -> true
   | M_in (p1, m1), M_in (p2, m2) -> p1 = p2 && equal equal_hook m1 m2
   | M_renaming (p1, p1'), M_renaming (p2, p2') -> p1 = p2 && p1' = p2'
   | M_seq ps1, M_seq ps2 ->
-    begin try List.for_all2 ~f:(equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
+    begin try List.for_all2 (equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
   | M_union ps1, M_union ps2 ->
-    begin try List.for_all2 ~f:(equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
+    begin try List.for_all2 (equal equal_hook) ps1 ps2 with Invalid_argument _ -> false end
   | M_hook h1, M_hook h2 -> equal_hook h1 h2
   | _ -> false
 
