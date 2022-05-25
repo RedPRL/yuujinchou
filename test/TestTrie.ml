@@ -215,18 +215,6 @@ let test_to_seq_values =
        List.of_seq (Trie.to_seq_values (of_list l))
        =
        List.of_seq (ListAsTrie.to_seq_values l))
-let test_to_seq_data =
-  Q.Test.make ~count ~name:"to_seq_data" gen_list ~print:print_list
-    (fun l ->
-       List.of_seq (Trie.to_seq_data (of_list l))
-       =
-       List.of_seq (ListAsTrie.to_seq_data l))
-let test_to_seq_tags =
-  Q.Test.make ~count ~name:"to_seq_tags" gen_list ~print:print_list
-    (fun l ->
-       List.of_seq (Trie.to_seq_tags (of_list l))
-       =
-       List.of_seq (ListAsTrie.to_seq_tags l))
 let test_of_seq =
   Q.Test.make ~count ~name:"of_seq"
     Q.Gen.(small_list @@ pair gen_path gen_tagged)
@@ -249,6 +237,9 @@ let test_retag =
 let test_retag_subtree =
   Q.Test.make ~count ~name:"retag_subtree" Q.Gen.(triple gen_path int gen_list) ~print:Q.Print.(triple print_path int print_list)
     (fun (p, t, l) -> to_list (Trie.retag_subtree p t (of_list l)) = ListAsTrie.retag_subtree p t l)
+let test_set_of_tags =
+  Q.Test.make ~count ~name:"set_of_tags" gen_list ~print:print_list
+    (fun l -> List.of_seq (Trie.set_of_tags Int.compare (of_list l)) = List.of_seq (ListAsTrie.set_of_tags Int.compare l))
 
 let () =
   exit @@
@@ -279,10 +270,9 @@ let () =
     ; test_to_seq
     ; test_to_seq_with_bwd_paths
     ; test_to_seq_values
-    ; test_to_seq_data
-    ; test_to_seq_tags
     ; test_of_seq
     ; test_of_seq_with_merger
     ; test_retag
     ; test_retag_subtree
+    ; test_set_of_tags
     ]
