@@ -265,20 +265,9 @@ let filter ?prefix f = filter_map ?prefix @@
 
 (** {1 Conversion from/to Seq} *)
 
-let rec node_to_seq_with_bwd_paths ~prefix n () =
-  let kont () =
-    children_to_seq_with_bwd_paths ~prefix n ()
-  in
-  match find_root_node n with
-  | None -> kont ()
-  | Some r -> Seq.Cons ((prefix, r), kont)
-and children_to_seq_with_bwd_paths ~prefix n =
-  Seq.flat_map
-    (fun (seg, n) -> node_to_seq_with_bwd_paths ~prefix:(prefix #< seg) n)
-    (SegMap.to_seq (get_children_node n))
-
-let to_seq_with_bwd_paths ?(prefix=Emp) t =
-  Option.fold ~none:Seq.empty ~some:(node_to_seq_with_bwd_paths ~prefix) t
+let to_seq_with_bwd_paths (type data) (type tag) ?prefix (t : (data, tag) t) =
+  let module S = Algaeff.Sequencer.Make (struct type elt = bwd_path * (data * tag) end) in
+  S.run @@ fun () -> iter ?prefix (fun p (d, t) -> S.yield (p, (d, t))) t
 
 let to_seq_values t = Seq.map snd @@
   to_seq_with_bwd_paths t
