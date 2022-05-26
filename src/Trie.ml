@@ -247,7 +247,7 @@ let detach_singleton path t = apply_and_update_cont path t detach_root
 let rec iter_node ~prefix f n =
   Option.iter (f prefix) (find_root_node n);
   SegMap.iter (fun seg -> iter_node ~prefix:(prefix #< seg) f) (get_children_node n)
-let iter ?(prefix=Emp) f v = Option.fold ~none:() ~some:(iter_node ~prefix f) v
+let iter ?(prefix=Emp) f v = Option.iter (iter_node ~prefix f) v
 
 let rec filter_map_node ~prefix f n : _ t =
   let root, tag_root = split_option @@ Option.bind (find_root_node n) (f prefix) in
@@ -272,12 +272,6 @@ let to_seq_with_bwd_paths (type data) (type tag) ?prefix (t : (data, tag) t) =
 let to_seq_values t = Seq.map snd @@
   to_seq_with_bwd_paths t
 
-let to_seq_data t = Seq.map (fun (_, (d, _)) -> d) @@
-  to_seq_with_bwd_paths t
-
-let to_seq_tags t = Seq.map (fun (_, (_, t)) -> t) @@
-  to_seq_with_bwd_paths t
-
 let to_seq ?prefix t = Seq.map (fun (p, v) -> Bwd.to_list p, v) @@
   to_seq_with_bwd_paths ?prefix t
 
@@ -293,3 +287,14 @@ let[@inline] retag t : _ t -> _ t =
   | Some (d, _) -> non_empty @@ mk_node' d (Some t)
 
 let retag_subtree path t (v : _ t) : _ t = update_subtree path (retag t) v
+
+let rec iter_tag_node (f : 'a -> unit) (t : 'a tag_node) =
+  Option.iter f t.tag_root;
+  Option.iter f t.tag_default_child;
+  SegMap.iter (fun _ -> iter_tag_node f) t.tag_children
+
+let set_of_tags (type tag) (cmp : tag -> tag -> int) (v : ('data, tag) t) : tag Seq.t =
+  let module TagSet = Set.Make (struct type t = tag let compare = cmp end) in
+  let set = ref TagSet.empty in
+  Option.iter (fun (_, n) -> iter_tag_node (fun t -> set := TagSet.add t !set) n) v;
+  TagSet.to_seq !set

@@ -59,23 +59,22 @@ let detach_root l =
   in
   Option.map snd (List.nth_opt l1 0), l2
 
-
 let cmp_path = List.compare String.compare
-let cmp (p1, _) (p2, _) = cmp_path p1 p2
 
-let rec uniquefy_sorted ~prefix ~merger =
-  function
-  | [] -> []
-  | [b] -> [b]
-  | (p1,x1)::(p2,x2)::rest ->
-    if p1 = p2 then
-      let merged = (p1, merger (prefix <>< p1) x1 x2) in
-      uniquefy_sorted ~prefix ~merger @@ merged::rest
+let rec merge_uniq ~prefix m l1 l2 =
+  match l1, l2 with
+  | [], l | l, [] -> l
+  | (p1,x1)::l1', (p2,x2)::l2' ->
+    let c = cmp_path p1 p2 in
+    if c < 0 then
+      (p1,x1)::merge_uniq ~prefix m l1' l2
+    else if c > 0 then
+      (p2,x2)::merge_uniq ~prefix m l1 l2'
     else
-      (p1,x1)::(uniquefy_sorted ~prefix ~merger @@ (p2,x2)::rest)
+      (p1, m (prefix <>< p1) x1 x2) :: merge_uniq ~prefix m l1' l2'
 
 let union ?(prefix=Emp) m l1 l2 =
-  uniquefy_sorted ~prefix ~merger:m @@ List.stable_sort cmp @@ l1 @ l2
+  merge_uniq ~prefix m l1 l2
 let union_subtree ?prefix:p m l1 (pre, l2) =
   union ?prefix:p m l1 @@ prefix pre l2
 let union_singleton ?prefix m l1 (p, x) =
@@ -85,10 +84,10 @@ let union_root ?prefix m l1 x =
 
 let update_subtree p f l =
   let sub, rest = detach_subtree p l in
-  List.sort_uniq cmp @@ rest @ (prefix p @@ f sub)
+  merge_uniq ~prefix:Emp (fun _ _ _ -> failwith "Unexpected") rest (prefix p @@ f sub)
 let update_singleton p f l =
   let x, rest = detach_singleton p l in
-  List.sort_uniq cmp @@ rest @ (prefix p @@ root_opt (f x))
+  merge_uniq ~prefix:Emp (fun _ _ _ -> failwith "Unexpected") rest (prefix p @@ root_opt (f x))
 let update_root f l =
   update_singleton [] f l
 
@@ -97,11 +96,10 @@ let to_seq ?(prefix=Emp) l =
 let to_seq_with_bwd_paths ?(prefix=Emp) l =
   Seq.map (fun (p, x) -> prefix <>< p, x) @@ List.to_seq l
 let to_seq_values l = Seq.map snd @@ List.to_seq l
-let to_seq_data l = Seq.map (fun (_, (d, _)) -> d) @@ List.to_seq l
-let to_seq_tags l = Seq.map (fun (_, (_, t)) -> t) @@ List.to_seq l
 let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty s
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
 
 let retag t l = List.map (fun (p, (d, _)) -> p, (d, t)) l
 let retag_subtree pre t l =
   List.map (fun ((p, (d, _)) as b) -> if Option.is_some (split_path pre p) then p, (d, t) else b) l
+let set_of_tags cmp l = List.to_seq @@ List.sort_uniq cmp @@ List.map (fun (_, (_, t)) -> t) l
