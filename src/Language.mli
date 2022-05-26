@@ -1,3 +1,5 @@
+(* See Yuujinchou.mli for documentation. *)
+
 type 'hook t =
   | M_assert_nonempty
   | M_in of Trie.path * 'hook t

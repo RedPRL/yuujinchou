@@ -1,3 +1,5 @@
+(* See Yuujinchou.mli for documentation. *)
+
 type ('data, 'tag, 'hook, 'context) handler = ('data, 'tag, 'hook, 'context) Modifier.handler
 
 module type Param = Modifier.Param

@@ -1,3 +1,5 @@
+(* See Yuujinchou.mli for documentation. *)
+
 type ('data, 'tag, 'hook, 'context) handler = {
   not_found : ?context:'context -> Trie.bwd_path -> unit;
   shadow : ?context:'context -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
