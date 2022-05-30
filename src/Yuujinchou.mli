@@ -75,7 +75,7 @@ sig
 
   (** [dump dump_hook m] dumps the internal representation of [m] for debugging,
       where [dump_hook] is the ugly printer for hook labels (see {!val:hook}). *)
-  val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit
+  val dump : (Format.formatter -> 'hook -> unit) -> Format.formatter -> 'hook t -> unit [@@ocaml.toplevel_printer]
 end
 
 (** The {!module:Modifier} module implements the engine running the modifiers of type {!type:Language.t}. *)
