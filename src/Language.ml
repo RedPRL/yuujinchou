@@ -35,22 +35,27 @@ let rec equal equal_hook m1 m2 =
   | M_hook h1, M_hook h2 -> equal_hook h1 h2
   | _ -> false
 
-let dump_path =
-  Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_char fmt '.') Format.pp_print_string
+let dump_path fmt =
+  function
+  | [] -> Format.pp_print_string fmt "root"
+  | l ->
+    Format.fprintf fmt {|path(@,"%a")|}
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt {|",@,"|}) Format.pp_print_string)
+      (List.map String.escaped l)
 
 let rec dump dump_hook fmt =
   function
   | M_assert_nonempty ->
-    Format.pp_print_string fmt "assert_nonempty"
+    Format.pp_print_string fmt "assert-nonempty"
   | M_in (p, m) ->
-    Format.fprintf fmt "@[<hv 1>in[@,@[%a@];@,@[%a@]]@]" dump_path p (dump dump_hook) m
+    Format.fprintf fmt "@[<hv 1>in(@,@[%a@];@,@[%a@])@]" dump_path p (dump dump_hook) m
   | M_renaming (p1, p2) ->
-    Format.fprintf fmt "@[<hv 1>renaming[@,@[%a@];@,@[%a@]]@]" dump_path p1 dump_path p2
+    Format.fprintf fmt "@[<hv 1>renaming(@,@[%a@];@,@[%a@])@]" dump_path p1 dump_path p2
   | M_seq ms ->
-    Format.fprintf fmt "@[<hv 1>seq[@,%a]@]"
+    Format.fprintf fmt "@[<hv 1>seq(@,%a)@]"
       (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ";@,") (dump dump_hook)) ms
   | M_union ms ->
-    Format.fprintf fmt "@[<hv 1>union[@,%a]@]"
+    Format.fprintf fmt "@[<hv 1>union(@,%a)@]"
       (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ";@,") (dump dump_hook)) ms
   | M_hook h ->
-    Format.fprintf fmt "@[<hv 1>hook[@,@[%a@]]@]" dump_hook h
+    Format.fprintf fmt "@[<hv 1>hook(@,@[%a@])@]" dump_hook h
