@@ -1,3 +1,16 @@
+# [3.0.0](/compare/2.0.0...3.0.0) (2022-06-03)
+
+Version 3.0.0 is a complete redesign and rewrite of the library, with the following notable changes:
+
+1. Algebraic effects are used everywhere.
+2. A new module `Scope` was introduced for lexical scoping.
+3. Tries were augmented with tags to support constant-time retagging.
+4. Renaming now shadows conflicting names in the target subtree instead of merging with them. See `Language.renaming`.
+5. There is a design document under `docs/`.
+
+The old client code that works with Yuujinchou 2.0.0 will stop working with the new version.
+
+
 # [2.0.0](https://github.com/RedPRL/yuujinchou/compare/1.0.0...2.0.0) (2022-03-07)
 
 
