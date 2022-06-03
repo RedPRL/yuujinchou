@@ -135,7 +135,7 @@ sig
   module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
 end
 
-(** The {!module:Scope} module implements the scoping effects based on {!module:Modifier}. *)
+(** The {!module:Scope} module implements lexical scoping based on {!module:Modifier}. *)
 module Scope :
 sig
   (** The type of effect handlers used in this module. *)
