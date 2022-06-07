@@ -1,3 +1,3 @@
-(lang dune 2.7)
+(lang dune 2.0)
 (name yuujinchou)
 (formatting disabled)
