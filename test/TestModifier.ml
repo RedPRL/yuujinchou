@@ -35,9 +35,9 @@ module M = Modifier.Make (struct type nonrec data = data type tag = unit type ho
 exception WrappedBindingNotFound of Trie.bwd_path
 let wrap f =
   M.run f
-    { not_found = (fun ?context:_ prefix -> raise @@ WrappedBindingNotFound prefix);
-      shadow = (fun ?context:_ path (x, ()) (y, ()) -> U (path, x, y), ());
-      hook = (fun ?context:_ _ -> function _ -> .) }
+    { not_found = (fun _ prefix -> raise @@ WrappedBindingNotFound prefix);
+      shadow = (fun _ path (x, ()) (y, ()) -> U (path, x, y), ());
+      hook = (fun _ _ -> function _ -> .) }
 
 let wrap_error f = fun () -> wrap @@ fun () -> ignore (f ())
 

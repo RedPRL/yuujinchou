@@ -45,12 +45,12 @@ let handler : _ Scope.handler =
     | (x, `Local) -> Format.fprintf fmt "%i (local)" x
   in
   { not_found =
-      (fun ?context prefix ->
+      (fun context prefix ->
          Format.printf
            "[Warning] Could not find any data within the subtree at %a%a.@."
            pp_path prefix pp_context context);
     shadow =
-      (fun ?context path x y ->
+      (fun context path x y ->
          Format.printf
            "[Warning] Data %a assigned at %a was shadowed by data %a%a.@."
            pp_item x
@@ -59,7 +59,7 @@ let handler : _ Scope.handler =
            pp_context context;
          y);
     hook =
-      (fun ?context prefix hook input ->
+      (fun context prefix hook input ->
          match hook with
          | Print ->
            Format.printf "@[<v 2>[Info] Got the following bindings at %a%a:@;"
@@ -72,7 +72,7 @@ let handler : _ Scope.handler =
            input)}
 
 (* Mute the [shadow] effects. *)
-let silence_shadow f = S.run_modifier f {S.perform with shadow = fun ?context:_ _ _ y -> y}
+let silence_shadow f = S.try_with f {S.perform with shadow = fun _ _ _ y -> y}
 
 (* The interpreter *)
 let rec interpret_decl : decl -> unit =

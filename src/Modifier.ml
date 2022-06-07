@@ -2,9 +2,9 @@ open Bwd
 open BwdNotation
 
 type ('data, 'tag, 'hook, 'context) handler = {
-  not_found : ?context:'context -> Trie.bwd_path -> unit;
-  shadow : ?context:'context -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
-  hook : ?context:'context -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
+  not_found : 'context option -> Trie.bwd_path -> unit;
+  shadow : 'context option -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
+  hook : 'context option -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
 }
 
 module type Param =
@@ -20,8 +20,9 @@ sig
   include Param
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-  val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
 
+  val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
+  val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
   val perform : (data, tag, hook, context) handler
 end
 
@@ -35,9 +36,9 @@ struct
       | NotFound : {context : context option; prefix : Trie.bwd_path} -> unit Effect.t
       | Shadow : {context : context option; path : Trie.bwd_path; former : data * tag; latter : data * tag} -> (data * tag) Effect.t
       | Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> (data, tag) Trie.t Effect.t
-    let not_found ~context prefix = Effect.perform @@ NotFound {context; prefix}
-    let shadow ~context path former latter = Effect.perform @@ Shadow {context; path; former; latter}
-    let hook ~context prefix hook input = Effect.perform @@ Hook {context; prefix; hook; input}
+    let not_found context prefix = Effect.perform @@ NotFound {context; prefix}
+    let shadow context path former latter = Effect.perform @@ Shadow {context; path; former; latter}
+    let hook context prefix hook input = Effect.perform @@ Hook {context; prefix; hook; input}
   end
 
   open Internal
@@ -47,7 +48,7 @@ struct
     let rec go prefix m t =
       match m with
       | L.M_assert_nonempty ->
-        if Trie.is_empty t then not_found ~context prefix; t
+        if Trie.is_empty t then not_found context prefix; t
       | L.M_in (p, m) ->
         Trie.update_subtree p (go (prefix <>< p) m) t
       | L.M_renaming (p1, p2) ->
@@ -59,10 +60,10 @@ struct
       | L.M_union ms ->
         let f ts m =
           let ti = go prefix m t in
-          Trie.union ~prefix (shadow ~context) ts ti
+          Trie.union ~prefix (shadow context) ts ti
         in
         List.fold_left f Trie.empty ms
-      | L.M_hook id -> hook ~context prefix id t
+      | L.M_hook id -> hook context prefix id t
     in go prefix
 
   let run f h =
@@ -71,15 +72,17 @@ struct
       { effc = fun (type a) (eff : a Effect.t) ->
             match eff with
             | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
-              Algaeff.Fun.Deep.finally k @@ fun () -> h.not_found ?context prefix
+              Algaeff.Fun.Deep.finally k @@ fun () -> h.not_found context prefix
             | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
-              Algaeff.Fun.Deep.finally k @@ fun () -> h.shadow ?context path former latter
+              Algaeff.Fun.Deep.finally k @@ fun () -> h.shadow context path former latter
             | Hook {context; prefix; hook; input}-> Option.some @@ fun (k : (a, _) continuation) ->
-              Algaeff.Fun.Deep.finally k @@ fun () -> h.hook ?context prefix hook input
+              Algaeff.Fun.Deep.finally k @@ fun () -> h.hook context prefix hook input
             | _ -> None }
 
+  let try_with = run
+
   let perform =
-    { not_found = (fun ?context -> Internal.not_found ~context);
-      shadow = (fun ?context -> Internal.shadow ~context);
-      hook = (fun ?context -> Internal.hook ~context) }
+    { not_found = Internal.not_found;
+      shadow = Internal.shadow;
+      hook = Internal.hook }
 end

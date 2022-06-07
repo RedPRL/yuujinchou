@@ -84,29 +84,29 @@ sig
 
   (** The type of effect handlers used in this module. *)
   type ('data, 'tag, 'hook, 'context) handler = {
-    not_found : ?context:'context -> Trie.bwd_path -> unit;
-    (** [not_found prefix] is called when the engine expects at least one binding within the subtree at [prefix] but could not find any. Modifiers such as {!val:Language.any}, {!val:Language.only}, {!val:Language.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. See {!type:Param.context} for the argument [context]. *)
+    not_found : 'context option -> Trie.bwd_path -> unit;
+    (** [not_found ctx prefix] is called when the engine expects at least one binding within the subtree at [prefix] but could not find any, where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.any}, {!val:Language.only}, {!val:Language.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. *)
 
-    shadow : ?context:'context -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
-    (** [shadow path x y] is called when item [y] is being assigned to [path] but [x] is already bound at [path]. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this function is called to resolve the conflicting bindings. To implement silent shadowing, one can simply return item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. See {!type:Param.context} for the argument [context]. *)
+    shadow : 'context option -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
+    (** [shadow ctx path x y] is called when item [y] is being assigned to [path] but [x] is already bound at [path], where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this function is called to resolve the conflicting bindings. To implement silent shadowing, one can simply return item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
 
-    hook : ?context:'context -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
-    (** [hook prefix id input] is called when processing the modifiers created by {!val:Language.hook}. When the engine encounters the modifier {!val:Language.hook}[ id] while handling the subtree [input] at [prefix], it will call [hook prefix id input] and replace the existing subtree [input] with the return value. See {!type:Param.context} for the argument [context]. *)
+    hook : 'context option -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
+    (** [hook prefix id input] is called when processing the modifiers created by {!val:Language.hook}, where [ctx] is the context passed to {!val:S.modify}. When the engine encounters the modifier {!val:Language.hook}[ id] while handling the subtree [input] at [prefix], it will call [hook prefix id input] and replace the existing subtree [input] with the return value. *)
   }
 
   (** The parameters of an engine. *)
   module type Param =
   sig
-    (** The type of data held by the bindings that will survive retagging. *)
+    (** The type of data held by the bindings. The difference between data and tags is that the data will survive the efficient retagging. See {!val:Trie.retag}. *)
     type data
 
-    (** The type of tags attached to the bindings that can be efficiently reset. *)
+    (** The type of tags attached to the bindings. The difference between data and tags is that tags can be efficiently reset. See {!val:Trie.retag}. *)
     type tag
 
-    (** The type of modifier hook labels. *)
+    (** The type of modifier hook labels. This is for extending the modifier language. *)
     type hook
 
-    (** The type of contexts for handlers to distinguish different function calls. *)
+    (** The type of contexts passed to each call of {!val:Modifier.S.modify} for the effect handler to distinguish different function calls. *)
     type context
   end
 
@@ -123,7 +123,20 @@ sig
         @param prefix The prefix prepended to any path or prefix sent to the effect handlers. The default is the empty path ([Emp]). *)
 
     val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-    (** [run f h] runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)
+    (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)
+
+    val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
+    (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!type:handler}.
+
+        Currently, [try_with] is an alias of {!val:run}, but [try_with] is intended to use within {!val:run} to intercept effects,
+        while {!val:run} is intended to be at the outermost layer to handle effects. That is, the following is the expected program structure:
+        {[
+          run @@ fun () ->
+          (* code *)
+          try_with f { ... }
+          (* more code *)
+        ]}
+    *)
 
     val perform : (data, tag, hook, context) handler
     (** A handler that reperforms the effects. It can also be used to manually trigger the effects;
@@ -201,6 +214,11 @@ sig
 
         @param context The context attached to the modifier effects. *)
 
+    val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+    (** Call the internal modifier engine directly on some trie. See {!val:Modifier.S.modify}.
+
+        This will not lock the current scope. *)
+
     val export_visible : ?context:context -> hook Language.t -> unit
     (** [export_visible m] runs the modifier [m] on the visible namespace,
         and then merge the result into the export namespace.
@@ -227,32 +245,27 @@ sig
     (** {1 Runners} *)
 
     val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-    (** [run f h] executes [f] that performs scoping effects, using [h] to handle internal
-        modifier effects.
+    (** [run f h] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
 
         @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
         originating from export namespaces. The default is the empty path ([Emp]).
         This does not affect paths originating from visible namespaces.
         @param init_visible The initial visible namespace. The default is the empty trie. *)
 
-    val run_modifier : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
+    val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
     (** Execute the code and handles the internal modifier effects. This can be used to intercept
         or reperform those effects; for example, the following function silences the [shadow] effects.
-        See also {!val:Modifier.S.run}.
+        See also {!val:Modifier.S.try_with}.
 
         {[
-          let silence_shadow f = run_modifier f {perform with shadow = fun ?context:_ _ _ y -> y}
+          let silence_shadow f = try_with f {perform with shadow = fun _ _ _ y -> y}
         ]}
 
-        Note that {!val:run} runs the code with a fresh empty scope,
-        while {!val:run_modifier} remains in the current scope.
+        Note that {!val:run} starts a fresh empty scope while [try_with] remains in the current scope.
     *)
 
     val perform : (data, tag, hook, context) handler
     (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.perform}. *)
-
-    val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-    (** Call the internal modifier engine directly on some trie. See {!val:Modifier.S.modify}. *)
   end
 
   module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context

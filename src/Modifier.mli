@@ -1,9 +1,9 @@
 (* See Yuujinchou.mli for documentation. *)
 
 type ('data, 'tag, 'hook, 'context) handler = {
-  not_found : ?context:'context -> Trie.bwd_path -> unit;
-  shadow : ?context:'context -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
-  hook : ?context:'context -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
+  not_found : 'context option -> Trie.bwd_path -> unit;
+  shadow : 'context option -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
+  hook : 'context option -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
 }
 
 module type Param =
@@ -19,8 +19,9 @@ sig
   include Param
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-  val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
 
+  val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
+  val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
   val perform : (data, tag, hook, context) handler
 end
 
