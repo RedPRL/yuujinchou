@@ -1,0 +1,87 @@
+{0 Rosetta of Imports}
+
+{1 Haskell}
+
+- Haskell syntax:
+{v
+import Mod -- x is available an both x and Mod.x
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(union [any; renaming [] ["Mod"]])
+]}
+
+- Haskell syntax:
+{v
+import Mod (x,y)
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(union [only ["x"]; only ["y"]])
+]}
+
+- Haskell syntax:
+{v
+import qualified Mod
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(renaming [] ["Mod"])
+]}
+
+- Haskell syntax:
+{v
+import qualified Mod hiding (x,y)
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(seq [except ["x"]; except ["y"]; renaming [] ["Mod"]])
+]}
+
+{1 Racket}
+
+- Racket syntax:
+{v
+(require (only-in ... id0 [old-id1 new-id1]))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(seq [...; union [only ["id0"]; seq [only ["old-id1"]; renaming ["old-id1"] ["new-id1"]]]])
+]}
+
+- Racket syntax:
+{v
+(require (except-in ... id0 id1]))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(seq [...; except ["id0"]; except ["id1"]])
+]}
+
+- Racket syntax:
+{v
+(require (prefix-in p: ...))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(seq [...; renaming [] ["p"]])
+]}
+Note: Racket does not support hierarchical names, so the prefixing operator in Racket is directly prepending the prefix to the affected names.
+
+- Racket syntax:
+{v
+(require (rename-in ... [old-id0 new-id0] [old-id1 new-id1]))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(seq [...; renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]])
+]}
+
+- Racket syntax:
+{v
+(require (combine-in require-spec0 require-spec1 ...))
+v}
+Corresponding Yuujinchou modifier:
+{[
+  Language.(union [require-spec0; require-spec1; ...])
+]}
