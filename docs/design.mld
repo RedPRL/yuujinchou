@@ -1,18 +1,18 @@
-{0 Design Principles of Yuujinchou}
+{0 Design Principles of Name Modifiers}
+
+Here are the most important principles for the name modifiers.
+
+{1 Expressiveness}
+
+The modifier language should be able to approximate all features in popular programming languages. Language-specific features (such as phases in Racket) can be implemented using the modifier {{!val:Yuujinchou.Language.hook}hook}.
 
 {1 Explicit Sequencing}
 
 One common mistake in other languages is the lack of explicit ordering between effectful operations such as hiding ({{!val:Yuujinchou.Language.except}except}), renaming ({{!val:Yuujinchou.Language.renaming}renaming}), and selecting ({{!val:Yuujinchou.Language.only}only}). The sequencing operator must be explicit, and we have {{!val:Yuujinchou.Language.seq}seq} for this purpose.
 
-{1 Facilitation of API Patching}
+{1 Implicit Namespaces}
 
-One important use case is to make the code compatible with libraries across minor revisions. Often, a minor revision of the same API only introduces more bindings, and support of older versions can be done by supplying missing functions. For example, if the function [is_prefix] is newly introduced in the [string] namespace, the client can supply its own [is_prefix] to work with both the current and earlier versions. To make this possible, it should be easy to {e inject} bindings into a namespace. If multiple parts of the client are patching the same API, it should also be easy to take the union of all the patches. Many of our decisions are guided by making API patching as easy as possible.
-
-{1 Hierarchical Names}
-
-We believe hierarchical names are essential in organizing top-level definitions, and perhaps even local definitions and record field names as well.
-
-{2 Implicit Namespaces}
+We believe hierarchical names are essential in organizing top-level definitions, and perhaps even local definitions and record field names as well. Moreover, it should facilicate API patching: often, a minor revision of the same API only introduces more bindings, and support of older versions can be done by supplying missing functions. For example, if the function [is_prefix] is newly introduced in the [string] namespace, the client can supply its own [is_prefix] to work with both the current and earlier versions. To make this possible, it should be easy to {e inject} bindings into a namespace. If multiple parts of the client are patching the same API, it should also be easy to take the union of all the patches. Many of our decisions are guided by making API patching as easy as possible.
 
 Contrary to most designs, the namespaces in this library are implicit. The "namespace" [a] is simply a collection of bindings which happen to share the prefix [a], or equivalently, the subtree rooted at [a]. The two names [a] and [a.x] can coexist and they are independent of each other. This might be our most surprising move to trivialize API patching. We might adjust this principle in the future, but so far it seems to be okay.
 
@@ -52,13 +52,7 @@ modify_visible [union [any; renaming ["b"] []]]
 v}
 where the union of the original namespace (via {{!val:Yuujinchou.Language.any}any}), which contains [a.x] and [b.a.y], and the output of {{!val:Yuujinchou.Language.renaming}renaming}, which contains [a.y], results into a namespace with [a.x], [a.y], and [b.a.y]. The binding [a.y] does not hide [a.x] because there is no explicit namespace [a] to hide [a.x]. In comparison, there was an OCaml module [A] to shadow another module [A] and its member [A.x]. This radically different treatment makes it easy to patch a deeply nested namespace with one union operator.
 
-{2 Operations on Subtrees}
-
 To recover efficient group operations on implicit namespaces as one might expect for explicit namespaces, all modifiers in {{!Yuujinchou.Language}Language} work on subtrees instead of individual bindings. For example, [only ["x"]] will select {e all} bindings with the prefix [x], not just the binding [x]. Therefore, in most cases, one can pretend that namespaces exist. (We tried providing modifiers for both subtrees and individual bindings, but the ones for individual bindings seem useless.)
-
-{2 Side Notes on Modules}
-
-There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. There has been work on supporting flexible operations on modules (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), but we are not obliged to maintain valid signatures for namespaces and can derive a much simpler design. In the context of proof assistants, one should also recognize that top-level definitions might not have a type in an internalized universe anyway. Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistants, could lead to a better design.
 
 {1 Guards against Typos}
 
@@ -74,17 +68,15 @@ Arbitrary unions should be allowed for easy API patching, but they should not ha
 
 One interesting case is renaming. According to this principle, the renaming from [x] to [y] should either (1) drop all bindings with the prefix [y] or (2) simply err when there exists at least one binding with the prefix [y]. It is tempting to err for rigorous programming; to facilitate API patching, however, we silently drop bindings with the prefix [y] so that users do not have to worry about existing bindings in the newer version of the library. In the event that there is accidental dropping due to renaming, it is likely that the expected bindings will be missing and the code will not scope check, and thus the user is still protected.
 
-{1 Decoupling from Export Control}
+{1 Conciseness}
+
+{2 No Export Control}
 
 In many designs, the name modifiers are coupled with export control ([public] v.s. [private]). We believe these two concerns can be completely separated. As a proof, we have built {{!module:Yuujinchou.Scope}Scope} that handles visible and export namespaces, on top of the modifier engine {{!module:Yuujinchou.Modifier}Modifier} that is oblivious to how it's used.
 
-{1 Expressiveness}
+{2 A Reasonably Small Core}
 
-The modifier language should be able to approximate all features in popular programming languages. Language-specific features (such as phases in Racket) can be implemented using the modifier {{!val:Yuujinchou.Language.hook}hook}.
-
-{1 Conciseness}
-
-The core language should be small, possibly exploiting the compositionality to remove redundant constructors. For example, the core language does not have {{!val:Yuujinchou.Language.none}none}[ p] because it can be defined as the sequencing of the emptiness checking and the union of nothing. This, however, does not mean the number of constructors should be theoretically minimal: In earlier versions of Yuujinchou, we have a "split" modifier that applies one modifier to a subtree and another to all bindings outside the subtree, but such a "mega-modifier" only complicates the core language and the engine implementation. To the extreme, one can have one single constructor in the core language to handle all features, but that would not be helpful.
+The core language should be relatively small, possibly exploiting the compositionality to remove redundant constructors. For example, the core language does not have {{!val:Yuujinchou.Language.none}none}[ p] because it can be defined as the sequencing of the emptiness checking and the union of nothing. This, however, does not mean the number of constructors should be theoretically minimal: In earlier versions of Yuujinchou, we have a "split" modifier that applies one modifier to a subtree and another to all bindings outside the subtree, but such a "mega-modifier" only complicates the core language and the engine implementation. To the extreme, one can have one single constructor in the core language to handle all features, but that would not be helpful.
 
 The current design has six constructors in the core languages:
 + emptiness checking.
@@ -99,3 +91,7 @@ If not for the emptiness checking, we could have just five constructors. One mig
 {1 Algebraic Effects}
 
 We believe algebraic effects are the future!
+
+{1 Side Notes on Modules}
+
+There are fundamental differences between ML-style modules (records) and namespaces: A module (or a record) is typed, in the sense that there will be a single type assigned to it. The typedness enables considering an abstract module of a module type. Signatures and functors in Standard ML and OCaml follow this approach. On the other hand, a namespace is untyped, which forbids the notion of abstract namespaces but admits flexible operations. There has been work on supporting flexible operations on modules (e.g., see the {{:https://doi.org/10.1145/1086365.1086371}ICFP paper {i An expressive language of signatures} by Norman Ramsey, Kathleen Fisher, and Paul Govereau}), but we are not obliged to maintain valid signatures for namespaces and can derive a much simpler design. In the context of proof assistants, one should also recognize that top-level definitions might not have a type in an internalized universe anyway. Instead, having separate notions of namespaces and modules/records, as in C++ and our proof assistants, could lead to a better design.
