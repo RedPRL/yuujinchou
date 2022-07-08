@@ -1,12 +1,6 @@
 open Bwd
 open BwdNotation
 
-type ('data, 'tag, 'hook, 'context) handler = {
-  not_found : 'context option -> Trie.bwd_path -> unit;
-  shadow : 'context option -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
-  hook : 'context option -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
-}
-
 module type Param =
 sig
   type data
@@ -15,19 +9,34 @@ sig
   type context
 end
 
+module type Handler =
+sig
+  module P : Param
+  val not_found : P.context option -> Trie.bwd_path -> unit
+  val shadow : P.context option -> Trie.bwd_path -> P.data * P.tag -> P.data * P.tag -> P.data * P.tag
+  val hook : P.context option -> Trie.bwd_path -> P.hook -> (P.data, P.tag) Trie.t -> (P.data, P.tag) Trie.t
+end
+
+
 module type S =
 sig
-  include Param
+  module P : Param
+  open P
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
 
-  val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val perform : (data, tag, hook, context) handler
+  module Handle (H : Handler with module P := P) :
+  sig
+    val run : (unit -> 'a) -> 'a
+    val try_with : (unit -> 'a) -> 'a
+  end
+
+  module Perform : Handler with module P := P
 end
 
-module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context =
+module Make (P : Param) : S with module P = P =
 struct
+  module P = P
   include P
 
   module Internal =
@@ -66,23 +75,29 @@ struct
       | L.M_hook id -> hook context prefix id t
     in go prefix
 
-  let run f h =
-    let open Effect.Deep in
-    try_with f ()
-      { effc = fun (type a) (eff : a Effect.t) ->
-            match eff with
-            | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
-              Algaeff.Fun.Deep.finally k @@ fun () -> h.not_found context prefix
-            | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
-              Algaeff.Fun.Deep.finally k @@ fun () -> h.shadow context path former latter
-            | Hook {context; prefix; hook; input}-> Option.some @@ fun (k : (a, _) continuation) ->
-              Algaeff.Fun.Deep.finally k @@ fun () -> h.hook context prefix hook input
-            | _ -> None }
+  module Handle (H : Handler with module P := P) =
+  struct
 
-  let try_with = run
+    let run f =
+      let open Effect.Deep in
+      try_with f ()
+        { effc = fun (type a) (eff : a Effect.t) ->
+              match eff with
+              | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
+                Algaeff.Fun.Deep.finally k @@ fun () -> H.not_found context prefix
+              | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
+                Algaeff.Fun.Deep.finally k @@ fun () -> H.shadow context path former latter
+              | Hook {context; prefix; hook; input}-> Option.some @@ fun (k : (a, _) continuation) ->
+                Algaeff.Fun.Deep.finally k @@ fun () -> H.hook context prefix hook input
+              | _ -> None }
 
-  let perform =
-    { not_found = Internal.not_found;
-      shadow = Internal.shadow;
-      hook = Internal.hook }
+    let try_with = run
+  end
+
+  module Perform =
+  struct
+    module P = P
+    include Internal
+  end
+
 end

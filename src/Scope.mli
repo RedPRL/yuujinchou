@@ -1,12 +1,12 @@
 (* See Yuujinchou.mli for documentation. *)
 
-type ('data, 'tag, 'hook, 'context) handler = ('data, 'tag, 'hook, 'context) Modifier.handler
-
 module type Param = Modifier.Param
+module type Handler = Modifier.Handler
 
 module type S =
 sig
-  include Param
+  module P : Param
+  open P
 
   exception Locked
 
@@ -22,9 +22,13 @@ sig
 
   val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
 
-  val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val perform : (data, tag, hook, context) handler
+  module Handle (H : Handler with module P := P) :
+  sig
+    val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
+    val try_with : (unit -> 'a) -> 'a
+  end
+
+  module Perform : Handler with module P := P
 end
 
-module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
+module Make (P : Param) : S with module P = P

@@ -1,11 +1,5 @@
 (* See Yuujinchou.mli for documentation. *)
 
-type ('data, 'tag, 'hook, 'context) handler = {
-  not_found : 'context option -> Trie.bwd_path -> unit;
-  shadow : 'context option -> Trie.bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag;
-  hook : 'context option -> Trie.bwd_path -> 'hook -> ('data, 'tag) Trie.t -> ('data, 'tag) Trie.t;
-}
-
 module type Param =
 sig
   type data
@@ -14,15 +8,28 @@ sig
   type context
 end
 
+module type Handler =
+sig
+  module P : Param
+  val not_found : P.context option -> Trie.bwd_path -> unit
+  val shadow : P.context option -> Trie.bwd_path -> P.data * P.tag -> P.data * P.tag -> P.data * P.tag
+  val hook : P.context option -> Trie.bwd_path -> P.hook -> (P.data, P.tag) Trie.t -> (P.data, P.tag) Trie.t
+end
+
 module type S =
 sig
-  include Param
+  module P : Param
+  open P
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
 
-  val run : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val perform : (data, tag, hook, context) handler
+  module Handle (H : Handler with module P := P) :
+  sig
+    val run : (unit -> 'a) -> 'a
+    val try_with : (unit -> 'a) -> 'a
+  end
+
+  module Perform : Handler with module P := P
 end
 
-module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context
+module Make (P : Param) : S with module P = P

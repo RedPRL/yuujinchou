@@ -1,13 +1,13 @@
 open Bwd
 open BwdNotation
 
-type ('data, 'tag, 'hook, 'context) handler = ('data, 'tag, 'hook, 'context) Modifier.handler
-
 module type Param = Modifier.Param
+module type Handler = Modifier.Handler
 
 module type S =
 sig
-  include Param
+  module P : Param
+  open P
 
   exception Locked
 
@@ -23,14 +23,20 @@ sig
 
   val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
 
-  val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val try_with : (unit -> 'a) -> (data, tag, hook, context) handler -> 'a
-  val perform : (data, tag, hook, context) handler
+  module Handle (H : Handler with module P := P) :
+  sig
+    val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
+    val try_with : (unit -> 'a) -> 'a
+  end
+
+  module Perform : Handler with module P := P
 end
 
-module Make (P : Param) : S with type data = P.data and type tag = P.tag and type hook = P.hook and type context = P.context =
+
+module Make (P : Param) =
 struct
-  include P
+  module P = P
+  open P
 
   module Internal =
   struct
@@ -74,25 +80,25 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ~prefix:(export_prefix()) (Mod.perform.shadow context) s.export @@
+       Trie.union ~prefix:(export_prefix()) (Mod.Perform.shadow context) s.export @@
        Mod.modify ?context ~prefix:Emp m s.visible }
 
   let include_singleton ?context_visible ?context_export (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { visible = Trie.union_singleton ~prefix:Emp (Mod.perform.shadow context_visible) s.visible (path, x);
-      export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.perform.shadow context_export) s.export (path, x) }
+    { visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, x);
+      export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export (path, x) }
 
   let unsafe_include_subtree ~context_visible ~context_export (path, ns) =
     S.modify @@ fun s ->
-    { visible = Trie.union_subtree ~prefix:Emp (Mod.perform.shadow context_visible) s.visible (path, ns);
-      export = Trie.union_subtree ~prefix:(export_prefix()) (Mod.perform.shadow context_export) s.export (path, ns) }
+    { visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, ns);
+      export = Trie.union_subtree ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export (path, ns) }
 
   let include_subtree ?context_visible ?context_export (path, ns) =
     M.exclusively @@ fun () -> unsafe_include_subtree ~context_visible ~context_export (path, ns)
 
   let import_subtree ?context (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_subtree ~prefix:Emp (Mod.perform.shadow context) s.visible (path, ns) }
+    { s with visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context) s.visible (path, ns) }
 
   let get_export () =
     M.exclusively @@ fun () -> (S.get()).export
@@ -106,8 +112,13 @@ struct
     unsafe_include_subtree ~context_visible ~context_export (p, export);
     ans
 
-  let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f h =
-    Mod.run (fun () -> Internal.run ~export_prefix ~init_visible f) h
-  let try_with = Mod.try_with
-  let perform = Mod.perform
+  module Handle (H : Handler with module P := P) =
+  struct
+    module M = Mod.Handle (H)
+    let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
+      M.run (fun () -> Internal.run ~export_prefix ~init_visible f)
+    let try_with = M.try_with
+  end
+
+  module Perform = Mod.Perform
 end
