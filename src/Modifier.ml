@@ -8,7 +8,7 @@ module type S = ModifierSigs.S with module Language := Language
 
 module Make (P : Param) : S with module P := P =
 struct
-module type Handler = Handler with module P := P
+  module type Handler = Handler with module P := P
 
   module Language = Language
   open P
