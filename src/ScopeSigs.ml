@@ -88,6 +88,10 @@ sig
       @param context_export The context attached to the modifier effects
       when merging the content of the section into its parent's export namespace. *)
 
+
+  module Perform : Handler with module P := P
+  (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.Perform}. *)
+
   (** {1 Runners} *)
 
   module Run (H : Handler with module P := P) :
@@ -106,13 +110,17 @@ sig
         See also {!val:Modifier.S.try_with}.
 
         {[
-          let silence_shadow f = try_with f {perform with shadow = fun _ _ _ y -> y}
+          module H =
+          struct
+            include Perform
+            let shadow _ _ _ y = y
+          end
+
+          let silence_shadow f = let module R = Run (H) in R.try_with f
         ]}
 
         Note that {!val:run} starts a fresh empty scope while [try_with] remains in the current scope.
     *)
   end
 
-  module Perform : Handler with module P := P
-  (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.Perform}. *)
 end
