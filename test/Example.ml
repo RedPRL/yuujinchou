@@ -27,7 +27,7 @@ module S = Scope.Make (struct
   end)
 
 (* Handle scoping effects *)
-module Handler =
+module H =
 struct
   let pp_path fmt =
     function
@@ -72,16 +72,15 @@ struct
       input
 end
 
-module SilentHandler =
+module SilentH =
 struct
-  include Handler
+  include H
   let shadow _ _ _ y = y
 end
 
-
 (* Mute the [shadow] effects. *)
 let silence_shadow f =
-  let module R = S.Run (SilentHandler) in
+  let module R = S.Run (SilentH) in
   R.try_with f
 
 (* The interpreter *)
@@ -103,7 +102,7 @@ let rec interpret_decl : decl -> unit =
     S.section p @@ fun () -> List.iter interpret_decl sec
 
 let interpret (prog : program) =
-  let module R = S.Run (Handler) in
+  let module R = S.Run (H) in
   R.run @@ fun () ->
   List.iter interpret_decl prog
 
