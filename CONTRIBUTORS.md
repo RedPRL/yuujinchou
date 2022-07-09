@@ -1,0 +1,4 @@
+# Contributors
+
+Favonia
+Jon Sterling
