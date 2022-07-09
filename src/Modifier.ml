@@ -6,24 +6,24 @@ module type Param = Param
 module type Handler = Handler
 module type S = ModifierSigs.S with module Language := Language
 
-module Make (P : Param) : S with module P = P =
+module Make (P : Param) : S with module P := P =
 struct
   module Language = Language
-  module P = P
-  include P
+  open P
 
-  module Internal =
+  module Perform =
   struct
     type _ Effect.t +=
       | NotFound : {context : context option; prefix : Trie.bwd_path} -> unit Effect.t
       | Shadow : {context : context option; path : Trie.bwd_path; former : data * tag; latter : data * tag} -> (data * tag) Effect.t
       | Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> (data, tag) Trie.t Effect.t
+
     let not_found context prefix = Effect.perform @@ NotFound {context; prefix}
     let shadow context path former latter = Effect.perform @@ Shadow {context; path; former; latter}
     let hook context prefix hook input = Effect.perform @@ Hook {context; prefix; hook; input}
   end
 
-  open Internal
+  open Perform
 
   let modify ?context ?(prefix=Emp) =
     let module L = Language in
@@ -50,25 +50,19 @@ struct
 
   module Handle (H : Handler with module P := P) =
   struct
-    let run f =
-      let open Effect.Deep in
-      try_with f ()
-        { effc = fun (type a) (eff : a Effect.t) ->
-              match eff with
-              | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
-                Algaeff.Fun.Deep.finally k @@ fun () -> H.not_found context prefix
-              | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
-                Algaeff.Fun.Deep.finally k @@ fun () -> H.shadow context path former latter
-              | Hook {context; prefix; hook; input}-> Option.some @@ fun (k : (a, _) continuation) ->
-                Algaeff.Fun.Deep.finally k @@ fun () -> H.hook context prefix hook input
-              | _ -> None }
+    open Effect.Deep
 
+    let handler (type a) : a Effect.t -> _ =
+      function
+      | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
+        Algaeff.Fun.Deep.finally k @@ fun () -> H.not_found context prefix
+      | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
+        Algaeff.Fun.Deep.finally k @@ fun () -> H.shadow context path former latter
+      | Hook {context; prefix; hook; input}-> Option.some @@ fun (k : (a, _) continuation) ->
+        Algaeff.Fun.Deep.finally k @@ fun () -> H.hook context prefix hook input
+      | _ -> None
+
+    let run f = try_with f () {effc = handler}
     let try_with = run
-  end
-
-  module Perform =
-  struct
-    module P = P
-    include Internal
   end
 end

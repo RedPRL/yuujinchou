@@ -6,9 +6,8 @@ module type Param = Modifier.Param
 module type Handler = Modifier.Handler
 module type S = S with module Language := Language
 
-module Make (P : Param) =
+module Make (P : Param) : S with module P := P =
 struct
-  module P = P
   open P
 
   module Internal =
