@@ -89,10 +89,6 @@ sig
       @param context_export The context attached to the modifier effects
       when merging the content of the section into its parent's export namespace. *)
 
-
-  module Perform : Handler
-  (** A handler that reperforms the internal modifier effects. See {!module:Modifier.S.Perform}. *)
-
   (** {1 Runners} *)
 
   module Run (H : Handler) :
@@ -124,4 +120,6 @@ sig
     *)
   end
 
+  module Perform : Handler
+  (** A handler that reperforms the internal modifier effects. See {!module:Modifier.S.Perform}. *)
 end
