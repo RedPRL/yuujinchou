@@ -16,15 +16,19 @@ type decl =
   | Export of Trie.path
   (* section *)
   | Section of Trie.path * decl list
+
 type program = decl list
 
-(* Specialzed Scope module with Data.t *)
-module S = Scope.Make (struct
-    type data = int
-    type tag = [`Imported | `Local]
-    type hook = modifier_cmd
-    type context = [`Visible | `Export]
-  end)
+module P =
+struct
+  type data = int
+  type tag = [`Imported | `Local]
+  type hook = modifier_cmd
+  type context = [`Visible | `Export]
+end
+
+(* Specialized Scope module *)
+module S = Scope.Make (P)
 
 (* Handle scoping effects *)
 module H =
