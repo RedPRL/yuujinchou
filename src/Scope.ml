@@ -5,14 +5,14 @@ open ScopeSigs
 module type Param = ScopeSigs.Param
 module type S = S with module Language := Language
 
-module Make (P : Param) : S with module P := P =
+module Make (Param : Param) : S with module Param := Param =
 struct
-  open P
-  module type Handler = ScopeSigs.Handler with module P := P
+  open Param
+  module type Handler = ScopeSigs.Handler with module Param := Param
 
   module Internal =
   struct
-    module Mod = Modifier.Make(P)
+    module Mod = Modifier.Make(Param)
 
     module M = Algaeff.Mutex.Make()
 

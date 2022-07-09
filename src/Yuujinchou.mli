@@ -21,7 +21,7 @@ sig
   module type S = ModifierSigs.S with module Language := Language
 
   (** The functor to generate an engine. *)
-  module Make (P : ModifierSigs.Param) : S with module P := P
+  module Make (Param : ModifierSigs.Param) : S with module Param := Param
 end
 
 (** The {!module:Scope} module implements lexical scoping based on {!module:Modifier}. *)
@@ -33,6 +33,6 @@ sig
   (** The signature of scoping effects. *)
   module type S = ScopeSigs.S with module Language := Language
 
-  module Make (P : Param) : S with module P := P
+  module Make (Param : Param) : S with module Param := Param
   (** The functor to generate a module for scoping effects. *)
 end

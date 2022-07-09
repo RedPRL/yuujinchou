@@ -5,11 +5,10 @@ module type S =
 sig
   module Language : LanguageSigs.S
 
-  module P : Param
-  open P
-  (** @closed *)
+  module Param : Param
+  open Param
 
-  module type Handler = Handler with module P := P
+  module type Handler = Handler with module Param := Param
 
   exception Locked
   (** The exception [Locked] is raised when an operation on a scope starts before another operation on the same scope is finished.
@@ -92,7 +91,7 @@ sig
 
 
   module Perform : Handler
-  (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.Perform}. *)
+  (** A handler that reperforms the internal modifier effects. See {!module:Modifier.S.Perform}. *)
 
   (** {1 Runners} *)
 
@@ -109,7 +108,7 @@ sig
     val try_with : (unit -> 'a) -> 'a
     (** Execute the code and handles the internal modifier effects. This can be used to intercept
         or reperform those effects; for example, the following function silences the [shadow] effects.
-        See also {!val:Modifier.S.try_with}.
+        See also {!val:Modifier.S.Run.try_with}.
 
         {[
           module H =

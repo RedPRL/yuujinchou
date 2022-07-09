@@ -16,16 +16,17 @@ end
 
 module type Handler =
 sig
-  module P : Param
+  module Param : Param
+  open Param
 
-  val not_found : P.context option -> Trie.bwd_path -> unit
+  val not_found : context option -> Trie.bwd_path -> unit
   (** [not_found ctx prefix] is called when the engine expects at least one binding within the subtree at [prefix] but could not find any, where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.any}, {!val:Language.only}, {!val:Language.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. *)
 
-  val shadow : P.context option -> Trie.bwd_path -> P.data * P.tag -> P.data * P.tag -> P.data * P.tag
+  val shadow : context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
   (** [shadow ctx path x y] is called when item [y] is being assigned to [path] but [x] is already bound at [path], where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this function is called to resolve the conflicting bindings. To implement silent shadowing, one can simply return item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
 
 
-  val hook : P.context option -> Trie.bwd_path -> P.hook -> (P.data, P.tag) Trie.t -> (P.data, P.tag) Trie.t
+  val hook : context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [hook prefix id input] is called when processing the modifiers created by {!val:Language.hook}, where [ctx] is the context passed to {!val:S.modify}. When the engine encounters the modifier {!val:Language.hook}[ id] while handling the subtree [input] at [prefix], it will call [hook prefix id input] and replace the existing subtree [input] with the return value. *)
 
 end
@@ -34,11 +35,10 @@ module type S =
 sig
   module Language : LanguageSigs.S
 
-  module P : Param
-  open P
-  (** @closed *)
+  module Param : Param
+  open Param
 
-  module type Handler = Handler with module P := P
+  module type Handler = Handler with module Param := Param
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [modify modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
@@ -49,10 +49,10 @@ sig
   module Run (H : Handler) :
   sig
     val run : (unit -> 'a) -> 'a
-    (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)
+    (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!module-type:Handler}. *)
 
     val try_with : (unit -> 'a) -> 'a
-    (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!type:handler}.
+    (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!module-type:Handler}.
 
         Currently, [try_with] is an alias of {!val:run}, but [try_with] is intended to use within {!val:run} to intercept effects,
         while {!val:run} is intended to be at the outermost layer to handle effects. That is, the following is the expected program structure:

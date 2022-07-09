@@ -4,4 +4,4 @@ open ModifierSigs
 module type Param = Param
 module type S = ModifierSigs.S with module Language := Language
 
-module Make (P : Param) : S with module P := P
+module Make (Param : Param) : S with module Param := Param

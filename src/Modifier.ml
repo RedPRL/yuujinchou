@@ -6,12 +6,12 @@ module type Param = Param
 module type Handler = Handler
 module type S = ModifierSigs.S with module Language := Language
 
-module Make (P : Param) : S with module P := P =
+module Make (Param : Param) : S with module Param := Param =
 struct
-  module type Handler = Handler with module P := P
+  module type Handler = Handler with module Param := Param
 
   module Language = Language
-  open P
+  open Param
 
   module Perform =
   struct
