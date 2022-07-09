@@ -81,8 +81,8 @@ end
 
 (* Mute the [shadow] effects. *)
 let silence_shadow f =
-  let module SH = S.Handle (SilentHandler) in
-  SH.try_with f
+  let module R = S.Run (SilentHandler) in
+  R.try_with f
 
 (* The interpreter *)
 let rec interpret_decl : decl -> unit =
@@ -103,8 +103,9 @@ let rec interpret_decl : decl -> unit =
     S.section p @@ fun () -> List.iter interpret_decl sec
 
 let interpret (prog : program) =
-  let module SH = S.Handle (Handler) in
-  SH.run (fun () -> List.iter interpret_decl prog)
+  let module R = S.Run (Handler) in
+  R.run @@ fun () ->
+  List.iter interpret_decl prog
 
 (* Some code in action *)
 let () = interpret [

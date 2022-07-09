@@ -90,7 +90,7 @@ sig
 
   (** {1 Runners} *)
 
-  module Handle (H : Handler with module P := P) :
+  module Run (H : Handler with module P := P) :
   sig
     val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
     (** [run f h] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.

@@ -42,7 +42,7 @@ struct
 end
 
 let wrap f =
-  let module R = M.Handle (WrapHandler) in
+  let module R = M.Run (WrapHandler) in
   R.run f
 
 let wrap_error f = fun () -> wrap @@ fun () -> ignore (f ())

@@ -84,9 +84,9 @@ struct
     unsafe_include_subtree ~context_visible ~context_export (p, export);
     ans
 
-  module Handle (H : Handler with module P := P) =
+  module Run (H : Handler with module P := P) =
   struct
-    module M = Mod.Handle (H)
+    module M = Mod.Run (H)
     let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
       M.run (fun () -> Internal.run ~export_prefix ~init_visible f)
     let try_with = M.try_with

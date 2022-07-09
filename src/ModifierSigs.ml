@@ -44,7 +44,7 @@ sig
       @param context The context sent to the effect handlers. If unspecified, effects come with {!constructor:None} as their context.
       @param prefix The prefix prepended to any path or prefix sent to the effect handlers. The default is the empty path ([Emp]). *)
 
-  module Handle (H : Handler with module P := P) :
+  module Run (H : Handler with module P := P) :
   sig
     val run : (unit -> 'a) -> 'a
     (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)

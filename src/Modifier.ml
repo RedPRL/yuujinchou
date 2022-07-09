@@ -48,7 +48,7 @@ struct
       | L.M_hook id -> hook context prefix id t
     in go prefix
 
-  module Handle (H : Handler with module P := P) =
+  module Run (H : Handler with module P := P) =
   struct
     open Effect.Deep
 
