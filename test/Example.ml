@@ -31,7 +31,7 @@ end
 module S = Scope.Make (P)
 
 (* Handle scoping effects *)
-module H =
+module H : S.Handler =
 struct
   let pp_path fmt =
     function
@@ -76,9 +76,9 @@ struct
       input
 end
 
-module SilentH =
+module SilentH : S.Handler =
 struct
-  include H
+  include S.Perform
   let shadow _ _ _ y = y
 end
 
