@@ -2,13 +2,13 @@ open Bwd
 open BwdNotation
 open ScopeSigs
 
-module type Param = Modifier.Param
-module type Handler = Modifier.Handler
+module type Param = ScopeSigs.Param
 module type S = S with module Language := Language
 
 module Make (P : Param) : S with module P := P =
 struct
   open P
+  module type Handler = ScopeSigs.Handler with module P := P
 
   module Internal =
   struct
@@ -84,7 +84,7 @@ struct
     unsafe_include_subtree ~context_visible ~context_export (p, export);
     ans
 
-  module Run (H : Handler with module P := P) =
+  module Run (H : Handler) =
   struct
     module M = Mod.Run (H)
     let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =

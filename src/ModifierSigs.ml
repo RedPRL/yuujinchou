@@ -38,13 +38,15 @@ sig
   open P
   (** @closed *)
 
+  module type Handler = Handler with module P := P
+
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [modify modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
 
       @param context The context sent to the effect handlers. If unspecified, effects come with {!constructor:None} as their context.
       @param prefix The prefix prepended to any path or prefix sent to the effect handlers. The default is the empty path ([Emp]). *)
 
-  module Run (H : Handler with module P := P) :
+  module Run (H : Handler) :
   sig
     val run : (unit -> 'a) -> 'a
     (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!type:handler}. *)
@@ -63,7 +65,7 @@ sig
     *)
   end
 
-  module Perform : Handler with module P := P
+  module Perform : Handler
   (** A handler that reperforms the effects. It can also be used to manually trigger the effects;
       for example, [Perform.not_found (Emp #< "a" #< "b")] will perform the [not_found] effect
       to be handled by the outer handler. *)

@@ -8,6 +8,8 @@ module type S = ModifierSigs.S with module Language := Language
 
 module Make (P : Param) : S with module P := P =
 struct
+module type Handler = Handler with module P := P
+
   module Language = Language
   open P
 
@@ -48,7 +50,7 @@ struct
       | L.M_hook id -> hook context prefix id t
     in go prefix
 
-  module Run (H : Handler with module P := P) =
+  module Run (H : Handler) =
   struct
     open Effect.Deep
 

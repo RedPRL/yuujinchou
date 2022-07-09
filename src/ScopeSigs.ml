@@ -9,6 +9,8 @@ sig
   open P
   (** @closed *)
 
+  module type Handler = Handler with module P := P
+
   exception Locked
   (** The exception [Locked] is raised when an operation on a scope starts before another operation on the same scope is finished.
       This could happen when the user, for example, calls {!val:modify_visible} and then calls {!val:modify_export} when handling the effects.
@@ -89,12 +91,12 @@ sig
       when merging the content of the section into its parent's export namespace. *)
 
 
-  module Perform : Handler with module P := P
+  module Perform : Handler
   (** A handler that reperforms the internal modifier effects. See {!val:Modifier.S.Perform}. *)
 
   (** {1 Runners} *)
 
-  module Run (H : Handler with module P := P) :
+  module Run (H : Handler) :
   sig
     val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
     (** [run f h] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
