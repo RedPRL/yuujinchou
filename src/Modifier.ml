@@ -50,7 +50,6 @@ struct
 
   module Handle (H : Handler with module P := P) =
   struct
-
     let run f =
       let open Effect.Deep in
       try_with f ()
