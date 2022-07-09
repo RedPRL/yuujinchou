@@ -58,7 +58,7 @@ struct
         Algaeff.Fun.Deep.finally k @@ fun () -> H.not_found context prefix
       | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
         Algaeff.Fun.Deep.finally k @@ fun () -> H.shadow context path former latter
-      | Hook {context; prefix; hook; input}-> Option.some @@ fun (k : (a, _) continuation) ->
+      | Hook {context; prefix; hook; input} -> Option.some @@ fun (k : (a, _) continuation) ->
         Algaeff.Fun.Deep.finally k @@ fun () -> H.hook context prefix hook input
       | _ -> None
 
