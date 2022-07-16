@@ -1,4 +1,15 @@
-# [3.0.0](/compare/2.0.0...3.0.0) (2022-06-03)
+# [3.1.0](https://github.com/RedPRL/yuujinchou/compare/3.0.0...3.1.0) (2022-07-11)
+
+
+### BREAKING CHANGES
+
+* Use modules instead of records to pass effect handlers ([#94](https://github.com/RedPRL/yuujinchou/issues/94))
+
+
+# [3.0.0](https://github.com/RedPRL/yuujinchou/compare/2.0.0...3.0.0) (2022-06-03)
+
+
+### BREAKING CHANGES
 
 Version 3.0.0 is a complete redesign and rewrite of the library, with the following notable changes:
 
@@ -32,5 +43,5 @@ The old client code that works with Yuujinchou 2.0.0 will stop working with the 
 
 ### BREAKING CHANGES
 
-* **action:** run and run_with_hooks now take a monadic merger
-* **trie:** drop all *_endo functions and physical equality requirements
+* **action:** run and run\_with\_hooks now take a monadic merger
+* **trie:** drop all \*\_endo functions and physical equality requirements
