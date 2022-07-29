@@ -9,6 +9,7 @@ module type S = ModifierSigs.S with module Language := Language
 module Make (Param : Param) : S with module Param := Param =
 struct
   module type Handler = Handler with module Param := Param
+  type handler = (module Handler)
 
   module Language = Language
   open Param
@@ -50,21 +51,20 @@ struct
       | L.M_hook id -> hook context prefix id t
     in go prefix
 
-  module Run (H : Handler) =
-  struct
-    open Effect.Deep
+  let handler (type a) (h : handler) : a Effect.t -> _ =
+    let open Effect.Deep in
+    let module H = (val h) in
+    function
+    | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
+      Algaeff.Fun.Deep.finally k @@ fun () -> H.not_found context prefix
+    | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
+      Algaeff.Fun.Deep.finally k @@ fun () -> H.shadow context path former latter
+    | Hook {context; prefix; hook; input} -> Option.some @@ fun (k : (a, _) continuation) ->
+      Algaeff.Fun.Deep.finally k @@ fun () -> H.hook context prefix hook input
+    | _ -> None
 
-    let handler (type a) : a Effect.t -> _ =
-      function
-      | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
-        Algaeff.Fun.Deep.finally k @@ fun () -> H.not_found context prefix
-      | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
-        Algaeff.Fun.Deep.finally k @@ fun () -> H.shadow context path former latter
-      | Hook {context; prefix; hook; input} -> Option.some @@ fun (k : (a, _) continuation) ->
-        Algaeff.Fun.Deep.finally k @@ fun () -> H.hook context prefix hook input
-      | _ -> None
+  let run (h : handler) f = Effect.Deep.try_with f () {effc = fun e -> handler h e}
+  let try_with = run
 
-    let run f = try_with f () {effc = handler}
-    let try_with = run
-  end
+  let perform : handler = (module Perform)
 end

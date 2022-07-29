@@ -25,7 +25,6 @@ sig
   val shadow : context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
   (** [shadow ctx path x y] is called when item [y] is being assigned to [path] but [x] is already bound at [path], where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this function is called to resolve the conflicting bindings. To implement silent shadowing, one can simply return item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
 
-
   val hook : context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [hook prefix id input] is called when processing the modifiers created by {!val:Language.hook}, where [ctx] is the context passed to {!val:S.modify}. When the engine encounters the modifier {!val:Language.hook}[ id] while handling the subtree [input] at [prefix], it will call [hook prefix id input] and replace the existing subtree [input] with the return value. *)
 
@@ -40,33 +39,36 @@ sig
 
   module type Handler = Handler with module Param := Param
 
+  type handler = (module Handler)
+  (** First-class module type of {!module-type:Handler}. *)
+
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [modify modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
 
       @param context The context sent to the effect handlers. If unspecified, effects come with {!constructor:None} as their context.
       @param prefix The prefix prepended to any path or prefix sent to the effect handlers. The default is the empty path ([Emp]). *)
 
-  module Run (H : Handler) :
-  sig
-    val run : (unit -> 'a) -> 'a
-    (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!module-type:Handler}. *)
+  val run : handler -> (unit -> 'a) -> 'a
+  (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!module-type:Handler}. *)
 
-    val try_with : (unit -> 'a) -> 'a
-    (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!module-type:Handler}.
+  val try_with : handler -> (unit -> 'a) -> 'a
+  (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!module-type:Handler}.
 
-        Currently, [try_with] is an alias of {!val:run}, but [try_with] is intended to use within {!val:run} to intercept effects,
-        while {!val:run} is intended to be at the outermost layer to handle effects. That is, the following is the expected program structure:
-        {[
-          run @@ fun () ->
-          (* code *)
-          try_with f
-          (* more code *)
-        ]}
-    *)
-  end
+      Currently, [try_with] is an alias of {!val:run}, but [try_with] is intended to use within {!val:run} to intercept effects,
+      while {!val:run} is intended to be at the outermost layer to handle effects. That is, the following is the expected program structure:
+      {[
+        run @@ fun () ->
+        (* code *)
+        try_with f
+        (* more code *)
+      ]}
+  *)
 
   module Perform : Handler
   (** A handler that reperforms the effects. It can also be used to manually trigger the effects;
       for example, [Perform.not_found (Emp #< "a" #< "b")] will perform the [not_found] effect
       to be handled by the outer handler. *)
+
+  val perform : handler
+  (** [perform] is {!module:Perform} as a first-class module. *)
 end

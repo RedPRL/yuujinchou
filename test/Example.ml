@@ -31,61 +31,60 @@ end
 module S = Scope.Make (P)
 
 (* Handle scoping effects *)
-module H : S.Handler =
-struct
-  let pp_path fmt =
-    function
-    | Emp -> Format.pp_print_string fmt "(root)"
-    | path -> Format.pp_print_string fmt @@ String.concat "." (Bwd.to_list path)
+let handler : S.handler =
+  (module struct
+    let pp_path fmt =
+      function
+      | Emp -> Format.pp_print_string fmt "(root)"
+      | path -> Format.pp_print_string fmt @@ String.concat "." (Bwd.to_list path)
 
-  let pp_context fmt =
-    function
-    | Some `Visible -> Format.pp_print_string fmt " in the visible namespace"
-    | Some `Export -> Format.pp_print_string fmt " in the export namespace"
-    | None -> ()
+    let pp_context fmt =
+      function
+      | Some `Visible -> Format.pp_print_string fmt " in the visible namespace"
+      | Some `Export -> Format.pp_print_string fmt " in the export namespace"
+      | None -> ()
 
-  let pp_item fmt =
-    function
-    | (x, `Imported) -> Format.fprintf fmt "%i (imported)" x
-    | (x, `Local) -> Format.fprintf fmt "%i (local)" x
+    let pp_item fmt =
+      function
+      | (x, `Imported) -> Format.fprintf fmt "%i (imported)" x
+      | (x, `Local) -> Format.fprintf fmt "%i (local)" x
 
-  let not_found context prefix =
-    Format.printf
-      "[Warning] Could not find any data within the subtree at %a%a.@."
-      pp_path prefix pp_context context
+    let not_found context prefix =
+      Format.printf
+        "[Warning] Could not find any data within the subtree at %a%a.@."
+        pp_path prefix pp_context context
 
-  let shadow context path x y =
-    Format.printf
-      "[Warning] Data %a assigned at %a was shadowed by data %a%a.@."
-      pp_item x
-      pp_path path
-      pp_item y
-      pp_context context;
-    y
+    let shadow context path x y =
+      Format.printf
+        "[Warning] Data %a assigned at %a was shadowed by data %a%a.@."
+        pp_item x
+        pp_path path
+        pp_item y
+        pp_context context;
+      y
 
-  let hook context prefix hook input =
-    match hook with
-    | Print ->
-      Format.printf "@[<v 2>[Info] Got the following bindings at %a%a:@;"
-        pp_path prefix pp_context context;
-      Trie.iter
-        (fun path x ->
-           Format.printf "%a => %a@;" pp_path path pp_item x)
-        input;
-      Format.printf "@]@.";
-      input
-end
+    let hook context prefix hook input =
+      match hook with
+      | Print ->
+        Format.printf "@[<v 2>[Info] Got the following bindings at %a%a:@;"
+          pp_path prefix pp_context context;
+        Trie.iter
+          (fun path x ->
+             Format.printf "%a => %a@;" pp_path path pp_item x)
+          input;
+        Format.printf "@]@.";
+        input
+  end)
 
-module SilentH : S.Handler =
-struct
-  include S.Perform
-  let shadow _ _ _ y = y
-end
+let silence_shadow : S.handler =
+  (module struct
+    include S.Perform
+    let shadow _ _ _ y = y
+  end)
 
 (* Mute the [shadow] effects. *)
 let silence_shadow f =
-  let module R = S.Run (SilentH) in
-  R.try_with f
+  S.try_with silence_shadow f
 
 (* The interpreter *)
 let rec interpret_decl : decl -> unit =
@@ -106,8 +105,7 @@ let rec interpret_decl : decl -> unit =
     S.section p @@ fun () -> List.iter interpret_decl sec
 
 let interpret (prog : program) =
-  let module R = S.Run (H) in
-  R.run @@ fun () ->
+  S.run handler @@ fun () ->
   List.iter interpret_decl prog
 
 (* Some code in action *)

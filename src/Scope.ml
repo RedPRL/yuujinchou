@@ -9,6 +9,7 @@ module Make (Param : Param) : S with module Param := Param =
 struct
   open Param
   module type Handler = ScopeSigs.Handler with module Param := Param
+  type handler = (module Handler)
 
   module Internal =
   struct
@@ -84,13 +85,11 @@ struct
     unsafe_include_subtree ~context_visible ~context_export (p, export);
     ans
 
-  module Run (H : Handler) =
-  struct
-    module M = Mod.Run (H)
-    let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
-      M.run (fun () -> Internal.run ~export_prefix ~init_visible f)
-    let try_with = M.try_with
-  end
+  let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) h f =
+    Mod.run h @@ fun () -> Internal.run ~export_prefix ~init_visible f
+
+  let try_with = Mod.try_with
 
   module Perform = Mod.Perform
+  let perform = Mod.perform
 end

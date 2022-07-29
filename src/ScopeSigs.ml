@@ -9,6 +9,7 @@ sig
   open Param
 
   module type Handler = Handler with module Param := Param
+  type handler = (module Handler)
 
   exception Locked
   (** The exception [Locked] is raised when an operation on a scope starts before another operation on the same scope is finished.
@@ -91,35 +92,35 @@ sig
 
   (** {1 Runners} *)
 
-  module Run (H : Handler) :
-  sig
-    val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
-    (** [run f h] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
+  val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> handler -> (unit -> 'a) -> 'a
+  (** [run f h] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
 
-        @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
-        originating from export namespaces. The default is the empty path ([Emp]).
-        This does not affect paths originating from visible namespaces.
-        @param init_visible The initial visible namespace. The default is the empty trie. *)
+      @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
+      originating from export namespaces. The default is the empty path ([Emp]).
+      This does not affect paths originating from visible namespaces.
+      @param init_visible The initial visible namespace. The default is the empty trie. *)
 
-    val try_with : (unit -> 'a) -> 'a
-    (** Execute the code and handles the internal modifier effects. This can be used to intercept
-        or reperform those effects; for example, the following function silences the [shadow] effects.
-        See also {!val:Modifier.S.Run.try_with}.
+  val try_with : handler -> (unit -> 'a) -> 'a
+  (** Execute the code and handles the internal modifier effects. This can be used to intercept
+      or reperform those effects; for example, the following function silences the [shadow] effects.
+      See also {!val:Modifier.S.try_with}.
 
-        {[
-          module H =
-          struct
+      {[
+        let silencer : handler =
+          (module struct
             include Perform
             let shadow _ _ _ y = y
-          end
+          end)
 
-          let silence_shadow f = let module R = Run (H) in R.try_with f
-        ]}
+        let silence_shadow f = try_with silencer f
+      ]}
 
-        Note that {!val:run} starts a fresh empty scope while [try_with] remains in the current scope.
-    *)
-  end
+      Note that {!val:run} starts a fresh empty scope while [try_with] remains in the current scope.
+  *)
 
   module Perform : Handler
   (** A handler that reperforms the internal modifier effects. See {!module:Modifier.S.Perform}. *)
+
+  val perform : handler
+  (** [perform] is {!module:Perform} as a first-class module. *)
 end
