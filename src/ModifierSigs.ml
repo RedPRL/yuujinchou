@@ -57,7 +57,7 @@ sig
     val try_with : (unit -> 'a) -> 'a
     (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!module-type:Handler}.
 
-        Currently, [try_with] is an alias of {!val:Run.run}, but [try_with] is intended to use within {!val:Run.run}
+        Currently, [try_with] is an alias of {!val:Run.run}, but [try_with] is intended to be used within {!val:Run.run}
         to intercept or reperform effects, while {!val:Run.run} is intended to be at the top-level to set up the environment
         and handle effects by itself. That is, the following is the expected program structure:
         {[
