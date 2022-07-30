@@ -50,17 +50,21 @@ sig
   sig
     val run : (unit -> 'a) -> 'a
     (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!module-type:Handler}. *)
+  end
 
+  module TryWith (H : Handler) :
+  sig
     val try_with : (unit -> 'a) -> 'a
     (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!module-type:Handler}.
 
-        Currently, [try_with] is an alias of {!val:run}, but [try_with] is intended to use within {!val:run} to intercept effects,
-        while {!val:run} is intended to be at the outermost layer to handle effects. That is, the following is the expected program structure:
+        Currently, [try_with] is an alias of {!val:Run.run}, but [try_with] is intended to use within {!val:Run.run} to intercept or reperform effects, while {!val:Run.run} is intended to be at the top-level to set up the environment and handle effects by itself. That is, the following is the expected program structure:
         {[
           run @@ fun () ->
           (* code *)
-          try_with f
+          try_with @@ fun () ->
           (* more code *)
+          try_with @@ fun () ->
+          (* even more code *)
         ]}
     *)
   end
