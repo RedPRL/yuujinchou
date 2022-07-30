@@ -109,9 +109,9 @@ sig
 
         [try_with] is intended to be used within {!val:Run.run} to intercept or reperform internal effects,
         while {!val:Run.run} is intended to be at the top-level to set up the environment and handle all
-        effects by itself. For example, the following function silences the [shadow] effects.
+        effects by itself. For example, the following function silences the [shadow] effects, but the
+        silencing function should be used within the dynamic scope of a {!val:Run.run}.
         See also {!val:Modifier.S.TryWith.try_with}.
-
         {[
           module H =
           struct
