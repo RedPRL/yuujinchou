@@ -124,7 +124,8 @@ sig
             T.try_with f
         ]}
 
-        Note that {!val:Run.run} starts a fresh empty scope while [try_with] remains in the current scope.
+        A consequence of the semantic difference between {!val:Run.run} and [try_with] is that
+        {!val:Run.run} starts a fresh empty scope while [try_with] stays in the current scope.
     *)
   end
 
