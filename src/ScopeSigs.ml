@@ -105,7 +105,12 @@ sig
   module TryWith (H : Handler) :
   sig
     val try_with : (unit -> 'a) -> 'a
-    (** Execute the code and handles the internal modifier effects. [try_with] is intended to use within {!val:Run.run} to intercept or reperform internal effects, while {!val:Run.run} is intended to be at the top-level to set up the environment and handle all effects by itself. For example, the following function silences the [shadow] effects. See also {!val:Modifier.S.TryWith.try_with}.
+    (** Execute the code and handles the internal modifier effects.
+
+        [try_with] is intended to be used within {!val:Run.run} to intercept or reperform internal effects,
+        while {!val:Run.run} is intended to be at the top-level to set up the environment and handle all
+        effects by itself. For example, the following function silences the [shadow] effects.
+        See also {!val:Modifier.S.TryWith.try_with}.
 
         {[
           module H =
