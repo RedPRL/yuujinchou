@@ -60,11 +60,15 @@ sig
         to intercept or reperform effects, while {!val:Run.run} is intended to be at the top-level to set up the environment
         and handle effects by itself. That is, the following is the expected program structure:
         {[
-          run @@ fun () ->
+          module R = Run (H1)
+          module T1 = TryWith (H2)
+          module T2 = TryWith (H3)
+
+          R.run @@ fun () ->
           (* code *)
-          try_with @@ fun () ->
+          T1.try_with @@ fun () ->
           (* more code *)
-          try_with @@ fun () ->
+          T2.try_with @@ fun () ->
           (* even more code *)
         ]}
     *)
