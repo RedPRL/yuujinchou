@@ -100,12 +100,18 @@ sig
         originating from export namespaces. The default is the empty path ([Emp]).
         This does not affect paths originating from visible namespaces.
         @param init_visible The initial visible namespace. The default is the empty trie. *)
+  end
 
+  module TryWith (H : Handler) :
+  sig
     val try_with : (unit -> 'a) -> 'a
-    (** Execute the code and handles the internal modifier effects. This can be used to intercept
-        or reperform those effects; for example, the following function silences the [shadow] effects.
-        See also {!val:Modifier.S.Run.try_with}.
+    (** Execute the code and handles the internal modifier effects.
 
+        [try_with] is intended to be used within {!val:Run.run} to intercept or reperform internal effects,
+        while {!val:Run.run} is intended to be at the top-level to set up the environment and handle all
+        effects by itself. For example, the following function silences the [shadow] effects, but the
+        silencing function should be used within the dynamic scope of a {!val:Run.run}.
+        See also {!val:Modifier.S.TryWith.try_with}.
         {[
           module H =
           struct
@@ -113,10 +119,13 @@ sig
             let shadow _ _ _ y = y
           end
 
-          let silence_shadow f = let module R = Run (H) in R.try_with f
+          let silence_shadow f =
+            let module T = TryWith (H) in
+            T.try_with f
         ]}
 
-        Note that {!val:run} starts a fresh empty scope while [try_with] remains in the current scope.
+        A consequence of the semantic difference between {!val:Run.run} and [try_with] is that
+        {!val:Run.run} starts a fresh empty scope while [try_with] stays in the current scope.
     *)
   end
 

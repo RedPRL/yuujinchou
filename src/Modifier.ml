@@ -65,6 +65,11 @@ struct
       | _ -> None
 
     let run f = try_with f () {effc = handler}
-    let try_with = run
+  end
+
+  module TryWith (H : Handler) =
+  struct
+    module R = Run (H)
+    let try_with = R.run
   end
 end

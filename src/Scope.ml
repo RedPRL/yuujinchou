@@ -89,8 +89,9 @@ struct
     module M = Mod.Run (H)
     let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
       M.run (fun () -> Internal.run ~export_prefix ~init_visible f)
-    let try_with = M.try_with
   end
+
+  module TryWith (H : Handler) = Mod.TryWith (H)
 
   module Perform = Mod.Perform
 end

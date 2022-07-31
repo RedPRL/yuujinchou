@@ -25,7 +25,6 @@ sig
   val shadow : context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
   (** [shadow ctx path x y] is called when item [y] is being assigned to [path] but [x] is already bound at [path], where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this function is called to resolve the conflicting bindings. To implement silent shadowing, one can simply return item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
 
-
   val hook : context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [hook prefix id input] is called when processing the modifiers created by {!val:Language.hook}, where [ctx] is the context passed to {!val:S.modify}. When the engine encounters the modifier {!val:Language.hook}[ id] while handling the subtree [input] at [prefix], it will call [hook prefix id input] and replace the existing subtree [input] with the return value. *)
 
@@ -50,17 +49,27 @@ sig
   sig
     val run : (unit -> 'a) -> 'a
     (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!module-type:Handler}. *)
+  end
 
+  module TryWith (H : Handler) :
+  sig
     val try_with : (unit -> 'a) -> 'a
     (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!module-type:Handler}.
 
-        Currently, [try_with] is an alias of {!val:run}, but [try_with] is intended to use within {!val:run} to intercept effects,
-        while {!val:run} is intended to be at the outermost layer to handle effects. That is, the following is the expected program structure:
+        Currently, [try_with] is an alias of {!val:Run.run}, but [try_with] is intended to be used within {!val:Run.run}
+        to intercept or reperform effects, while {!val:Run.run} is intended to be at the top-level to set up the environment
+        and handle effects by itself. That is, the following is the expected program structure:
         {[
-          run @@ fun () ->
+          module R = Run (H1)
+          module T1 = TryWith (H2)
+          module T2 = TryWith (H3)
+
+          R.run @@ fun () ->
           (* code *)
-          try_with f
+          T1.try_with @@ fun () ->
           (* more code *)
+          T2.try_with @@ fun () ->
+          (* even more code *)
         ]}
     *)
   end

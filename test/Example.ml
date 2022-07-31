@@ -76,7 +76,7 @@ struct
       input
 end
 
-module SilentH : S.Handler =
+module SilenceShadow : S.Handler =
 struct
   include S.Perform
   let shadow _ _ _ y = y
@@ -84,8 +84,8 @@ end
 
 (* Mute the [shadow] effects. *)
 let silence_shadow f =
-  let module R = S.Run (SilentH) in
-  R.try_with f
+  let module T = S.TryWith (SilenceShadow) in
+  T.try_with f
 
 (* The interpreter *)
 let rec interpret_decl : decl -> unit =
