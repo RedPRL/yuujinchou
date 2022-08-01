@@ -28,7 +28,8 @@ struct
 end
 
 (* Specialized Scope module *)
-module S = Scope.Make (P)
+module M = Modifier.Make (P)
+module S = Scope.Make (P) (M)
 
 (* Handle scoping effects *)
 module H : S.Handler =

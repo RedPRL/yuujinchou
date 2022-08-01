@@ -3,17 +3,18 @@ open BwdNotation
 open ScopeSigs
 
 module type Param = ScopeSigs.Param
+module type Handler = ScopeSigs.Handler
 module type S = S with module Language := Language
 
-module Make (Param : Param) : S with module Param := Param =
+module Make (Param : Param) (Mod : Modifier.S with module Param := Param)
+  : S with module Param := Param
+=
 struct
   open Param
   module type Handler = ScopeSigs.Handler with module Param := Param
 
   module Internal =
   struct
-    module Mod = Modifier.Make(Param)
-
     module M = Algaeff.Mutex.Make()
 
     type scope = {visible : (data, tag) Trie.t; export : (data, tag) Trie.t}
