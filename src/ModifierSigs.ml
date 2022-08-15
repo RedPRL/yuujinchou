@@ -14,19 +14,19 @@ sig
   type context
 end
 
-module type Handler =
+module type Perform =
 sig
   module Param : Param
   open Param
 
   val not_found : context option -> Trie.bwd_path -> unit
-  (** [not_found ctx prefix] is called when the engine expects at least one binding within the subtree at [prefix] but could not find any, where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.any}, {!val:Language.only}, {!val:Language.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. *)
+  (** Manually trigger the [not_found] effect. *)
 
   val shadow : context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
-  (** [shadow ctx path x y] is called when item [y] is being assigned to [path] but [x] is already bound at [path], where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this function is called to resolve the conflicting bindings. To implement silent shadowing, one can simply return item [y]. One can also employ a more sophisticated strategy to implement type-directed disambiguation. *)
+  (** Manually trigger the [shadow] effect. *)
 
   val hook : context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
-  (** [hook prefix id input] is called when processing the modifiers created by {!val:Language.hook}, where [ctx] is the context passed to {!val:S.modify}. When the engine encounters the modifier {!val:Language.hook}[ id] while handling the subtree [input] at [prefix], it will call [hook prefix id input] and replace the existing subtree [input] with the return value. *)
+  (** Manually trigger the [hook] effect. *)
 
 end
 
@@ -37,7 +37,14 @@ sig
   module Param : Param
   open Param
 
-  module type Handler = Handler with module Param := Param
+  module type Perform = Perform with module Param := Param
+
+  module Perform : Perform
+  module Silence : Perform
+
+  type not_found_handler = context option -> Trie.bwd_path -> unit
+  type shadow_handler = context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
+  type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [modify modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
@@ -45,37 +52,25 @@ sig
       @param context The context sent to the effect handlers. If unspecified, effects come with {!constructor:None} as their context.
       @param prefix The prefix prepended to any path or prefix sent to the effect handlers. The default is the empty path ([Emp]). *)
 
-  module Run (H : Handler) :
-  sig
-    val run : (unit -> 'a) -> 'a
-    (** [run f h] initializes the engine and runs the thunk [f], using [h] to handle modifier effects. See {!module-type:Handler}. *)
-  end
+  val run : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
+  (** [run f] initializes the engine and runs the thunk [f].
 
-  module TryWith (H : Handler) :
-  sig
-    val try_with : (unit -> 'a) -> 'a
-    (** [try_with f h] runs the thunk [f], using [h] to handle the intercepted modifier effects. See {!module-type:Handler}.
+      @param not_found [not_found ctx prefix] is called when the engine expects at least one binding within the subtree at [prefix] but could not find any, where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.any}, {!val:Language.only}, {!val:Language.none}, and a few other modifiers expect at least one matching binding. For example, the modifier {!val:Language.except}[ ["x"; "y"]] expects that there was already something under the subtree at [x.y]. If there were actually no names with the prefix [x.y], then the modifier will trigger this effect with [prefix] being [Emp #< "x" #< "y"]. The default handler directly returns the [()].
+      @param shadow [shadow ctx path x y] is called when item [y] is being assigned to [path] but [x] is already bound at [path], where [ctx] is the context passed to {!val:S.modify}. Modifiers such as {!val:Language.renaming} and {!val:Language.union} could lead to bindings having the same name, and when that happens, this function is called to resolve the conflicting bindings. The default handler directly returns the [y], effectively silencing the effects.
+      @param hook [hook prefix id input] is called when processing the modifiers created by {!val:Language.hook}, where [ctx] is the context passed to {!val:S.modify}. When the engine encounters the modifier {!val:Language.hook}[ id] while handling the subtree [input] at [prefix], it will call [hook prefix id input] and replace the existing subtree [input] with the return value. The default handler returns [input], effective skipping the hooks. *)
 
-        Currently, [try_with] is an alias of {!val:Run.run}, but [try_with] is intended to be used within {!val:Run.run}
-        to intercept or reperform effects, while {!val:Run.run} is intended to be at the top-level to set up the environment
-        and handle effects by itself. That is, the following is the expected program structure:
-        {[
-          module R = Run (H1)
-          module T1 = TryWith (H2)
-          module T2 = TryWith (H3)
+  val try_with : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
+  (** [try_with f] runs the thunk [f] and intercepts modifier effects. See the documentation of {!val:run} for the meaning of the optional effect interceptors; the difference is that the default interceptors reperform the intercepted modifier effects instead of silencing them.
 
-          R.run @@ fun () ->
-          (* code *)
-          T1.try_with @@ fun () ->
-          (* more code *)
-          T2.try_with @@ fun () ->
-          (* even more code *)
-        ]}
-    *)
-  end
+      [try_with] is intended to be used within {!val:Run.run} to intercept or reperform effects, while {!val:Run.run} is intended to be at the top-level to set up the environment and handle effects by itself. That is, the following is the expected program structure:
+      {[
+        run ~not_found ~shadow ~hook @@ fun () ->
+        (* code *)
+        try_with ~not_found @@ fun () ->
+        (* more code *)
+        try_with ~shadow @@ fun () ->
+        (* even more code *)
+      ]}
 
-  module Perform : Handler
-  (** A handler that reperforms the effects. It can also be used to manually trigger the effects;
-      for example, [Perform.not_found (Emp #< "a" #< "b")] will perform the [not_found] effect
-      to be handled by the outer handler. *)
+  *)
 end

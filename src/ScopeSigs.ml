@@ -1,5 +1,5 @@
 module type Param = ModifierSigs.Param
-module type Handler = ModifierSigs.Handler
+module type Perform = ModifierSigs.Perform
 
 module type S =
 sig
@@ -8,7 +8,9 @@ sig
   module Param : Param
   open Param
 
-  module type Handler = Handler with module Param := Param
+  type not_found_handler = context option -> Trie.bwd_path -> unit
+  type shadow_handler = context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
+  type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
 
   exception Locked
   (** The exception [Locked] is raised when an operation on a scope starts before another operation on the same scope is finished.
@@ -91,44 +93,36 @@ sig
 
   (** {1 Runners} *)
 
-  module Run (H : Handler) :
-  sig
-    val run : ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
-    (** [run f h] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
+  val run : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler ->
+    ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
+  (** [run ~not_found ~shadow ~hook f] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
 
-        @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
-        originating from export namespaces. The default is the empty path ([Emp]).
-        This does not affect paths originating from visible namespaces.
-        @param init_visible The initial visible namespace. The default is the empty trie. *)
-  end
+      @param not_found See {!val:ModifierSigs.S.run}
+      @param shadow See {!val:ModifierSigs.S.run}
+      @param hook See {!val:ModifierSigs.S.run}
+      @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
+      originating from export namespaces. The default is the empty path ([Emp]).
+      This does not affect paths originating from visible namespaces.
+      @param init_visible The initial visible namespace. The default is the empty trie. *)
 
-  module TryWith (H : Handler) :
-  sig
-    val try_with : (unit -> 'a) -> 'a
-    (** Execute the code and handles the internal modifier effects.
+  val try_with : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
+  (** Execute the code and handles the internal modifier effects.
 
-        [try_with] is intended to be used within {!val:Run.run} to intercept or reperform internal effects,
-        while {!val:Run.run} is intended to be at the top-level to set up the environment and handle all
-        effects by itself. For example, the following function silences the [shadow] effects, but the
-        silencing function should be used within the dynamic scope of a {!val:Run.run}.
-        See also {!val:Modifier.S.TryWith.try_with}.
-        {[
-          module H =
-          struct
-            include Perform
-            let shadow _ _ _ y = y
-          end
+      [try_with] is intended to be used within {!val:Run.run} to intercept or reperform internal effects,
+      while {!val:Run.run} is intended to be at the top-level to set up the environment and handle all
+      effects by itself. For example, the following function silences the [shadow] effects, but the
+      silencing function should be used within the dynamic scope of a {!val:Run.run}.
+      See also {!val:Modifier.S.TryWith.try_with}.
+      {[
+        let silence_shadow f =
+          try_with ~shadow:Silence.shadow f
+      ]}
 
-          let silence_shadow f =
-            let module T = TryWith (H) in
-            T.try_with f
-        ]}
+      A consequence of the semantic difference between {!val:Run.run} and [try_with] is that
+      {!val:Run.run} starts a fresh empty scope while [try_with] stays in the current scope.
+  *)
 
-        A consequence of the semantic difference between {!val:Run.run} and [try_with] is that
-        {!val:Run.run} starts a fresh empty scope while [try_with] stays in the current scope.
-    *)
-  end
-
-  module Perform : Handler
-  (** A handler that reperforms the internal modifier effects. See {!module:Modifier.S.Perform}. *)
+  module type Perform = Perform with module Param := Param
+  module Perform : Perform
+  module Silence : Perform
 end

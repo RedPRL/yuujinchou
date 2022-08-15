@@ -18,7 +18,7 @@ sig
   module type Param = ModifierSigs.Param
 
   (** The handler module type. *)
-  module type Handler = ModifierSigs.Handler
+  module type Perform = ModifierSigs.Perform
 
   (** The signature of the engine. *)
   module type S = ModifierSigs.S with module Language := Language
@@ -34,7 +34,7 @@ sig
   module type Param = ScopeSigs.Param
 
   (** The handler module type. *)
-  module type Handler = ModifierSigs.Handler
+  module type Perform = ModifierSigs.Perform
 
   (** The signature of scoping effects. *)
   module type S = ScopeSigs.S with module Language := Language

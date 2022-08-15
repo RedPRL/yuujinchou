@@ -2,26 +2,37 @@ open Bwd
 open Bwd.Infix
 
 module type Param = ModifierSigs.Param
-module type Handler = ModifierSigs.Handler
+module type Perform = ModifierSigs.Perform
 module type S = ModifierSigs.S with module Language := Language
 
 module Make (Param : Param) : S with module Param := Param =
 struct
-  module type Handler = Handler with module Param := Param
-
   module Language = Language
   open Param
 
-  module Perform =
-  struct
-    type _ Effect.t +=
-      | NotFound : {context : context option; prefix : Trie.bwd_path} -> unit Effect.t
-      | Shadow : {context : context option; path : Trie.bwd_path; former : data * tag; latter : data * tag} -> (data * tag) Effect.t
-      | Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> (data, tag) Trie.t Effect.t
+  type not_found_handler = context option -> Trie.bwd_path -> unit
+  type shadow_handler = context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
+  type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
 
+  type _ Effect.t +=
+    | NotFound : {context : context option; prefix : Trie.bwd_path} -> unit Effect.t
+    | Shadow : {context : context option; path : Trie.bwd_path; former : data * tag; latter : data * tag} -> (data * tag) Effect.t
+    | Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> (data, tag) Trie.t Effect.t
+
+  module type Perform = Perform with module Param := Param
+
+  module Perform : Perform =
+  struct
     let not_found context prefix = Effect.perform @@ NotFound {context; prefix}
     let shadow context path former latter = Effect.perform @@ Shadow {context; path; former; latter}
     let hook context prefix hook input = Effect.perform @@ Hook {context; prefix; hook; input}
+  end
+
+  module Silence : Perform =
+  struct
+    let not_found _ _ = ()
+    let shadow _ _ _ d = d
+    let hook _ _ _ t = t
   end
 
   open Perform
@@ -49,26 +60,21 @@ struct
       | L.M_hook id -> hook context prefix id t
     in go prefix
 
-  module Run (H : Handler) =
-  struct
-    open Effect.Deep
+  let handler ~(not_found:not_found_handler) ~(shadow:shadow_handler) ~(hook:hook_handler) : _ Effect.Deep.effect_handler =
+    {effc =
+       fun (type a) (eff : a Effect.t) ->
+         match eff with
+         | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) Effect.Deep.continuation) ->
+           Algaeff.Fun.Deep.finally k @@ fun () -> not_found context prefix
+         | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) Effect.Deep.continuation) ->
+           Algaeff.Fun.Deep.finally k @@ fun () -> shadow context path former latter
+         | Hook {context; prefix; hook=hookName; input} -> Option.some @@ fun (k : (a, _) Effect.Deep.continuation) ->
+           Algaeff.Fun.Deep.finally k @@ fun () -> hook context prefix hookName input
+         | _ -> None
+    }
 
-    let handler (type a) : a Effect.t -> _ =
-      function
-      | NotFound {context; prefix} -> Option.some @@ fun (k : (a, _) continuation) ->
-        Algaeff.Fun.Deep.finally k @@ fun () -> H.not_found context prefix
-      | Shadow {context; path; former; latter} -> Option.some @@ fun (k : (a, _) continuation) ->
-        Algaeff.Fun.Deep.finally k @@ fun () -> H.shadow context path former latter
-      | Hook {context; prefix; hook; input} -> Option.some @@ fun (k : (a, _) continuation) ->
-        Algaeff.Fun.Deep.finally k @@ fun () -> H.hook context prefix hook input
-      | _ -> None
+  let run ?(not_found=Silence.not_found) ?(shadow=Silence.shadow) ?(hook=Silence.hook) f =
+    Effect.Deep.try_with f () @@ handler ~not_found ~shadow ~hook
 
-    let run f = try_with f () {effc = handler}
-  end
-
-  module TryWith (H : Handler) =
-  struct
-    module R = Run (H)
-    let try_with = R.run
-  end
+  let try_with ?(not_found=Perform.not_found) ?(shadow=Perform.shadow) ?(hook=Perform.hook) f = run ~not_found ~shadow ~hook f
 end

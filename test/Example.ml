@@ -32,7 +32,7 @@ module M = Modifier.Make (P)
 module S = Scope.Make (P) (M)
 
 (* Handle scoping effects *)
-module H : S.Handler =
+module Handler =
 struct
   let pp_path fmt =
     function
@@ -77,24 +77,13 @@ struct
       input
 end
 
-module SilenceShadow : S.Handler =
-struct
-  include S.Perform
-  let shadow _ _ _ y = y
-end
-
-(* Mute the [shadow] effects. *)
-let silence_shadow f =
-  let module T = S.TryWith (SilenceShadow) in
-  T.try_with f
-
 (* The interpreter *)
 let rec interpret_decl : decl -> unit =
   function
   | Decl (p, x) ->
     S.include_singleton ~context_visible:`Visible ~context_export:`Export (p, (x, `Local))
   | ShadowingDecl (p, x) ->
-    silence_shadow @@ fun () ->
+    S.try_with ~shadow:S.Silence.shadow @@ fun () ->
     S.include_singleton (p, (x, `Local))
   | Import (t, m) ->
     let t = S.modify m (Trie.Untagged.tag `Imported t) in
@@ -107,8 +96,8 @@ let rec interpret_decl : decl -> unit =
     S.section p @@ fun () -> List.iter interpret_decl sec
 
 let interpret (prog : program) =
-  let module R = S.Run (H) in
-  R.run @@ fun () ->
+  let open Handler in
+  S.run ~shadow ~not_found ~hook @@ fun () ->
   List.iter interpret_decl prog
 
 (* Some code in action *)
