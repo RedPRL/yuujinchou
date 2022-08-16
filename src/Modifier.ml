@@ -1,5 +1,5 @@
 open Bwd
-open BwdNotation
+open Bwd.Infix
 
 module type Param = ModifierSigs.Param
 module type Handler = ModifierSigs.Handler

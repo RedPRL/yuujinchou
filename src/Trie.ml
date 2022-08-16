@@ -1,5 +1,5 @@
 open Bwd
-open BwdNotation
+open Bwd.Infix
 
 type seg = string
 type path = seg list
