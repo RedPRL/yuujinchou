@@ -3,7 +3,7 @@ open Bwd.Infix
 open ScopeSigs
 
 module type Param = ScopeSigs.Param
-module type Handler = ScopeSigs.Handler
+module type Perform = ScopeSigs.Perform
 module type S = S with module Language := Language
 
 module Make (Param : Param) (Mod : Modifier.S with module Param := Param)
@@ -11,7 +11,10 @@ module Make (Param : Param) (Mod : Modifier.S with module Param := Param)
 =
 struct
   open Param
-  module type Handler = ScopeSigs.Handler with module Param := Param
+
+  type not_found_handler = context option -> Trie.bwd_path -> unit
+  type shadow_handler = context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
+  type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
 
   module Internal =
   struct
@@ -85,14 +88,12 @@ struct
     unsafe_include_subtree ~context_visible ~context_export (p, export);
     ans
 
-  module Run (H : Handler) =
-  struct
-    module M = Mod.Run (H)
-    let run ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
-      M.run (fun () -> Internal.run ~export_prefix ~init_visible f)
-  end
+  let run ?not_found ?shadow ?hook ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
+    Mod.run ?not_found ?shadow ?hook @@ fun () -> Internal.run ~export_prefix ~init_visible f
 
-  module TryWith (H : Handler) = Mod.TryWith (H)
+  let try_with = Mod.try_with
 
+  module type Perform = Mod.Perform
   module Perform = Mod.Perform
+  module Silence = Mod.Silence
 end
