@@ -62,7 +62,7 @@ sig
   val try_with : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
   (** [try_with f] runs the thunk [f] and intercepts modifier effects. See the documentation of {!val:run} for the meaning of the optional effect interceptors; the difference is that the default interceptors reperform the intercepted modifier effects instead of silencing them.
 
-      [try_with] is intended to be used within {!val:Run.run} to intercept or reperform effects, while {!val:Run.run} is intended to be at the top-level to set up the environment and handle effects by itself. That is, the following is the expected program structure:
+      [try_with] is intended to be used within {!val:run} to intercept or reperform effects, while {!val:run} is intended to be at the top-level to set up the environment and handle effects by itself. That is, the following is the expected program structure:
       {[
         run ~not_found ~shadow ~hook @@ fun () ->
         (* code *)

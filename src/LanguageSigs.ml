@@ -50,14 +50,14 @@ sig
 
   (** [union [m0; m1; m2; ...; mn]] calculates the union of the results of individual modifiers [m0], [m1], [m2], ..., [mn].
       In particular, [union []] is the empty modifier.
-      The {!val:Modifier.S.Handler.shadow} effect will be performed to resolve name conflicts,
+      The {!val:Modifier.S.module-Perform.shadow} effect will be performed to resolve name conflicts,
       with an intention for results of a modifier to shadow those of previous ones. *)
   val union : 'hook t list -> 'hook t
 
   (** {2 Custom Hooks} *)
 
   (** [hook h] applies the hook labelled [h] to the entire trie
-      by performing the {!val:Modifier.S.Handler.hook} effect. *)
+      by performing the {!val:Modifier.S.module-Perform.hook} effect. *)
   val hook : 'hook -> 'hook t
 
   (** {2 Ugly Printing} *)

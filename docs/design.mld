@@ -58,7 +58,7 @@ To recover efficient group operations on implicit namespaces as one might expect
 
 {2 No No-Ops}
 
-Hiding, renaming, selecting, and excluding modifiers must match at least one existing binding. For example, if there is no binding with the prefix [x], then selecting the namespace rooted at [x] should fail or at least produce a warning. The reason is that the lack of matching bindings strongly indicates a typo. In this library, such an error will trigger the effect {{!val:Yuujinchou.Modifier.S.Handler.not_found}not_found}.
+Hiding, renaming, selecting, and excluding modifiers must match at least one existing binding. For example, if there is no binding with the prefix [x], then selecting the namespace rooted at [x] should fail or at least produce a warning. The reason is that the lack of matching bindings strongly indicates a typo. In this library, such an error will trigger the effect {{!val:Yuujinchou.Modifier.S.module-Perform.not_found}not_found}.
 
 As a consequence of this principle, a modifier cannot be understood as a function from an old name to a set of new names, but a function from an old namespace (implemented as a {{!module:Yuujinchou.Trie}trie} in this library) to a new namespace. Otherwise, it is difficult or impossible to detect whether there are unexpected no-ops.
 

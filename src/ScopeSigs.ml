@@ -64,7 +64,7 @@ sig
       @param context The context attached to the modifier effects. *)
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-  (** Call the internal modifier engine directly on some trie. See {!val:Modifier.S.modify}.
+  (** Call the internal modifier engine directly on some trie. See {!val:Yuujinchou.Modifier.S.modify}.
 
       This will not lock the current scope. *)
 
@@ -97,9 +97,9 @@ sig
     ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
   (** [run ~not_found ~shadow ~hook f] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
 
-      @param not_found See {!val:ModifierSigs.S.run}
-      @param shadow See {!val:ModifierSigs.S.run}
-      @param hook See {!val:ModifierSigs.S.run}
+      @param not_found See {!val:Yuujinchou.Modifier.S.run}
+      @param shadow See {!val:Yuujinchou.Modifier.S.run}
+      @param hook See {!val:Yuujinchou.Modifier.S.run}
       @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
       originating from export namespaces. The default is the empty path ([Emp]).
       This does not affect paths originating from visible namespaces.
@@ -108,18 +108,18 @@ sig
   val try_with : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
   (** Execute the code and handles the internal modifier effects.
 
-      [try_with] is intended to be used within {!val:Run.run} to intercept or reperform internal effects,
-      while {!val:Run.run} is intended to be at the top-level to set up the environment and handle all
+      [try_with] is intended to be used within {!val:run} to intercept or reperform internal effects,
+      while {!val:run} is intended to be at the top-level to set up the environment and handle all
       effects by itself. For example, the following function silences the [shadow] effects, but the
-      silencing function should be used within the dynamic scope of a {!val:Run.run}.
-      See also {!val:Modifier.S.TryWith.try_with}.
+      silencing function should be used within the dynamic scope of a {!val:run}.
+      See also {!val:Yuujinchou.Modifier.S.try_with}.
       {[
         let silence_shadow f =
           try_with ~shadow:Silence.shadow f
       ]}
 
-      A consequence of the semantic difference between {!val:Run.run} and [try_with] is that
-      {!val:Run.run} starts a fresh empty scope while [try_with] stays in the current scope.
+      A consequence of the semantic difference between {!val:run} and [try_with] is that
+      {!val:run} starts a fresh empty scope while [try_with] stays in the current scope.
   *)
 
   module type Perform = Perform with module Param := Param
