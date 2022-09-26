@@ -19,6 +19,12 @@ struct
     | Shadow : {context : context option; path : Trie.bwd_path; former : data * tag; latter : data * tag} -> (data * tag) Effect.t
     | Hook : {context : context option; prefix : Trie.bwd_path; hook : hook; input : (data, tag) Trie.t} -> (data, tag) Trie.t Effect.t
 
+  let () =
+    Printexc.register_printer @@
+    function
+    | Effect.Unhandled (NotFound _ | Shadow _ | Hook _) -> Some "Unhandled Yuujinchou effect; use Yuujinchou.Modifier.run"
+    | _ -> None
+
   module type Perform = Perform with module Param := Param
 
   module Perform : Perform =
