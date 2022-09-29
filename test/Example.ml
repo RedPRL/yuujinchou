@@ -6,7 +6,7 @@ type modifier_cmd = Print
 type decl =
   (* declaration *)
   | Decl of Trie.path * int
-  (* declaration, but supressing the shadowing warning *)
+  (* declaration, but suppressing the shadowing warning *)
   | ShadowingDecl of Trie.path * int
   (* importing a trie after applying the modifier *)
   | Import of int Trie.Untagged.t * modifier_cmd Language.t
