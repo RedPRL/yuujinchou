@@ -161,11 +161,11 @@ type 'data untagged = ('data, unit) t
 (** [retag tag t] changes all tags within [t] to [tag] in O(1) time. The data remain intact. *)
 val retag : 'tag -> ('data, _) t -> ('data, 'tag) t
 
-(** [untag t] is [retag () t]. *)
-val untag : ('data, _) t -> ('data, unit) t
-
 (** [retag_subtree tag path t] changes all tags within the subtrie rooted at [path] to [tag] efficiently. The data remain intact. *)
 val retag_subtree : path -> 'tag -> ('data, 'tag) t -> ('data, 'tag) t
+
+(** [untag t] is [retag () t]. *)
+val untag : ('data, _) t -> 'data untagged
 
 (** [set_of_tags t] returns the set of tags used in a trie, but as a [Seq.t]. *)
 val set_of_tags : ('tag -> 'tag -> int) -> ('data, 'tag) t -> 'tag Seq.t
