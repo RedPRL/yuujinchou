@@ -1,10 +1,12 @@
 (** @canonical Trie.Untagged *)
 
+(** A convenience module {!module:Trie.Untagged} derived from {!module:Trie} for untagged tries {!type:Trie.untagged}. *)
+
 type path = Trie.path
 
 type bwd_path = Trie.bwd_path
 
-type 'data t = ('data, unit) Trie.t
+type 'data t = 'data Trie.untagged
 (** @canonical Trie.Untagged.t *)
 
 val empty : 'data t

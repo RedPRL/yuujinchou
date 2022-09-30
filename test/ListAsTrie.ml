@@ -99,6 +99,7 @@ let to_seq_values l = Seq.map snd @@ List.to_seq l
 let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty s
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
 
+type 'a untagged = (path * ('a * unit)) list
 let retag t l = List.map (fun (p, (d, _)) -> p, (d, t)) l
 let untag l = retag () l
 let retag_subtree pre t l =

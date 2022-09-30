@@ -93,12 +93,15 @@ let rec interpret_decl : decl -> unit =
   | Export p ->
     S.export_visible (Language.only p)
   | Section (p, sec) ->
-    S.section p @@ fun () -> List.iter interpret_decl sec
+    S.section p @@ fun () -> interpret_section sec
+
+and interpret_section section =
+  List.iter interpret_decl section
 
 let interpret (prog : program) =
   let open Handler in
   S.run ~shadow ~not_found ~hook @@ fun () ->
-  List.iter interpret_decl prog
+  interpret_section prog
 
 (* Some code in action *)
 let () = interpret [

@@ -1,5 +1,3 @@
-(** A convenience module {!module:UntaggedTrie} derived from {!module:Trie} with the type of tags being {!type:unit}. *)
-
 open Trie
 
 type path = Trie.path

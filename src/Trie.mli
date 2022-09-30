@@ -155,6 +155,9 @@ val of_seq_with_merger : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data 
 
 (** {1 Tags} *)
 
+(** Untagged tries (where all tags are [()]). *)
+type 'data untagged = ('data, unit) t
+
 (** [retag tag t] changes all tags within [t] to [tag] in O(1) time. The data remain intact. *)
 val retag : 'tag -> ('data, _) t -> ('data, 'tag) t
 

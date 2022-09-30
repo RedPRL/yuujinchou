@@ -312,6 +312,8 @@ let of_seq s = of_seq_with_merger ~prefix:Emp (fun _ _ y -> y) s
 
 (** {1 Tags} *)
 
+type 'data untagged = ('data, unit) t
+
 let[@inline] retag t : _ t -> _ t =
   function
   | None -> None
