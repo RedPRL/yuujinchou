@@ -317,6 +317,8 @@ let[@inline] retag t : _ t -> _ t =
   | None -> None
   | Some (d, _) -> non_empty @@ mk_node' d (Some t)
 
+let[@inline] untag t = retag () t
+
 let retag_subtree path t (v : _ t) : _ t = update_subtree path (retag t) v
 
 let rec iter_tag_node (f : 'a -> unit) (t : 'a tag_node) =
