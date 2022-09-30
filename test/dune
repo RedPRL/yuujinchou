@@ -14,3 +14,8 @@
  (name Example)
  (modules Example)
  (libraries yuujinchou))
+
+(test
+ (name EasyExample)
+ (modules EasyExample)
+ (libraries yuujinchou))
