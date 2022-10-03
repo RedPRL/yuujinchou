@@ -39,7 +39,7 @@ let rec interpret_decl : decl -> unit =
   | Export p ->
     S.export_visible (Language.only p)
   | Section (p, sec) ->
-    S.section p @@ fun () -> List.iter interpret_decl sec
+    S.section p @@ fun () -> interpret_section sec
   | PrintInt p ->
     match S.resolve p with
     | None -> Format.eprintf "Unbound variable %a@." pp_path p
