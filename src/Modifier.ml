@@ -22,7 +22,7 @@ struct
   let () =
     Printexc.register_printer @@
     function
-    | Effect.Unhandled (NotFound _ | Shadow _ | Hook _) -> Some "Unhandled Yuujinchou effect; use Yuujinchou.Modifier.run"
+    | Effect.Unhandled (NotFound _ | Shadow _ | Hook _) -> Some "Unhandled yuujinchou effect; use Yuujinchou.Modifier.run"
     | _ -> None
 
   module type Perform = Perform with module Param := Param

@@ -1,4 +1,4 @@
-(** Yuujinchou is an OCaml package of name modifiers. *)
+(** yuujinchou is an OCaml package of name modifiers. *)
 
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
 module Trie : sig

@@ -76,7 +76,7 @@ In many designs, the name modifiers are coupled with export control ([public] v.
 
 {2 A Reasonably Small Core}
 
-The core language should be relatively small, possibly exploiting the compositionality to remove redundant constructors. For example, the core language does not have {{!val:Yuujinchou.Language.none}none}[ p] because it can be defined as the sequencing of the emptiness checking and the union of nothing. This, however, does not mean the number of constructors should be theoretically minimal: In earlier versions of Yuujinchou, we have a "split" modifier that applies one modifier to a subtree and another to all bindings outside the subtree, but such a "mega-modifier" only complicates the core language and the engine implementation. To the extreme, one can have one single constructor in the core language to handle all features, but that would not be helpful.
+The core language should be relatively small, possibly exploiting the compositionality to remove redundant constructors. For example, the core language does not have {{!val:Yuujinchou.Language.none}none}[ p] because it can be defined as the sequencing of the emptiness checking and the union of nothing. This, however, does not mean the number of constructors should be theoretically minimal: In earlier versions of yuujinchou, we have a "split" modifier that applies one modifier to a subtree and another to all bindings outside the subtree, but such a "mega-modifier" only complicates the core language and the engine implementation. To the extreme, one can have one single constructor in the core language to handle all features, but that would not be helpful.
 
 The current design has six constructors in the core languages:
 + emptiness checking.

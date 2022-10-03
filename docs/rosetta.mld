@@ -6,7 +6,7 @@
 {v
 import Mod -- x is available an both x and Mod.x
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(union [any; renaming [] ["Mod"]])
 ]}
@@ -15,7 +15,7 @@ Corresponding Yuujinchou modifier:
 {v
 import Mod (x,y)
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(union [only ["x"]; only ["y"]])
 ]}
@@ -24,7 +24,7 @@ Corresponding Yuujinchou modifier:
 {v
 import qualified Mod
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(renaming [] ["Mod"])
 ]}
@@ -33,7 +33,7 @@ Corresponding Yuujinchou modifier:
 {v
 import qualified Mod hiding (x,y)
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(seq [except ["x"]; except ["y"]; renaming [] ["Mod"]])
 ]}
@@ -44,7 +44,7 @@ Corresponding Yuujinchou modifier:
 {v
 (require (only-in ... id0 [old-id1 new-id1]))
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(seq [...; union [only ["id0"]; seq [only ["old-id1"]; renaming ["old-id1"] ["new-id1"]]]])
 ]}
@@ -53,7 +53,7 @@ Corresponding Yuujinchou modifier:
 {v
 (require (except-in ... id0 id1]))
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(seq [...; except ["id0"]; except ["id1"]])
 ]}
@@ -62,7 +62,7 @@ Corresponding Yuujinchou modifier:
 {v
 (require (prefix-in p: ...))
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(seq [...; renaming [] ["p"]])
 ]}
@@ -72,7 +72,7 @@ Note: Racket does not support hierarchical names, so the prefixing operator in R
 {v
 (require (rename-in ... [old-id0 new-id0] [old-id1 new-id1]))
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(seq [...; renaming ["old-id0"] ["new-id0"]; renaming ["old-id1"] ["new-id1"]])
 ]}
@@ -81,7 +81,7 @@ Corresponding Yuujinchou modifier:
 {v
 (require (combine-in require-spec0 require-spec1 ...))
 v}
-Corresponding Yuujinchou modifier:
+Corresponding yuujinchou modifier:
 {[
   Language.(union [require-spec0; require-spec1; ...])
 ]}

@@ -1,4 +1,4 @@
-{0 Yuujinchou: Name Modifiers}
+{0 yuujinchou: Name Modifiers}
 
 {1 Introduction}
 
@@ -22,19 +22,19 @@ Another way to address this is to place the imported content under some namespac
 import math # Python: the sqrt function is available as `math.sqrt`.
 v}
 
-Arguably, common designs of these hiding or renaming mechanisms are quite limited. The goal of the Yuujinchou library is to provide a compositional calculus of these modifiers of names. Currently, the library supports renaming, scopes, sequencing, unions, and custom hooks for extending the engine.
+Arguably, common designs of these hiding or renaming mechanisms are quite limited. The goal of the yuujinchou library is to provide a compositional calculus of these modifiers of names. Currently, the library supports renaming, scopes, sequencing, unions, and custom hooks for extending the engine.
 
 {1 More Information}
 
 - {{!page:design}The design philosophy.}
-- {{:https://github.com/RedPRL/yuujinchou/blob/main/test/Example.ml}A tiny interpreter using Yuujinchou} (available locally as [test/Example.ml]).
+- {{:https://github.com/RedPRL/yuujinchou/blob/main/test/Example.ml}A tiny interpreter using yuujinchou} (available locally as [test/Example.ml]).
 - {{!module:Yuujinchou}The API reference.}
 - {{!page:rosetta}Implementing features in other languages.}
 
-{1 What is "Yuujinchou"?}
+{1 What is "yuujinchou"?}
 
-"Yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". It is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
+"yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". It is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
 
 This magical book will automatically turn to the page with the correct name when the protagonist pictures the youkai in his mind. This package is also about finding real names of youkais.
 
-Notes on the transliteration: "Yuujinchou" is in the Wāpuro style so that it uses only the English alphabet; otherwise, its Hepburn romanization would be "Yūjin-chō".
+Notes on the transliteration: "yuujinchou" is in the Wāpuro style so that it uses only the English alphabet; otherwise, its Hepburn romanization would be "Yūjin-chō".

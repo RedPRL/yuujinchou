@@ -19,7 +19,7 @@ Version 3.0.0 is a complete redesign and rewrite of the library, with the follow
 4. Renaming now shadows conflicting names in the target subtree instead of merging with them. See `Language.renaming`.
 5. There is a design document under `docs/`.
 
-The old client code that works with Yuujinchou 2.0.0 will stop working with the new version.
+The old client code that works with yuujinchou 2.0.0 will stop working with the new version.
 
 
 # [2.0.0](https://github.com/RedPRL/yuujinchou/compare/1.0.0...2.0.0) (2022-03-07)
