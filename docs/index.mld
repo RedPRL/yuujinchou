@@ -26,7 +26,7 @@ Arguably, common designs of these hiding or renaming mechanisms are quite limite
 
 {1 More Information}
 
-- {{!page:design}The design philosophy.}
+- {{!page:design}The design philosophy.} See also {{:https://youtu.be/5Cp8jNrWSjI}Favonia's TYPE 2022 talk}.
 - {{:https://github.com/RedPRL/yuujinchou/blob/main/test/Example.ml}A tiny interpreter using yuujinchou} (available locally as [test/Example.ml]).
 - {{!module:Yuujinchou}The API reference.}
 - {{!page:rosetta}Implementing features in other languages.}
