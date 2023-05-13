@@ -33,6 +33,8 @@ sig
       and export namespaces, where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
 
+      When implementing an OCaml-like language, this is how you inject a top-level value definition into a scope.
+
       @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
       @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
 
@@ -40,6 +42,8 @@ sig
   (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       both the visible and export namespaces. Conflicting names during the final merge
       will trigger the effect [shadow].
+
+      When implementing an OCaml-like language, this is how you implement [include].
 
       @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
       @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
@@ -49,11 +53,15 @@ sig
       the visible namespace (while keeping the export namespace intact).
       Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
+      When implementing an OCaml-like language, this is how you implement [open].
+
       @param context The context attached to the modifier effects. *)
 
   val modify_visible : ?context:context -> hook Language.t -> unit
   (** [modify_visible m] modifies the visible namespace by
       running the modifier [m] on it, using the internal modifier engine.
+
+      This feature does not exist in OCaml-like languages.
 
       @param context The context attached to the modifier effects. *)
 
@@ -61,10 +69,15 @@ sig
   (** [modify_visible m] modifies the export namespace by
       running the modifier [m] on it, using the internal modifier engine.
 
+      This feature does not exist in OCaml-like languages.
+
       @param context The context attached to the modifier effects. *)
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** Call the internal modifier engine directly on some trie. See {!val:Yuujinchou.Modifier.S.modify}.
+
+      This feature is useful for massaging a namespace before adding its content into the current scope.
+      It does not exist in OCaml-like languages.
 
       This will not lock the current scope. *)
 
@@ -73,10 +86,14 @@ sig
       and then merge the result into the export namespace.
       Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
+      This feature is useful for implementing a userspace [export] statement. It does not exist in OCaml-like languages.
+
       @param context The context attached to the modifier effects. *)
 
   val get_export : unit -> (data, tag) Trie.t
-  (** [get_export ()] returns the export namespace of the current scope. *)
+  (** [get_export ()] returns the export namespace of the current scope.
+
+      This is useful for obtaining all exported content when wrapping up a compilation unit. The {!val:section} function internally calls [get_export] when wrapping up a child scope, but an implementer is expected to call [get_export] for the outermost scope. The outermost scope is special because it is the interface of the entire compilation unit and its ending often triggers special handling code ({i e.g.,} caching). *)
 
   (** {1 Sections} *)
 
@@ -85,6 +102,8 @@ sig
       The child scope inherits the visible namespace from the parent, and its export namespace
       will be prefixed with [p] and merged into both the visible and export namespaces
       of the parent scope.
+
+      A section is similar to a section in Coq or a module in Agda (but not a module in OCaml). This is {i not} for implementing local let-bindings.
 
       @param context_visible The context attached to the modifier effects
       when merging the content of the section into its parent's visible namespace.
