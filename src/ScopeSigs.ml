@@ -31,7 +31,7 @@ sig
   val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
   (** [include_singleton (p, x)] adds a new binding to both the visible and export namespaces, where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
-      [include_singleton (p, x)] is [include_subtree Trie.(singleton (p, x))], but potentially more efficient.
+      [include_singleton (p, x)] is equivalent to [include_subtree Trie.(singleton (p, x))], but potentially more efficient.
 
       When implementing an OCaml-like language, this is how one can introduce a top-level definition [let p = x].
 
@@ -51,11 +51,11 @@ sig
   val import_singleton : ?context:context -> Trie.path * (data * tag) -> unit
   (** [import_singleton (p, x)] adds a new binding to the visible namespace (while keeping the export namespace intact), where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
-      [import_singleton (p, x)] is [import_subtree Trie.(singleton (p, x))], but potentially more efficient.
+      [import_singleton (p, x)] is equivalent to [import_subtree Trie.(singleton (p, x))], but potentially more efficient.
 
       When implementing an OCaml-like language, one can implement the local binding [let p = x in e] as follows:
       {[
-        local @@ fun () ->
+        section [] @@ fun () ->
         import_singleton (p, x);
         (* code for handling the expression [e] *)
       ]}
