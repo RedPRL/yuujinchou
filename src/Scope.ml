@@ -50,7 +50,9 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with export = Mod.modify ?context ~prefix:(export_prefix()) m s.export}
 
-  let modify = Mod.modify
+  let modify_standalone = Mod.modify
+
+  let modify = modify_standalone [@@ocaml.alert deprecated "Use modify_standalone"]
 
   let export_visible ?context m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
@@ -63,6 +65,10 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     { visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, x);
       export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export (path, x) }
+
+  let import_singleton ?context (path, x) =
+    M.exclusively @@ fun () -> S.modify @@ fun s ->
+    { s with visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context) s.visible (path, x) }
 
   let unsafe_include_subtree ~context_visible ~context_export (path, ns) =
     S.modify @@ fun s ->

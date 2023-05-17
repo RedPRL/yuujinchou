@@ -29,11 +29,11 @@ sig
       and return the data associated with the binding. *)
 
   val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
-  (** [include_singleton (p, x)] adds a new binding to both the visible
-      and export namespaces, where the binding is associating the data [x] to the path [p].
+  (** [include_singleton (p, x)] adds a new binding to both the visible and export namespaces, where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
+      [include_singleton (p, x)] is [include_subtree Trie.(singleton (p, x))], but potentially more efficient.
 
-      When implementing an OCaml-like language, this is how you inject a top-level value definition into a scope.
+      When implementing an OCaml-like language, this is how one can introduce a top-level definition [let p = x].
 
       @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
       @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
@@ -43,17 +43,32 @@ sig
       both the visible and export namespaces. Conflicting names during the final merge
       will trigger the effect [shadow].
 
-      When implementing an OCaml-like language, this is how you implement [include].
+      This feature is useful for introducing multiple top-level definitions at once.
 
       @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
       @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
+
+  val import_singleton : ?context:context -> Trie.path * (data * tag) -> unit
+  (** [import_singleton (p, x)] adds a new binding to the visible namespace (while keeping the export namespace intact), where the binding is associating the data [x] to the path [p].
+      Conflicting names during the final merge will trigger the effect [shadow].
+      [import_singleton (p, x)] is [import_subtree Trie.(singleton (p, x))], but potentially more efficient.
+
+      When implementing an OCaml-like language, one can implement the local binding [let p = x in e] as follows:
+      {[
+        local @@ fun () ->
+        import_singleton (p, x);
+        (* code for handling the expression [e] *)
+      ]}
+
+      @param context The context attached to the modifier effects when manipulating the visible namespace.
+      @since 4.1.0 *)
 
   val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
   (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       the visible namespace (while keeping the export namespace intact).
       Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
-      When implementing an OCaml-like language, this is how you implement [open].
+      When implementing an OCaml-like language, one can import content from other compilation units using [import_subtree].
 
       @param context The context attached to the modifier effects. *)
 
@@ -61,7 +76,10 @@ sig
   (** [modify_visible m] modifies the visible namespace by
       running the modifier [m] on it, using the internal modifier engine.
 
-      This feature does not exist in OCaml-like languages.
+      When implementing an OCaml-like language, one can implement [open M] as follows:
+      {[
+        modify_visible Language.(union [seq []; only ["M"]])
+      ]}
 
       @param context The context attached to the modifier effects. *)
 
@@ -69,17 +87,30 @@ sig
   (** [modify_visible m] modifies the export namespace by
       running the modifier [m] on it, using the internal modifier engine.
 
-      This feature does not exist in OCaml-like languages.
+      When implementing an OCaml-like language, one can implement [include M] as follows:
+      {[
+        export_visible Language.(only ["M"]);
+        modify_visible Language.(union [seq []; only ["M"]])
+      ]}
 
       @param context The context attached to the modifier effects. *)
 
-  val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-  (** Call the internal modifier engine directly on some trie. See {!val:Yuujinchou.Modifier.S.modify}.
+  val modify_standalone : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+  (** Call the internal modifier engine directly on a standalone namespace. See {!val:Yuujinchou.Modifier.S.modify}.
 
       This feature is useful for massaging a namespace before adding its content into the current scope.
-      It does not exist in OCaml-like languages.
+      It does not exist in OCaml-like languages. However, in a Haskell-like language, one can implement [import qualified Mod (x, y)] as follows:
+      {[
+        let m = modify_standalone Language.(union [only ["x"]; only ["y"]]) m in
+        import_subtree (["Mod"], m)
+      ]}
+      The purpose of re-using the internal modifier engine is to share the same effect handling. For example, if one has already used {!val:run} or {!val:try_with} to mute the [shadow] effect, it also applies to the call of this [modify]. A new instance of {!module:Yuujinchou.Modifier.Make} will use fresh algebraic effects and thus existing effect handling will not apply.
 
-      This will not lock the current scope. *)
+      This function will not lock the current scope, because it will not access the current scope.
+      @since 4.1.0 *)
+
+  val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+  [@@ocaml.alert deprecated "Use modify_standalone"]
 
   val export_visible : ?context:context -> hook Language.t -> unit
   (** [export_visible m] runs the modifier [m] on the visible namespace,
@@ -95,7 +126,7 @@ sig
 
       This is useful for obtaining all exported content when wrapping up a compilation unit. The {!val:section} function internally calls [get_export] when wrapping up a child scope, but an implementer is expected to call [get_export] for the outermost scope. The outermost scope is special because it is the interface of the entire compilation unit and its ending often triggers special handling code ({i e.g.,} caching). *)
 
-  (** {1 Sections} *)
+  (** {1 Local Scopes and Sections} *)
 
   val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
   (** [section p f] starts a new scope and runs the thunk [f] within the scope.
@@ -103,7 +134,17 @@ sig
       will be prefixed with [p] and merged into both the visible and export namespaces
       of the parent scope.
 
-      A section is similar to a section in Coq or a module in Agda (but not a module in OCaml). This is {i not} for implementing local let-bindings.
+      A section is similar to a section in Coq or a module in Agda (but not a module in OCaml). This can be used to implement local bindings as well; a local binding is a private definition in a section. For example, in an OCaml-like languages augmented with sections,
+      {v
+let y = let x = 1 in x
+      v}
+      is equivalent to
+      {v
+section {
+  private let x = 1
+  let y = x
+} // this section exports y but not x
+      v}
 
       @param context_visible The context attached to the modifier effects
       when merging the content of the section into its parent's visible namespace.
