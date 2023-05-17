@@ -64,7 +64,7 @@ sig
       @since 4.1.0 *)
 
   val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
-  (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
+  (** [import_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       the visible namespace (while keeping the export namespace intact).
       Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
@@ -104,7 +104,7 @@ sig
         let m = modify_standalone Language.(union [only ["x"]; only ["y"]]) m in
         import_subtree (["Mod"], m)
       ]}
-      The purpose of re-using the internal modifier engine is to share the same effect handling. For example, if one has already used {!val:run} or {!val:try_with} to mute the [shadow] effect, it also applies to the call of this [modify]. A new instance of {!module:Yuujinchou.Modifier.Make} will use fresh algebraic effects and thus existing effect handling will not apply.
+      The purpose of re-using the internal modifier engine is to share the same effect handling. For example, if one has already used {!val:run} or {!val:try_with} to mute the [Mod.Shadow] effect, it also applies to the call of this [modify]. A new instance of {!module:Yuujinchou.Modifier.Make} will use fresh algebraic effects and thus existing effect handling will not apply.
 
       This function will not lock the current scope, because it will not access the current scope.
       @since 4.1.0 *)
@@ -170,7 +170,7 @@ section {
 
       [try_with] is intended to be used within {!val:run} to intercept or reperform internal effects,
       while {!val:run} is intended to be at the top-level to set up the environment and handle all
-      effects by itself. For example, the following function silences the [shadow] effects, but the
+      effects by itself. For example, the following function silences the [Mod.Shadow] effects, but the
       silencing function should be used within the dynamic scope of a {!val:run}.
       See also {!val:Yuujinchou.Modifier.S.try_with}.
       {[
