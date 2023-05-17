@@ -81,17 +81,17 @@ sig
         modify_visible Language.(union [seq []; only ["M"]])
       ]}
 
-      @param context The context attached to the modifier effects. *)
-
-  val modify_export : ?context:context -> hook Language.t -> unit
-  (** [modify_visible m] modifies the export namespace by
-      running the modifier [m] on it, using the internal modifier engine.
-
       When implementing an OCaml-like language, one can implement [include M] as follows:
       {[
         export_visible Language.(only ["M"]);
         modify_visible Language.(union [seq []; only ["M"]])
       ]}
+
+      @param context The context attached to the modifier effects. *)
+
+  val modify_export : ?context:context -> hook Language.t -> unit
+  (** [modify_visible m] modifies the export namespace by
+      running the modifier [m] on it, using the internal modifier engine.
 
       @param context The context attached to the modifier effects. *)
 
