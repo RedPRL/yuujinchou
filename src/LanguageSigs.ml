@@ -25,10 +25,12 @@ sig
       @since 5.0.0 *)
   val id : 'hook t
 
-  (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
+  (** [only path] keeps the subtree rooted at [path]. Bindings outside the subtree are dropped. It is an error if the subtree was empty. *)
   val only : Trie.path -> 'hook t
 
-  (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"] ]{!val:all} will keep [y] (if existing), while {!val:only}[ ["x"]] will drop [y]. *)
+  (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact.
+
+      For example, suppose we have two bindings [x.a] and [y]. [in_ ["x"] ]{!val:all} will keep both [x.a] and [y], while {!val:only}[ ["x"]] will keep [x.y] but drop [y]. *)
   val in_ : Trie.path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
