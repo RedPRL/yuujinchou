@@ -42,56 +42,54 @@ struct
     M.exclusively @@ fun () ->
     Trie.find_singleton p (S.get ()).visible
 
-  let modify_visible ?context m =
+  let modify_visible ?context_visible m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with visible = Mod.modify ?context ~prefix:Emp m s.visible}
+    {s with visible = Mod.modify ?context:context_visible ~prefix:Emp m s.visible}
 
-  let modify_export ?context m =
+  let modify_export ?context_export m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    {s with export = Mod.modify ?context ~prefix:(export_prefix()) m s.export}
+    {s with export = Mod.modify ?context:context_export ~prefix:(export_prefix()) m s.export}
 
-  let modify_standalone = Mod.modify
-
-  let modify = modify_standalone [@@ocaml.alert deprecated "Use modify_standalone"]
-
-  let export_visible ?context m =
+  let export_visible ?context_modifier ?context_export m =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ~prefix:(export_prefix()) (Mod.Perform.shadow context) s.export @@
-       Mod.modify ?context ~prefix:Emp m s.visible }
+       Trie.union ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export @@
+       Mod.modify ?context:context_modifier ~prefix:Emp m s.visible }
 
   let include_singleton ?context_visible ?context_export (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     { visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, x);
       export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export (path, x) }
 
-  let import_singleton ?context (path, x) =
+  let import_singleton ?context_visible (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context) s.visible (path, x) }
+    { s with visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, x) }
 
-  let unsafe_include_subtree ~context_visible ~context_export (path, ns) =
+  let unsafe_include_subtree ~context_modifier ~context_visible ~context_export ~modifier (path, ns) =
     S.modify @@ fun s ->
+    let ns = Mod.modify ?context:context_modifier ~prefix:Emp modifier ns in
     { visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, ns);
       export = Trie.union_subtree ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export (path, ns) }
 
-  let include_subtree ?context_visible ?context_export (path, ns) =
-    M.exclusively @@ fun () -> unsafe_include_subtree ~context_visible ~context_export (path, ns)
+  let include_subtree ?context_modifier ?context_visible ?context_export ?(modifier=Language.id) (path, ns) =
+    M.exclusively @@ fun () -> unsafe_include_subtree ~context_modifier ~context_visible ~context_export ~modifier (path, ns)
 
-  let import_subtree ?context (path, ns) =
+  let import_subtree ?context_modifier ?context_visible ?(modifier=Language.id) (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context) s.visible (path, ns) }
+    let ns = Mod.modify ?context:context_modifier ~prefix:Emp modifier ns in
+    { s with visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, ns) }
 
   let get_export () =
     M.exclusively @@ fun () -> (S.get()).export
 
-  let section ?context_visible ?context_export p f =
+  let section ?context_modifier ?context_visible ?context_export ?(modifier=Language.id) p f =
     M.exclusively @@ fun () ->
     let ans, export =
       Internal.run ~export_prefix:(export_prefix() <>< p) ~init_visible:(S.get()).visible @@ fun () ->
       let ans = f () in ans, get_export ()
     in
-    unsafe_include_subtree ~context_visible ~context_export (p, export);
+    unsafe_include_subtree ~context_modifier ~context_visible ~context_export ~modifier (p, export);
     ans
 
   let run ?not_found ?shadow ?hook ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
