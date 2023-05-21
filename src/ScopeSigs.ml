@@ -35,20 +35,22 @@ sig
 
       When implementing an OCaml-like language, this is how one can introduce a top-level definition [let p = x].
 
-      @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
-      @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
+      @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
+      @param context_export The context of modifier effects when merging the subtree into the export namespace. *)
 
-  val include_subtree : ?context_visible:context -> ?context_export:context -> Trie.path * (data, tag) Trie.t -> unit
+  val include_subtree : ?context_modifier:context -> ?context_visible:context -> ?context_export:context -> ?modifier:hook Language.t -> Trie.path * (data, tag) Trie.t -> unit
   (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       both the visible and export namespaces. Conflicting names during the final merge
       will trigger the effect [shadow].
 
       This feature is useful for introducing multiple top-level definitions at once.
 
-      @param context_visible The context attached to the modifier effects when manipulating the visible namespace.
-      @param context_export The context attached to the modifier effects when manipulating the export namespace. *)
+      @param context_modifier The context of modifier effects when applying [modifier].
+      @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
+      @param context_export The context of modifier effects when merging the subtree into the export namespace.
+      @param modifier The modifier applied to the subtree before importing it. The default value is {!val:Language.id}. *)
 
-  val import_singleton : ?context:context -> Trie.path * (data * tag) -> unit
+  val import_singleton : ?context_visible:context -> Trie.path * (data * tag) -> unit
   (** [import_singleton (p, x)] adds a new binding to the visible namespace (while keeping the export namespace intact), where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
       [import_singleton (p, x)] is equivalent to [import_subtree Trie.(singleton (p, x))], but potentially more efficient.
@@ -60,19 +62,21 @@ sig
         (* code for handling the expression [e] *)
       ]}
 
-      @param context The context attached to the modifier effects when manipulating the visible namespace.
-      @since 4.1.0 *)
+      @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
+      @since 5.0.0 *)
 
-  val import_subtree : ?context:context -> Trie.path * (data, tag) Trie.t -> unit
+  val import_subtree : ?context_modifier:context -> ?context_visible:context -> ?modifier:hook Language.t -> Trie.path * (data, tag) Trie.t -> unit
   (** [import_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       the visible namespace (while keeping the export namespace intact).
       Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
       When implementing an OCaml-like language, one can import content from other compilation units using [import_subtree].
 
-      @param context The context attached to the modifier effects. *)
+      @param context_modifier The context of modifier effects when applying [modifier].
+      @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
+      @param modifier The modifier applied to the subtree before importing it. The default value is {!val:Language.id}. *)
 
-  val modify_visible : ?context:context -> hook Language.t -> unit
+  val modify_visible : ?context_visible:context -> hook Language.t -> unit
   (** [modify_visible m] modifies the visible namespace by
       running the modifier [m] on it, using the internal modifier engine.
 
@@ -89,37 +93,21 @@ sig
 
       @param context The context attached to the modifier effects. *)
 
-  val modify_export : ?context:context -> hook Language.t -> unit
+  val modify_export : ?context_export:context -> hook Language.t -> unit
   (** [modify_visible m] modifies the export namespace by
       running the modifier [m] on it, using the internal modifier engine.
 
-      @param context The context attached to the modifier effects. *)
+      @param context_export The context attached to the modifier effects. *)
 
-  val modify_standalone : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-  (** Call the internal modifier engine directly on a standalone namespace. See {!val:Yuujinchou.Modifier.S.modify}.
-
-      This feature is useful for massaging a namespace before adding its content into the current scope.
-      It does not exist in OCaml-like languages. However, in a Haskell-like language, one can implement [import qualified Mod (x, y)] as follows:
-      {[
-        let m = modify_standalone Language.(union [only ["x"]; only ["y"]]) m in
-        import_subtree (["Mod"], m)
-      ]}
-      The purpose of re-using the internal modifier engine is to share the same effect handling. For example, if one has already used {!val:run} or {!val:try_with} to mute the [Mod.Shadow] effect, it also applies to the call of this [modify]. A new instance of {!module:Yuujinchou.Modifier.Make} will use fresh algebraic effects and thus existing effect handling will not apply.
-
-      This function will not lock the current scope, because it will not access the current scope.
-      @since 4.1.0 *)
-
-  val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
-  [@@ocaml.alert deprecated "Use modify_standalone"]
-
-  val export_visible : ?context:context -> hook Language.t -> unit
+  val export_visible : ?context_modifier:context -> ?context_export:context -> hook Language.t -> unit
   (** [export_visible m] runs the modifier [m] on the visible namespace,
       and then merge the result into the export namespace.
       Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
 
       This feature is useful for implementing a userspace [export] statement. It does not exist in OCaml-like languages.
 
-      @param context The context attached to the modifier effects. *)
+      @param context_modifier The context of modifier effects when applying the modifier [m].
+      @param context_export The context of modifier effects when merging the subtree into the export namespace. *)
 
   val get_export : unit -> (data, tag) Trie.t
   (** [get_export ()] returns the export namespace of the current scope.
@@ -128,7 +116,7 @@ sig
 
   (** {1 Local Scopes and Sections} *)
 
-  val section : ?context_visible:context -> ?context_export:context -> Trie.path -> (unit -> 'a) -> 'a
+  val section : ?context_modifier:context -> ?context_visible:context -> ?context_export:context -> ?modifier:hook Language.t -> Trie.path -> (unit -> 'a) -> 'a
   (** [section p f] starts a new scope and runs the thunk [f] within the scope.
       The child scope inherits the visible namespace from the parent, and its export namespace
       will be prefixed with [p] and merged into both the visible and export namespaces
@@ -146,10 +134,10 @@ section {
 } // this section exports y but not x
       v}
 
-      @param context_visible The context attached to the modifier effects
-      when merging the content of the section into its parent's visible namespace.
-      @param context_export The context attached to the modifier effects
-      when merging the content of the section into its parent's export namespace. *)
+      @param context_modifier The context of modifier effects when applying [modifier] to the content of the section before the merging.
+      @param context_visible The context attached to the modifier effects when merging the content of the section into its parent's visible namespace.
+      @param context_export The context attached to the modifier effects when merging the content of the section into its parent's export namespace.
+      @param modifier The modifier applied to the content of the section before the merging. *)
 
   (** {1 Runners} *)
 

@@ -86,8 +86,8 @@ let rec interpret_decl : decl -> unit =
     S.try_with ~shadow:S.Silence.shadow @@ fun () ->
     S.include_singleton (p, (x, `Local))
   | Import (t, m) ->
-    let t = S.modify_standalone m (Trie.Untagged.tag `Imported t) in
-    S.import_subtree ([], t)
+    let t = Trie.Untagged.tag `Imported t in
+    S.import_subtree ~modifier:m ([], t)
   | PrintVisible ->
     S.modify_visible (Language.hook Print)
   | Export p ->
