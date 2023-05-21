@@ -137,7 +137,7 @@ section {
       @param context_modifier The context of modifier effects when applying [modifier] to the content of the section before the merging.
       @param context_visible The context of modifier effects when merging the content of the section into its parent's visible namespace.
       @param context_export The context of modifier effects when merging the content of the section into its parent's export namespace.
-      @param modifier The modifier applied to the content of the section before the merging. *)
+      @param modifier The modifier applied to the content of the section before the merging. The default value is {!Language.id}. *)
 
   (** {1 Runners} *)
 
