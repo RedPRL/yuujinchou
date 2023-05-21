@@ -60,26 +60,26 @@ let test_none_3 () =
     (WrappedBindingNotFound Emp)
     (wrap_error @@ fun () -> M.modify none Trie.empty)
 
-let test_any_1 () =
+let test_all_1 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [["x"], N 10])
-    (wrap @@ fun () -> M.modify any (of_list [["x"], N 10]))
+    (wrap @@ fun () -> M.modify all (of_list [["x"], N 10]))
 
-let test_any_2 () =
+let test_all_2 () =
   Alcotest.(check @@ trie data) "ok"
     (of_list [[], N 10])
-    (wrap @@ fun () -> M.modify any (of_list [[], N 10]))
+    (wrap @@ fun () -> M.modify all (of_list [[], N 10]))
 
-let test_any_3 () =
+let test_all_3 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound Emp)
-    (wrap_error @@ fun () -> M.modify any Trie.empty)
+    (wrap_error @@ fun () -> M.modify all Trie.empty)
 
-let test_any_4 () =
+let test_all_4 () =
   let t = of_list [[], N 10] in
   Alcotest.(check @@ trie data) "ok"
     t
-    (wrap @@ fun () -> M.modify any t)
+    (wrap @@ fun () -> M.modify all t)
 
 let test_only_1 () =
   Alcotest.(check @@ trie data) "ok"
@@ -130,7 +130,7 @@ let test_in_2 () =
 let test_in_3 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound (Emp #< "x"))
-    (wrap_error @@ fun () -> M.modify (in_ ["x"] any) Trie.empty)
+    (wrap_error @@ fun () -> M.modify (in_ ["x"] all) Trie.empty)
 
 let test_in_4 () =
   let t = of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30] in
@@ -180,7 +180,7 @@ let test_seq_1 () =
 let test_seq_2 () =
   Alcotest.check_raises "error"
     (WrappedBindingNotFound Emp)
-    (wrap_error @@ fun () -> M.modify (seq [none; any]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
+    (wrap_error @@ fun () -> M.modify (seq [none; all]) (of_list [["x"; "y"], N 10; ["x"; "x"], N 20; ["y"], N 30]))
 
 let test_seq_3 () =
   Alcotest.check_raises "error"
@@ -229,11 +229,11 @@ let () =
       test_case "none" `Quick test_none_2;
       test_case "none" `Quick test_none_3;
     ];
-    "any", [
-      test_case "any" `Quick test_any_1;
-      test_case "any" `Quick test_any_2;
-      test_case "any" `Quick test_any_3;
-      test_case "any" `Quick test_any_4;
+    "all", [
+      test_case "all" `Quick test_all_1;
+      test_case "all" `Quick test_all_2;
+      test_case "all" `Quick test_all_3;
+      test_case "all" `Quick test_all_4;
     ];
     "only", [
       test_case "only" `Quick test_only_1;
