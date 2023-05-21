@@ -6,7 +6,7 @@ type 'hook t =
   | M_union of 'hook t list
   | M_hook of 'hook
 
-let any = M_assert_nonempty
+let all = M_assert_nonempty
 let none = M_seq [M_assert_nonempty; M_union []]
 
 let in_ p m = M_in (p, m)

@@ -14,13 +14,13 @@ sig
 
   (** {2 Basics} *)
 
-  (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
+  (** [all] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
       To avoid the emptiness checking, use the identity modifier {!val:id}.
       This is equivalent to {!val:only}[ []]. *)
-  val any : 'hook t
+  val all : 'hook t
 
   (** [id] is {!val:seq}[ []], which keeps the content of the current tree.
-      This is different from {!val:any} because [id] does not check whether the tree is empty while {!val:any} does.
+      This is different from {!val:all} because [id] does not check whether the tree is empty while {!val:all} does.
 
       @since 5.0.0 *)
   val id : 'hook t
@@ -28,7 +28,7 @@ sig
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
   val only : Trie.path -> 'hook t
 
-  (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"] ]{!val:any} will keep [y] (if existing), while {!val:only}[ ["x"]] will drop [y]. *)
+  (** [in_ path m] runs the modifier [m] on the subtree rooted at [path]. Bindings outside the subtree are kept intact. For example, [in_ ["x"] ]{!val:all} will keep [y] (if existing), while {!val:only}[ ["x"]] will drop [y]. *)
   val in_ : Trie.path -> 'hook t -> 'hook t
 
   (** {2 Negation} *)
@@ -42,7 +42,7 @@ sig
 
   (** {2 Renaming} *)
 
-  (** [renaming path path'] relocates the subtree rooted at [path] to [path']. The existing bindings at [path'] (if any) will be dropped.
+  (** [renaming path path'] relocates the subtree rooted at [path] to [path']. The existing bindings with the prefix [path'] (if any) will be dropped.
       It is an error if the subtree was empty (nothing to move). *)
   val renaming : Trie.path -> Trie.path -> 'hook t
 
