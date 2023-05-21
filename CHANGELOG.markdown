@@ -1,3 +1,19 @@
+# [5.0.0](https://github.com/RedPRL/yuujinchou/compare/4.0.0...5.0.0) (2022-05-21)
+
+### Features
+
+- **Language:** add the abbreviation `id = seq []` ([#106](https://github.com/RedPRL/yuujinchou/issues/106)) ([12ffa87](https://github.com/RedPRL/yuujinchou/commit/12ffa8707f5331ef7e2956aa0b711483c65dfed8))
+- **Scope:** added `import_singleton` ([#105](https://github.com/RedPRL/yuujinchou/issues/105)) ([c12f9c5](https://github.com/RedPRL/yuujinchou/commit/c12f9c5c6f36403c31832626e940bd310dc74578))
+- **Scope:** many operations now take modifiers ([#108](https://github.com/RedPRL/yuujinchou/issues/108)) ([8c1ded9](https://github.com/RedPRL/yuujinchou/commit/8c1ded926de6b9944b5ca861bcf06990feebcf32))
+
+### BREAKING CHANGES
+
+All breaking changes come with type changes. That is, if OCaml is still happy with your code that worked with 4.0.0, your code _will_ work with 5.0.0.
+
+- `Language.any` is renamed to `Language.any` ([#107](https://github.com/RedPRL/yuujinchou/issues/107)) ([313f616](https://github.com/RedPRL/yuujinchou/commit/313f6168072a35af4fafe6e9e02555b6b434850e))
+- `Scope.S.modify` is removed; instead, many operations now take optional modifiers ([#108](https://github.com/RedPRL/yuujinchou/issues/108)) ([8c1ded9](https://github.com/RedPRL/yuujinchou/commit/8c1ded926de6b9944b5ca861bcf06990feebcf32))
+- If you have been passing contexts to operations in `Scope.S`, argument names might have been changed. Previously, some context arguments were named `context`, but now they are uniformly named as `conetext_visible`, `context_export`, or `context_modifier` depending on their purposes.
+
 # [4.0.0](https://github.com/RedPRL/yuujinchou/compare/3.1.0...4.0.0) (2022-12-16)
 
 ### Features
