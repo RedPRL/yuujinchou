@@ -91,13 +91,13 @@ sig
         modify_visible Language.(union [seq []; only ["M"]])
       ]}
 
-      @param context The context attached to the modifier effects. *)
+      @param context The context of modifier effects. *)
 
   val modify_export : ?context_export:context -> hook Language.t -> unit
   (** [modify_visible m] modifies the export namespace by
       running the modifier [m] on it, using the internal modifier engine.
 
-      @param context_export The context attached to the modifier effects. *)
+      @param context_export The context of modifier effects. *)
 
   val export_visible : ?context_modifier:context -> ?context_export:context -> hook Language.t -> unit
   (** [export_visible m] runs the modifier [m] on the visible namespace,
@@ -135,8 +135,8 @@ section {
       v}
 
       @param context_modifier The context of modifier effects when applying [modifier] to the content of the section before the merging.
-      @param context_visible The context attached to the modifier effects when merging the content of the section into its parent's visible namespace.
-      @param context_export The context attached to the modifier effects when merging the content of the section into its parent's export namespace.
+      @param context_visible The context of modifier effects when merging the content of the section into its parent's visible namespace.
+      @param context_export The context of modifier effects when merging the content of the section into its parent's export namespace.
       @param modifier The modifier applied to the content of the section before the merging. *)
 
   (** {1 Runners} *)
