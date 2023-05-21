@@ -1,8 +1,8 @@
 opam-version: "2.0"
 name: "yuujinchou"
-synopsis: "A domain-specific language for manipulating hierarchical names"
+synopsis: "A library for hierarchical names and lexical scoping"
 description: """
-This package offers a domain-specific language for manipulating hierarchical names. It intends to facilitate the implementation of lexical scoping and import statements.
+This package offers an implementation of nested lexical scoping with an extensible domain-specific language for manipulating hierarchical names.
 """
 maintainer: "favonia <favonia@gmail.com>"
 authors: [

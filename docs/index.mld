@@ -24,6 +24,10 @@ v}
 
 Arguably, common designs of these hiding or renaming mechanisms are quite limited. The goal of the yuujinchou library is to provide a compositional calculus of these modifiers of names. Currently, the library supports renaming, scopes, sequencing, unions, and custom hooks for extending the engine.
 
+{2 Lexical Scoping}
+
+Later on, an implementation of lexical scoping based on name modifiers was added to the library. The implementation provides a flexible API for all common namespace operations ({i e.g.,} "import", "include", "open", sections, etc.). While it is still possible to use name modifiers without touching the code for the lexical scoping. Most implementators should start with this newly added module. See {!module:Yuujinchou.Scope} for the API reference.
+
 {1 More Information}
 
 - {{!page:design}The design philosophy.} See also {{:https://youtu.be/5Cp8jNrWSjI}Favonia's TYPE 2022 talk}.
