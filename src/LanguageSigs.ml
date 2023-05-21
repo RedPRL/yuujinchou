@@ -15,9 +15,15 @@ sig
   (** {2 Basics} *)
 
   (** [any] keeps the content of the current tree. It is an error if the tree is empty (no name to match).
-      To avoid the emptiness checking, use the identity modifier {!val:seq}[ []].
+      To avoid the emptiness checking, use the identity modifier {!val:id}.
       This is equivalent to {!val:only}[ []]. *)
   val any : 'hook t
+
+  (** [id] is {!val:seq}[ []], which keeps the content of the current tree.
+      This is different from {!val:any} because [id] does not check whether the tree is empty while {!val:any} does.
+
+      @since 5.0.0 *)
+  val id : 'hook t
 
   (** [only path] keeps the subtree rooted at [path]. It is an error if the subtree was empty. *)
   val only : Trie.path -> 'hook t
@@ -43,7 +49,7 @@ sig
   (** {2 Sequencing} *)
 
   (** [seq [m0; m1; m2; ...; mn]] runs the modifiers [m0], [m1], [m2], ..., [mn] in order.
-      In particular, [seq []] is the identity modifier. *)
+      In particular, [seq []] is the identity modifier {!val:id}. *)
   val seq : 'hook t list -> 'hook t
 
   (** {2 Union} *)

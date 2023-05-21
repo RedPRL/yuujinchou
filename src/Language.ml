@@ -17,6 +17,7 @@ let except p = in_ p none
 let renaming p p' = M_seq [M_in (p, M_assert_nonempty); M_renaming (p, p')]
 
 let seq ms = M_seq ms
+let id = seq []
 
 let hook f = M_hook f
 
