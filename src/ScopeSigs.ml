@@ -8,9 +8,16 @@ sig
   module Param : Param
   open Param
 
+  (** {1 Effects and Exceptions} *)
+
   type not_found_handler = context option -> Trie.bwd_path -> unit
+  (** The type of a handler of the {!val:Modifier.S.module-Perform.not_found} effect. *)
+
   type shadow_handler = context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
+  (** The type of a handler of the {!val:Modifier.S.module-Perform.shadow} effect. *)
+
   type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
+  (** The type of a handler of the {!val:Modifier.S.module-Perform.hook} effect. *)
 
   exception Locked
   (** The exception [Locked] is raised when an operation on a scope starts before another operation on the same scope is finished.
@@ -22,11 +29,13 @@ sig
       Note: {!val:section} only locks the parent scope; the child scope is initially unlocked.
   *)
 
-  (** {1 Basics} *)
+  (** {1 Resolution} *)
 
   val resolve : Trie.path -> (data * tag) option
   (** [resolve p] looks up the name [p] in the current scope
       and return the data associated with the binding. *)
+
+  (** {1 Include} *)
 
   val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
   (** [include_singleton (p, x)] adds a new binding to both the visible and export namespaces, where the binding is associating the data [x] to the path [p].
@@ -49,6 +58,8 @@ sig
       @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
       @param context_export The context of modifier effects when merging the subtree into the export namespace.
       @param modifier The modifier applied to the subtree before importing it. The default value is {!val:Language.id}. *)
+
+  (** {1 Import} *)
 
   val import_singleton : ?context_visible:context -> Trie.path * (data * tag) -> unit
   (** [import_singleton (p, x)] adds a new binding to the visible namespace (while keeping the export namespace intact), where the binding is associating the data [x] to the path [p].
@@ -76,6 +87,8 @@ sig
       @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
       @param modifier The modifier applied to the subtree before importing it. The default value is {!val:Language.id}. *)
 
+  (** {1 Modification} *)
+
   val modify_visible : ?context_visible:context -> hook Language.t -> unit
   (** [modify_visible m] modifies the visible namespace by
       running the modifier [m] on it, using the internal modifier engine.
@@ -99,6 +112,8 @@ sig
 
       @param context_export The context of modifier effects. *)
 
+  (** {1 Export} *)
+
   val export_visible : ?context_modifier:context -> ?context_export:context -> hook Language.t -> unit
   (** [export_visible m] runs the modifier [m] on the visible namespace,
       and then merge the result into the export namespace.
@@ -112,9 +127,9 @@ sig
   val get_export : unit -> (data, tag) Trie.t
   (** [get_export ()] returns the export namespace of the current scope.
 
-      This is useful for obtaining all exported content when wrapping up a compilation unit. The {!val:section} function internally calls [get_export] when wrapping up a child scope, but an implementer is expected to call [get_export] for the outermost scope. The outermost scope is special because it is the interface of the entire compilation unit and its ending often triggers special handling code ({i e.g.,} caching). *)
+      This is useful for obtaining all exported content when wrapping up a compilation unit. The {!val:section} function internally calls [get_export] when wrapping up a child scope, but an implementer is expected to call [get_export] for the outermost scope. The outermost scope is special because it is the interface of the entire compilation unit and its ending often triggers special handling code ({i e.g.,} caching of declared names for faster scope checking). *)
 
-  (** {1 Local Scopes and Sections} *)
+  (** {1 Sections} *)
 
   val section : ?context_modifier:context -> ?context_visible:context -> ?context_export:context -> ?modifier:hook Language.t -> Trie.path -> (unit -> 'a) -> 'a
   (** [section p f] starts a new scope and runs the thunk [f] within the scope.
@@ -140,6 +155,10 @@ section {
       @param modifier The modifier applied to the content of the section before the merging. The default value is {!Language.id}. *)
 
   (** {1 Runners} *)
+
+  module type Perform = Perform with module Param := Param
+  module Perform : Perform
+  module Silence : Perform
 
   val run : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler ->
     ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
@@ -169,8 +188,4 @@ section {
       A consequence of the semantic difference between {!val:run} and [try_with] is that
       {!val:run} starts a fresh empty scope while [try_with] stays in the current scope.
   *)
-
-  module type Perform = Perform with module Param := Param
-  module Perform : Perform
-  module Silence : Perform
 end

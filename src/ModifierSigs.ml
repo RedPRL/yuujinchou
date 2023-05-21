@@ -40,11 +40,18 @@ sig
   module type Perform = Perform with module Param := Param
 
   module Perform : Perform
+  (** The module that (re-)perform effects. *)
+
   module Silence : Perform
 
   type not_found_handler = context option -> Trie.bwd_path -> unit
+  (** The type of a handler of the {!val:Modifier.S.module-Perform.not_found} effect. *)
+
   type shadow_handler = context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
+  (** The type of a handler of the {!val:Modifier.S.module-Perform.shadow} effect. *)
+
   type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
+  (** The type of a handler of the {!val:Modifier.S.module-Perform.hook} effect. *)
 
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [modify modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
