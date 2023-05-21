@@ -26,7 +26,7 @@ section b {
     def y := 2
   }
 }
-modify_visible [union [any; renaming ["b"] []]]
+modify_visible [union [all; renaming ["b"] []]]
 v}
 Both [a.x] and [a.y] will be available after the modification of the visible namespace because [b.a] and [a] will be recursively merge. In contrary, the binding [a.x] would be shadowed if it were OCaml code:
 {[
@@ -48,9 +48,9 @@ The reason is that the previous pseudocode is equivalent to the following:
 {v
 def a.x := 1
 def b.a.y := 2
-modify_visible [union [any; renaming ["b"] []]]
+modify_visible [union [all; renaming ["b"] []]]
 v}
-where the union of the original namespace (via {{!val:Yuujinchou.Language.any}any}), which contains [a.x] and [b.a.y], and the output of {{!val:Yuujinchou.Language.renaming}renaming}, which contains [a.y], results into a namespace with [a.x], [a.y], and [b.a.y]. The binding [a.y] does not hide [a.x] because there is no explicit namespace [a] to hide [a.x]. In comparison, there was an OCaml module [A] to shadow another module [A] and its member [A.x]. This radically different treatment makes it easy to patch a deeply nested namespace with one union operator.
+where the union of the original namespace (via {{!val:Yuujinchou.Language.all}all}), which contains [a.x] and [b.a.y], and the output of {{!val:Yuujinchou.Language.renaming}renaming}, which contains [a.y], results into a namespace with [a.x], [a.y], and [b.a.y]. The binding [a.y] does not hide [a.x] because there is no explicit namespace [a] to hide [a.x]. In comparison, there was an OCaml module [A] to shadow another module [A] and its member [A.x]. This radically different treatment makes it easy to patch a deeply nested namespace with one union operator.
 
 To recover efficient group operations on implicit namespaces as one might expect for explicit namespaces, all modifiers in {{!Yuujinchou.Language}Language} work on subtrees instead of individual bindings. For example, [only ["x"]] will select {e all} bindings with the prefix [x], not just the binding [x]. Therefore, in most cases, one can pretend that namespaces exist. (We tried providing modifiers for both subtrees and individual bindings, but the ones for individual bindings seem useless.)
 
