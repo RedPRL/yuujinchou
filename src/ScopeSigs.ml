@@ -8,7 +8,9 @@ sig
   module Param : Param
   open Param
 
-  (** {1 Effects and Exceptions} *)
+  (** A scope inherently has two namespaces: a {i visible} namespace that dictates what's visible, and an {i export} namespace recording all the names that will be exported. *)
+
+  (** {1 Types of Effect Handlers} *)
 
   type not_found_handler = context option -> Trie.bwd_path -> unit
   (** The type of a handler of the {!val:Modifier.S.module-Perform.not_found} effect. *)
@@ -19,23 +21,26 @@ sig
   type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** The type of a handler of the {!val:Modifier.S.module-Perform.hook} effect. *)
 
+  (** {1 Exceptions} *)
+
   exception Locked
   (** The exception [Locked] is raised when an operation on a scope starts before another operation on the same scope is finished.
       This could happen when the user, for example, calls {!val:modify_visible} and then calls {!val:modify_export} when handling the effects.
 
       The principle is that one should not access any scope in its intermediate states, including looking up a name via {!val:resolve}.
-      Any attempt to do so will raise the exception [Locked].
+      Any attempt to do so will raise the exception [Locked]; the exception [Locked] signals a serious programming error.
 
       Note: {!val:section} only locks the parent scope; the child scope is initially unlocked.
   *)
 
-  (** {1 Resolution} *)
+  (** {1 Name Resolution} *)
 
   val resolve : Trie.path -> (data * tag) option
-  (** [resolve p] looks up the name [p] in the current scope
-      and return the data associated with the binding. *)
+  (** [resolve p] looks up the name [p] in the visible namespace and returns the data associated with the binding. *)
 
-  (** {1 Include} *)
+  (** {1 Inclusion of New Names}
+
+      Inclusion affects both visible and export namespaces, just like [include] in OCaml. *)
 
   val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
   (** [include_singleton (p, x)] adds a new binding to both the visible and export namespaces, where the binding is associating the data [x] to the path [p].
@@ -59,7 +64,9 @@ sig
       @param context_export The context of modifier effects when merging the subtree into the export namespace.
       @param modifier The modifier applied to the subtree before importing it. The default value is {!val:Language.id}. *)
 
-  (** {1 Import} *)
+  (** {1 Importing of New Names}
+
+      Importing affects only the visible namespace, just like [open] in OCaml. *)
 
   val import_singleton : ?context_visible:context -> Trie.path * (data * tag) -> unit
   (** [import_singleton (p, x)] adds a new binding to the visible namespace (while keeping the export namespace intact), where the binding is associating the data [x] to the path [p].
@@ -87,7 +94,7 @@ sig
       @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
       @param modifier The modifier applied to the subtree before importing it. The default value is {!val:Language.id}. *)
 
-  (** {1 Modification} *)
+  (** {1 Modifying Namespaces} *)
 
   val modify_visible : ?context_visible:context -> hook Language.t -> unit
   (** [modify_visible m] modifies the visible namespace by
@@ -112,7 +119,7 @@ sig
 
       @param context_export The context of modifier effects. *)
 
-  (** {1 Export} *)
+  (** {1 Exporting Names} *)
 
   val export_visible : ?context_modifier:context -> ?context_export:context -> hook Language.t -> unit
   (** [export_visible m] runs the modifier [m] on the visible namespace,
@@ -157,16 +164,21 @@ section {
   (** {1 Runners} *)
 
   module type Perform = Perform with module Param := Param
+  (** The signature of a module implementing all effect handlers for a lexical scope. *)
+
   module Perform : Perform
+  (** The handlers that (re-)perform effects. *)
+
   module Silence : Perform
+  (** The handlers that silence effects. *)
 
   val run : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler ->
     ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
   (** [run ~not_found ~shadow ~hook f] initializes a scope and executes the thunk [f], using [h] to handle modifier effects.
 
-      @param not_found See {!val:Yuujinchou.Modifier.S.run}
-      @param shadow See {!val:Yuujinchou.Modifier.S.run}
-      @param hook See {!val:Yuujinchou.Modifier.S.run}
+      @param not_found See {!val:Yuujinchou.Modifier.S.run} for the explanation of this argument.
+      @param shadow See {!val:Yuujinchou.Modifier.S.run} for the explanation of this argument.
+      @param hook See {!val:Yuujinchou.Modifier.S.run} for the explanation of this argument.
       @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
       originating from export namespaces. The default is the empty path ([Emp]).
       This does not affect paths originating from visible namespaces.

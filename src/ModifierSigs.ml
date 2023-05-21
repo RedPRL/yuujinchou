@@ -38,11 +38,13 @@ sig
   open Param
 
   module type Perform = Perform with module Param := Param
+  (** The signature of a module implementing all effect handlers for a modifier engine. *)
 
   module Perform : Perform
   (** The module that (re-)perform effects. *)
 
   module Silence : Perform
+  (** The module that silence effects. *)
 
   type not_found_handler = context option -> Trie.bwd_path -> unit
   (** The type of a handler of the {!val:Modifier.S.module-Perform.not_found} effect. *)
