@@ -151,7 +151,7 @@ section {
       @param export_prefix The additional global prefix prepended to the paths reported to effect handlers
       originating from export namespaces. The default is the empty path ([Emp]).
       This does not affect paths originating from visible namespaces.
-      @param init_visible The initial visible namespace. The default is the empty trie. *)
+      @param init_visible The initial visible namespace. The default is the empty namespace. *)
 
   val try_with : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
   (** Execute the code and handles the internal modifier effects.
