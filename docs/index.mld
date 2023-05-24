@@ -1,4 +1,4 @@
-{0 yuujinchou: Name Modifiers}
+{0 yuujinchou: Hierarchical Names and Lexical Scoping}
 
 {1 Introduction}
 
@@ -39,6 +39,6 @@ Later on, an implementation of lexical scoping based on name modifiers was added
 
 "yuujinchou" is the transliteration of "友人帳" in Japanese, which literally means "book of friends". It is a powerful notebook in the manga Natsume Yuujinchou (夏目友人帳) that collects many {e real names (真名)} of youkais (妖怪) (supernatural and spiritual monsters). These real names can be used to summon and control youkais, but the protagonist decided to return the names to their original owners. The plot is about meeting all kinds of youkais.
 
-This magical book will automatically turn to the page with the correct name when the protagonist pictures the youkai in his mind. This package is also about finding real names of youkais.
+The magical notebook will automatically turn to the page with the correct name when the protagonist pictures the youkai in his mind. The earlier versions of this package focus on hierarchical names and name modifiers, which is about finding real names of youkais (the actual definitions). Later on, the package is extended with an implementation of lexical scoping.
 
 Notes on the transliteration: "yuujinchou" is in the Wāpuro style so that it uses only the English alphabet; otherwise, its Hepburn romanization would be "Yūjin-chō".
