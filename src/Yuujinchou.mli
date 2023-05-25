@@ -40,5 +40,5 @@ sig
   module type S = ScopeSigs.S with module Language := Language
 
   (** The functor to generate a module for scoping effects. *)
-  module Make (Param : Param) (Modifier : Modifier.S with module Param := Param) : S with module Param := Param
+  module Make (Param : Param) : S with module Param := Param
 end
