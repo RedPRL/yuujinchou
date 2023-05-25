@@ -6,9 +6,7 @@ module type Param = ScopeSigs.Param
 module type Perform = ScopeSigs.Perform
 module type S = S with module Language := Language
 
-module Make (Param : Param) (Mod : Modifier.S with module Param := Param)
-  : S with module Param := Param
-=
+module Make (Param : Param) : S with module Param := Param =
 struct
   open Param
 
@@ -18,6 +16,8 @@ struct
 
   module Internal =
   struct
+    module Mod = Modifier.Make(Param)
+
     module M = Algaeff.Mutex.Make()
 
     type scope = {visible : (data, tag) Trie.t; export : (data, tag) Trie.t}

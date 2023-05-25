@@ -13,15 +13,14 @@ type program = decl list
 module P =
 struct
   type data = int
-  type tag = [ `AnywhereOnEarth ]
+  type tag = unit
 
   type hook = unit (* for modifier hooks; unused here *)
   type context = unit (* for advanced printing and reporting; unused here *)
 end
 
 (* Specialized Scope module *)
-module M = Modifier.Make (P)
-module S = Scope.Make (P) (M)
+module S = Scope.Make (P)
 
 let pp_path fmt =
   function
@@ -32,10 +31,10 @@ let pp_path fmt =
 let rec interpret_decl : decl -> unit =
   function
   | Decl (p, x) ->
-    S.include_singleton (p, (x, `AnywhereOnEarth))
+    S.include_singleton (p, (x, ()))
   | Import (t, m) ->
-    let t = M.modify m (Trie.retag `AnywhereOnEarth t) in
-    S.import_subtree ([], t)
+    let t = Trie.retag () t in
+    S.import_subtree ~modifier:m ([], t)
   | Export p ->
     S.export_visible (Language.only p)
   | Section (p, sec) ->
