@@ -1,10 +1,18 @@
 # [5.0.1](https://github.com/RedPRL/yuujinchou/compare/5.0.0...5.0.1) (2023-05-25)
 
+This is a hotfix of the version 5.0.0. Do not use version 5.0.0.
+
 ### Bug Fixes
 
 - **Scope:** hide the internal `Modifier` completely ([#109](https://github.com/RedPRL/yuujinchou/issues/109)) ([6e3ca4e](https://github.com/RedPRL/yuujinchou/commit/6e3ca4ee4c3f1c91ff19f07a9050cdda43f66d9c))
 
+### BREAKING CHANGES
+
+- `Scope.Make` is taking only one module with the type parameters, not also a module implementing `Modifier.S`.
+
 # [5.0.0](https://github.com/RedPRL/yuujinchou/compare/4.0.0...5.0.0) (2022-05-21)
+
+This is a bad version. It should have hidden the internal `Modifier` in a `Scope` completely. Use version 5.0.1 instead.
 
 ### Features
 
