@@ -86,7 +86,7 @@ struct
   let section ?context_modifier ?context_visible ?context_export ?(modifier=Language.id) p f =
     M.exclusively @@ fun () ->
     let ans, export =
-      Internal.run ~export_prefix:(export_prefix() <>< p) ~init_visible:(S.get()).visible @@ fun () ->
+      Internal.run ~export_prefix:(export_prefix() <@ p) ~init_visible:(S.get()).visible @@ fun () ->
       let ans = f () in ans, get_export ()
     in
     unsafe_include_subtree ~context_modifier ~context_visible ~context_export ~modifier (p, export);
