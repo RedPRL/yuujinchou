@@ -225,7 +225,7 @@ let rec union_node ~prefix m n1 n2 =
          let t1 = SegMap.find seg nt1.tag_children
          and t2 = SegMap.find seg nt2.tag_children
          in
-         let d, t = union_node ~prefix:(prefix #< seg) m (d1, t1) (d2, t2) in
+         let d, t = union_node ~prefix:(prefix <: seg) m (d1, t1) (d2, t2) in
          tag_overlapping_children := SegMap.add seg t !tag_overlapping_children;
          Some d)
       nd1.children nd2.children
@@ -238,7 +238,7 @@ let union_ ~prefix m = union_option (union_node ~prefix m)
 let[@inline] union ?(prefix=Emp) m = union_ ~prefix m
 
 let union_subtree ?(prefix=Emp) m v1 (path, v2) =
-  update_cont path v1 @@ fun v1 -> union_ ~prefix:(prefix <>< path) m v1 v2
+  update_cont path v1 @@ fun v1 -> union_ ~prefix:(prefix <@ path) m v1 v2
 
 let union_root ?(prefix=Emp) m v1 v2 =
   match v1 with
@@ -250,7 +250,7 @@ let union_root ?(prefix=Emp) m v1 v2 =
     non_empty ({d1 with root}, {t1 with tag_root})
 
 let union_singleton ?(prefix=Emp) m v1 (path, v2) =
-  update_cont path v1 @@ fun v1 -> union_root ~prefix:(prefix <>< path) m v1 v2
+  update_cont path v1 @@ fun v1 -> union_root ~prefix:(prefix <@ path) m v1 v2
 
 (** {1 Detaching subtrees} *)
 
@@ -277,14 +277,14 @@ let detach_singleton path t = apply_and_update_cont path t detach_root
 
 let rec iter_node ~prefix f n =
   Option.iter (f prefix) (find_root_node n);
-  SegMap.iter (fun seg -> iter_node ~prefix:(prefix #< seg) f) (get_children_node n)
+  SegMap.iter (fun seg -> iter_node ~prefix:(prefix <: seg) f) (get_children_node n)
 let iter ?(prefix=Emp) f v = Option.iter (iter_node ~prefix f) v
 
 let rec filter_map_node ~prefix f n : _ t =
   let root, tag_root = split_option @@ Option.bind (find_root_node n) (f prefix) in
   let children, tag_children =
     split_children @@
-    SegMap.filter_map (fun seg -> filter_map_node ~prefix:(prefix #< seg) f) (get_children_node n)
+    SegMap.filter_map (fun seg -> filter_map_node ~prefix:(prefix <: seg) f) (get_children_node n)
   in
   mk_tree (root, children) (tag_root, (None, tag_children))
 let filter_map ?(prefix=Emp) f v = Option.bind v @@ filter_map_node ~prefix f

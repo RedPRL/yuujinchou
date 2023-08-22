@@ -93,7 +93,7 @@ let test_only_2 () =
 
 let test_only_3 () =
   Alcotest.check_raises "error"
-    (WrappedBindingNotFound (Emp #< "x" #< "y"))
+    (WrappedBindingNotFound (Emp <: "x" <: "y"))
     (wrap_error @@ fun () -> M.modify (only ["x"; "y"]) Trie.empty)
 
 let test_only_4 () =
@@ -114,7 +114,7 @@ let test_except_2 () =
 
 let test_except_3 () =
   Alcotest.check_raises "error"
-    (WrappedBindingNotFound (Emp #< "x" #< "y"))
+    (WrappedBindingNotFound (Emp <: "x" <: "y"))
     (wrap_error @@ fun () -> M.modify (except ["x"; "y"]) Trie.empty)
 
 let test_in_1 () =
@@ -129,7 +129,7 @@ let test_in_2 () =
 
 let test_in_3 () =
   Alcotest.check_raises "error"
-    (WrappedBindingNotFound (Emp #< "x"))
+    (WrappedBindingNotFound (Emp <: "x"))
     (wrap_error @@ fun () -> M.modify (in_ ["x"] all) Trie.empty)
 
 let test_in_4 () =
@@ -150,7 +150,7 @@ let test_renaming_2 () =
 
 let test_renaming_3 () =
   Alcotest.check_raises "error"
-    (WrappedBindingNotFound (Emp #< "x"))
+    (WrappedBindingNotFound (Emp <: "x"))
     (wrap_error @@ fun () -> M.modify (renaming ["x"] ["z"]) Trie.empty)
 
 let test_renaming_4 () =
@@ -189,7 +189,7 @@ let test_seq_3 () =
 
 let test_seq_4 () =
   Alcotest.check_raises "error"
-    (WrappedBindingNotFound (Emp #< "x"))
+    (WrappedBindingNotFound (Emp <: "x"))
     (wrap_error @@ fun () -> M.modify (seq [renaming ["x"] ["z"]; only ["x"]]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_seq_5 () =
@@ -200,12 +200,12 @@ let test_seq_5 () =
 
 let test_union_1 () =
   Alcotest.(check @@ trie data) "ok"
-    (of_list [["x"], U ((Emp #< "x"), N 10, N 10); ["y"], N 20])
+    (of_list [["x"], U ((Emp <: "x"), N 10, N 10); ["y"], N 20])
     (wrap @@ fun () -> M.modify (union [only ["x"]; except ["x"]; only ["x"]]) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_union_2 () =
   Alcotest.(check @@ trie data) "ok"
-    (of_list [["x"], U ((Emp #< "x"), N 10, N 10); ["y"], N 20])
+    (of_list [["x"], U ((Emp <: "x"), N 10, N 10); ["y"], N 20])
     (wrap @@ fun () -> M.modify (in_ ["x"] (union [only []; only []])) (of_list [["x"], N 10; ["y"], N 20]))
 
 let test_union_3 () =

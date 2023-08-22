@@ -50,7 +50,7 @@ struct
       | L.M_assert_nonempty ->
         if Trie.is_empty t then not_found context prefix; t
       | L.M_in (p, m) ->
-        Trie.update_subtree p (go (prefix <>< p) m) t
+        Trie.update_subtree p (go (prefix <@ p) m) t
       | L.M_renaming (p1, p2) ->
         let t, remaining = Trie.detach_subtree p1 t in
         Trie.update_subtree p2 (fun _ -> t) remaining

@@ -33,13 +33,13 @@ let find_singleton p l =
 let find_root l = find_singleton [] l
 
 let iter ?(prefix=Emp) f l =
-  List.iter (fun (p, x) -> f (prefix <>< p) x) l
+  List.iter (fun (p, x) -> f (prefix <@ p) x) l
 let map ?(prefix=Emp) f l =
-  List.map (fun (p, (d, t)) -> (p, f (prefix <>< p) (d, t))) l
+  List.map (fun (p, (d, t)) -> (p, f (prefix <@ p) (d, t))) l
 let filter ?(prefix=Emp) f l =
-  List.filter (fun (p, (d, t)) -> f (prefix <>< p) (d, t)) l
+  List.filter (fun (p, (d, t)) -> f (prefix <@ p) (d, t)) l
 let filter_map ?(prefix=Emp) f l =
-  List.filter_map (fun (p, (d, t)) -> Option.map (fun x -> p, x) @@ f (prefix <>< p) (d, t)) l
+  List.filter_map (fun (p, (d, t)) -> Option.map (fun x -> p, x) @@ f (prefix <@ p) (d, t)) l
 
 let detach_subtree pre l =
   l |> List.partition_map
@@ -71,7 +71,7 @@ let rec merge_uniq ~prefix m l1 l2 =
     else if c > 0 then
       (p2,x2)::merge_uniq ~prefix m l1 l2'
     else
-      (p1, m (prefix <>< p1) x1 x2) :: merge_uniq ~prefix m l1' l2'
+      (p1, m (prefix <@ p1) x1 x2) :: merge_uniq ~prefix m l1' l2'
 
 let union ?(prefix=Emp) m l1 l2 =
   merge_uniq ~prefix m l1 l2
@@ -92,9 +92,9 @@ let update_root f l =
   update_singleton [] f l
 
 let to_seq ?(prefix=Emp) l =
-  Seq.map (fun (p, x) -> prefix <>> p, x) @@ List.to_seq l
+  Seq.map (fun (p, x) -> prefix @> p, x) @@ List.to_seq l
 let to_seq_with_bwd_paths ?(prefix=Emp) l =
-  Seq.map (fun (p, x) -> prefix <>< p, x) @@ List.to_seq l
+  Seq.map (fun (p, x) -> prefix <@ p, x) @@ List.to_seq l
 let to_seq_values l = Seq.map snd @@ List.to_seq l
 let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empty s
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
