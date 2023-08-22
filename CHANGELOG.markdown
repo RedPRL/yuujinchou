@@ -28,7 +28,7 @@ This is a bad version. It should have hidden the internal `Modifier` in a `Scope
 
 All breaking changes come with type changes. That is, if OCaml is still happy with your code that worked with 4.0.0, your code _will_ work with 5.0.0.
 
-- `Language.any` is renamed to `Language.any` ([#107](https://github.com/RedPRL/yuujinchou/issues/107)) ([313f616](https://github.com/RedPRL/yuujinchou/commit/313f6168072a35af4fafe6e9e02555b6b434850e))
+- `Language.any` is renamed to `Language.all` ([#107](https://github.com/RedPRL/yuujinchou/issues/107)) ([313f616](https://github.com/RedPRL/yuujinchou/commit/313f6168072a35af4fafe6e9e02555b6b434850e))
 - `Scope.S.modify` is removed; instead, many operations now take optional modifiers ([#108](https://github.com/RedPRL/yuujinchou/issues/108)) ([8c1ded9](https://github.com/RedPRL/yuujinchou/commit/8c1ded926de6b9944b5ca861bcf06990feebcf32))
 - If you have been passing contexts to operations in `Scope.S`, argument names might have been changed. Previously, some context arguments were named `context`, but now they are uniformly named as `conetext_visible`, `context_export`, or `context_modifier` depending on their purposes.
 
