@@ -1,3 +1,7 @@
+# [5.0.2](https://github.com/RedPRL/yuujinchou/compare/5.0.1...5.0.2) (2023-08-22)
+
+This is a minor update that uses the new infix operators introduced in [bwd 2.2.0](https://ocaml.org/p/bwd/2.2.0) internally. No APIs were changed.
+
 # [5.0.1](https://github.com/RedPRL/yuujinchou/compare/5.0.0...5.0.1) (2023-05-25)
 
 This is a hotfix of the version 5.0.0. Do not use version 5.0.0.
