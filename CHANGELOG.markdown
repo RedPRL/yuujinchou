@@ -2,35 +2,40 @@
 
 This is a minor update that uses the new infix operators introduced in [bwd 2.2.0](https://ocaml.org/p/bwd/2.2.0) internally. No APIs were changed.
 
-# [5.0.1](https://github.com/RedPRL/yuujinchou/compare/5.0.0...5.0.1) (2023-05-25)
+# [5.0.1](https://github.com/RedPRL/yuujinchou/compare/4.0.0...5.0.1) (2023-05-25)
 
-This is a hotfix of the version 5.0.0. Do not use version 5.0.0.
+This version involves breaking changes to the API. Note: please skip the bad version 5.0.0.
 
 ### Bug Fixes
 
 - **Scope:** hide the internal `Modifier` completely ([#109](https://github.com/RedPRL/yuujinchou/issues/109)) ([6e3ca4e](https://github.com/RedPRL/yuujinchou/commit/6e3ca4ee4c3f1c91ff19f07a9050cdda43f66d9c))
 
-### BREAKING CHANGES
-
-- `Scope.Make` is taking only one module with the type parameters, not also a module implementing `Modifier.S`.
-
-# [5.0.0](https://github.com/RedPRL/yuujinchou/compare/4.0.0...5.0.0) (2022-05-21)
-
-This is a bad version. It should have hidden the internal `Modifier` in a `Scope` completely. Use version 5.0.1 instead.
-
 ### Features
 
 - **Language:** add the abbreviation `id = seq []` ([#106](https://github.com/RedPRL/yuujinchou/issues/106)) ([12ffa87](https://github.com/RedPRL/yuujinchou/commit/12ffa8707f5331ef7e2956aa0b711483c65dfed8))
 - **Scope:** added `import_singleton` ([#105](https://github.com/RedPRL/yuujinchou/issues/105)) ([c12f9c5](https://github.com/RedPRL/yuujinchou/commit/c12f9c5c6f36403c31832626e940bd310dc74578))
-- **Scope:** many operations now take modifiers ([#108](https://github.com/RedPRL/yuujinchou/issues/108)) ([8c1ded9](https://github.com/RedPRL/yuujinchou/commit/8c1ded926de6b9944b5ca861bcf06990feebcf32))
+- **Scope:** many operations now take optional modifiers ([#108](https://github.com/RedPRL/yuujinchou/issues/108)) ([8c1ded9](https://github.com/RedPRL/yuujinchou/commit/8c1ded926de6b9944b5ca861bcf06990feebcf32))
 
 ### BREAKING CHANGES
 
 All breaking changes come with type changes. That is, if OCaml is still happy with your code that worked with 4.0.0, your code _will_ work with 5.0.0.
 
-- `Language.any` is renamed to `Language.all` ([#107](https://github.com/RedPRL/yuujinchou/issues/107)) ([313f616](https://github.com/RedPRL/yuujinchou/commit/313f6168072a35af4fafe6e9e02555b6b434850e))
+- `Scope.Make` is taking only one module with the type parameters, not also a module implementing `Modifier.S`. That is, you should change the code
+
+  ```ocaml
+  module Modifier = Yuujinchou.Modifier.Make(Param)
+  module Scope = Yuujinchou.Scope.Make(Param)(Modifier)
+  ```
+
+  to just the following line
+
+  ```ocaml
+  module Scope = Yuujinchou.Scope.Make(Param)
+  ```
+
 - `Scope.S.modify` is removed; instead, many operations now take optional modifiers ([#108](https://github.com/RedPRL/yuujinchou/issues/108)) ([8c1ded9](https://github.com/RedPRL/yuujinchou/commit/8c1ded926de6b9944b5ca861bcf06990feebcf32))
-- If you have been passing contexts to operations in `Scope.S`, argument names might have been changed. Previously, some context arguments were named `context`, but now they are uniformly named as `conetext_visible`, `context_export`, or `context_modifier` depending on their purposes.
+- `Language.any` is renamed to `Language.all` ([#107](https://github.com/RedPRL/yuujinchou/issues/107)) ([313f616](https://github.com/RedPRL/yuujinchou/commit/313f6168072a35af4fafe6e9e02555b6b434850e))
+- If you have been passing contexts to operations in `Scope.S`, the labels for optional context arguments might have been adjusted for uniformity. Previously, some context arguments were named `context`, but now they are uniformly named as `conetext_visible`, `context_export`, or `context_modifier` depending on their usage.
 
 # [4.0.0](https://github.com/RedPRL/yuujinchou/compare/3.1.0...4.0.0) (2022-12-16)
 
