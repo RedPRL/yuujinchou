@@ -3,7 +3,7 @@
 (** The {!module:Trie} module implements mappings from paths to values that support efficient subtree operations. *)
 module Trie : sig
   include module type of Trie
-  (** @open *)
+  (** @inline *)
 
   module Untagged : module type of UntaggedTrie
 end
