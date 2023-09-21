@@ -83,7 +83,12 @@ sig
   *)
 
   val register_printer : ([ `NotFound of context option * Trie.bwd_path | `Shadow of context option * Trie.bwd_path * (data * tag) * (data * tag) | `Hook of context option * Trie.bwd_path * hook * (data, tag) Trie.t ] -> string option) -> unit
-  (** [register_printer f] registers a printer [p] via {!val:Printexc.register_printer} to turn unhandled effects into strings for the OCaml runtime system to display the unhandled effects. The functor {!module:Modifier.Make} will register a simple printer to suggest using {!val:run} to capture effects, but you can register new printers to override it. The registered printers are executed in reverse order; that is, the last registered printer is executed first. The return type of the printer [p] is [string option], where [None] means the printer passes on the (unhandled) effect and lets the OCaml runtime system try the next printer or (if no more printers are available) use the default system message.
+  (** [register_printer f] registers a printer [p] via {!val:Printexc.register_printer} to turn unhandled internal effects into strings for the OCaml runtime system to display them. The functor {!module:Modifier.Make} always registers a simple printer to suggest using {!val:run}, but you can register new ones to override it. The registered printers are executed in reverse order; that is, the last registered printer is executed first. The return type of the printer [p] is [string option], where {!constructor:None} means the printer passes on the (unhandled) effect and lets the OCaml runtime system try the next printer or (if no more printers are available) use the default system message.
 
-      The input type of the printer [p] is a variant representation of all internal effects used in this module. They correspond to the three effect triggers in {!module:Perform}. More precisely, [`NotFound (ctx, path)] corresponds to the effect triggered by [Perform.not_found ctx path], [`Shadow (ctx, path, x, y)] corresponds to [Perform.shadow ctx path x y], and then [`Hook (ctx, path, hook, t)] corresponds to [Perform.hook ctx path hook t]. See also {!val:run} for a detailed explanation of these effects. *)
+      The input type of the printer [p] is a variant representation of all internal effects used in this module. They correspond to the three effect triggers in {!module:Perform}. More precisely,
+      - [`NotFound (ctx, prefix)] corresponds to the effect triggered by [Perform.not_found ctx prefix]; and
+      - [`Shadow (ctx, path, x, y)] corresponds to [Perform.shadow ctx path x y]; and
+      - [`Hook (ctx, prefix, id, input)] corresponds to [Perform.hook ctx prefix id input].
+
+      See also the documentation of {!val:run} for a detailed explanation of these effects. *)
 end
