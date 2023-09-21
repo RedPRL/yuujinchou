@@ -134,14 +134,14 @@ val detach_root : ('data, 'tag) t -> ('data * 'tag) option * ('data, 'tag) t
 *)
 val to_seq : ?prefix:bwd_path -> ('data, 'tag) t -> (path * ('data * 'tag)) Seq.t
 
-(** [to_seq_with_bwd_paths] is like {!val:to_seq}, but with paths in the backward direction.
-    This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped.
+(** [to_seq_with_bwd_paths] is like {!val:to_seq}, but with paths represented as backward lists.
+    This is potentially more efficient than {!val:to_seq} because the conversion from a backward list to a forward list takes linear time.
 
     @param prefix The prefix prepended to any path in the output. The default is the empty prefix ([Emp]).
 *)
 val to_seq_with_bwd_paths : ?prefix:bwd_path -> ('data, 'tag) t -> (bwd_path * ('data * 'tag)) Seq.t
 
-(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated data and tags. This is potentially more efficient than {!val:to_seq} because the conversion from backward lists to forward lists is skipped. *)
+(** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated data and tags. This is potentially more efficient than {!val:to_seq} because the conversion of paths from backward lists to forward lists is skipped. *)
 val to_seq_values : ('data, 'tag) t -> ('data * 'tag) Seq.t
 
 (** [of_seq ~prefix s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Later bindings will shadow previous ones if the paths of bindings are not unique. *)
@@ -167,5 +167,5 @@ val retag_subtree : path -> 'tag -> ('data, 'tag) t -> ('data, 'tag) t
 (** [untag t] is [retag () t]. *)
 val untag : ('data, _) t -> 'data untagged
 
-(** [set_of_tags t] returns the set of tags used in a trie, but as a [Seq.t]. *)
+(** [set_of_tags cmp t] returns the set of tags used in a trie, but as a [Seq.t]. [cmp] is the tag comparator for internal tag sorting. *)
 val set_of_tags : ('tag -> 'tag -> int) -> ('data, 'tag) t -> 'tag Seq.t

@@ -170,7 +170,7 @@ section {
   (** The handlers that (re-)perform effects. *)
 
   module Silence : Perform
-  (** The handlers that silence effects. *)
+  (** The handlers that silence effects. All the triggers actually do nothing. *)
 
   val run : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler ->
     ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
@@ -199,5 +199,13 @@ section {
 
       A consequence of the semantic difference between {!val:run} and [try_with] is that
       {!val:run} starts a fresh empty scope while [try_with] stays in the current scope.
+  *)
+
+  (** {1 Debugging} *)
+
+  val register_printer : ([ `NotFound of context option * Trie.bwd_path | `Shadow of context option * Trie.bwd_path * (data * tag) * (data * tag) | `Hook of context option * Trie.bwd_path * hook * (data, tag) Trie.t ] -> string option) -> unit
+  (** [register_printer f] registers a printer [p] via {!val:Printexc.register_printer} to convert unhandled internal effects into strings for the OCaml runtime system to display. See {!val:Yuujinchou.Modifier.S.register_printer}.
+
+      @since 5.1.0
   *)
 end
