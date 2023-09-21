@@ -167,5 +167,5 @@ val retag_subtree : path -> 'tag -> ('data, 'tag) t -> ('data, 'tag) t
 (** [untag t] is [retag () t]. *)
 val untag : ('data, _) t -> 'data untagged
 
-(** [set_of_tags t] returns the set of tags used in a trie, but as a [Seq.t]. *)
+(** [set_of_tags cmp t] returns the set of tags used in a trie, but as a [Seq.t]. [cmp] is the tag comparator for internal tag sorting. *)
 val set_of_tags : ('tag -> 'tag -> int) -> ('data, 'tag) t -> 'tag Seq.t
