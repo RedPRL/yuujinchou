@@ -170,7 +170,7 @@ section {
   (** The handlers that (re-)perform effects. *)
 
   module Silence : Perform
-  (** The handlers that silence effects. *)
+  (** The handlers that silence effects. All the triggers actually do nothing. *)
 
   val run : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler ->
     ?export_prefix:Trie.bwd_path -> ?init_visible:(data, tag) Trie.t -> (unit -> 'a) -> 'a
