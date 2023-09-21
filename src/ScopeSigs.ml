@@ -200,4 +200,7 @@ section {
       A consequence of the semantic difference between {!val:run} and [try_with] is that
       {!val:run} starts a fresh empty scope while [try_with] stays in the current scope.
   *)
+
+  val register_printer : ([ `NotFound of context option * Trie.bwd_path | `Shadow of context option * Trie.bwd_path * (data * tag) * (data * tag) | `Hook of context option * Trie.bwd_path * hook * (data, tag) Trie.t ] -> string option) -> unit
+  (** [register_printer f] registers a printer [p] via {!val:Printexc.register_printer} to turn unhandled internal effects into strings for the OCaml runtime system to display them. See {!val:Yuujinchou.Modifier.S.register_printer}. *)
 end

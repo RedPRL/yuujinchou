@@ -97,6 +97,11 @@ struct
 
   let try_with = Mod.try_with
 
+  let register_printer = Mod.register_printer
+
+  (* This overrides the default printer registered by Mod. *)
+  let () = register_printer @@ fun _ -> Some "Unhandled yuujinchou effect; use Yuujinchou.Scope.run"
+
   module type Perform = Mod.Perform
   module Perform = Mod.Perform
   module Silence = Mod.Silence
