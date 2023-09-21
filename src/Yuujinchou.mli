@@ -20,7 +20,7 @@ sig
   (** The handler module type. *)
   module type Perform = ModifierSigs.Perform
 
-  (** The signature of the engine. *)
+  (** The signature of a engine. *)
   module type S = ModifierSigs.S with module Language := Language
 
   (** The functor to generate an engine. *)
