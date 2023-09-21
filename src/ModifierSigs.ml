@@ -90,5 +90,8 @@ sig
       - [`Shadow (ctx, path, x, y)] corresponds to [Perform.shadow ctx path x y]; and
       - [`Hook (ctx, prefix, id, input)] corresponds to [Perform.hook ctx prefix id input].
 
-      See also the documentation of {!val:run} for a detailed explanation of these effects. *)
+      See also the documentation of {!val:run} for a detailed explanation of these effects.
+
+      @since 5.1.0
+  *)
 end
