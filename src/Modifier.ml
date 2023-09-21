@@ -83,4 +83,11 @@ struct
     Effect.Deep.try_with f () @@ handler ~not_found ~shadow ~hook
 
   let try_with ?(not_found=Perform.not_found) ?(shadow=Perform.shadow) ?(hook=Perform.hook) f = run ~not_found ~shadow ~hook f
+
+  let register_printer f =
+    Printexc.register_printer @@ function
+    | Effect.Unhandled (NotFound {context; prefix}) -> f (`NotFound (context, prefix))
+    | Effect.Unhandled (Shadow {context; path; former; latter}) -> f (`Shadow (context, path, former, latter))
+    | Effect.Unhandled (Hook {context; prefix; hook; input}) -> f (`Hook (context, prefix, hook, input))
+    | _ -> None
 end
