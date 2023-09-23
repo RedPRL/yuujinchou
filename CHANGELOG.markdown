@@ -1,3 +1,9 @@
+# [5.1.0](https://github.com/RedPRL/yuujinchou/compare/5.0.2...5.1.0) (2023-09-23)
+
+### Features
+
+- add `{Modifier,Scope}.register_printer` for printing unhandled effects ([#117](https://github.com/RedPRL/yuujinchou/issues/117)) ([189f8e3](https://github.com/RedPRL/yuujinchou/commit/189f8e3bdced9f2fe70aeb52f3b3fd949c2e1476))
+
 # [5.0.2](https://github.com/RedPRL/yuujinchou/compare/5.0.1...5.0.2) (2023-08-22)
 
 This is a minor update that uses the new infix operators introduced in [bwd 2.2.0](https://ocaml.org/p/bwd/2.2.0) internally. No APIs were changed.
