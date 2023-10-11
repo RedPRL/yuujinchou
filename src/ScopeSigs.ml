@@ -102,19 +102,19 @@ sig
 
       When implementing an OCaml-like language, one can implement [open M] as follows:
       {[
-        modify_visible Language.(union [seq []; only ["M"]])
+        modify_visible Language.(union [seq []; renaming ["M"] []])
       ]}
 
       When implementing an OCaml-like language, one can implement [include M] as follows:
       {[
-        export_visible Language.(only ["M"]);
-        modify_visible Language.(union [seq []; only ["M"]])
+        export_visible Language.(renaming ["M"] []);
+        modify_visible Language.(union [seq []; renaming ["M"] []])
       ]}
 
       @param context The context of modifier effects. *)
 
   val modify_export : ?context_export:context -> hook Language.t -> unit
-  (** [modify_visible m] modifies the export namespace by
+  (** [modify_export m] modifies the export namespace by
       running the modifier [m] on it, using the internal modifier engine.
 
       @param context_export The context of modifier effects. *)
