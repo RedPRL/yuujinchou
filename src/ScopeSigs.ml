@@ -102,13 +102,13 @@ sig
 
       When implementing an OCaml-like language, one can implement [open M] as follows:
       {[
-        modify_visible Language.(union [seq []; renaming ["M"] []])
+        modify_visible Language.(union [id; renaming ["M"] []])
       ]}
 
       When implementing an OCaml-like language, one can implement [include M] as follows:
       {[
         export_visible Language.(renaming ["M"] []);
-        modify_visible Language.(union [seq []; renaming ["M"] []])
+        modify_visible Language.(union [id; renaming ["M"] []])
       ]}
 
       @param context The context of modifier effects. *)
