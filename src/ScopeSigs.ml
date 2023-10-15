@@ -131,6 +131,13 @@ sig
       @param context_modifier The context of modifier effects when applying the modifier [m].
       @param context_export The context of modifier effects when merging the subtree into the export namespace. *)
 
+  val get_visible : unit -> (data, tag) Trie.t
+  (** [get_visible ()] returns the visible namespace of the current scope.
+
+      This is useful for obtaining all visible names for auto-completion. It can also be used for checking whether a shadowed definition is still visible under another name. (However, scanning the entire visible namespace is expensive and should probably be avoided.)
+
+      @since 5.2.0 *)
+
   val get_export : unit -> (data, tag) Trie.t
   (** [get_export ()] returns the export namespace of the current scope.
 

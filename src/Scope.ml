@@ -80,6 +80,9 @@ struct
     let ns = Mod.modify ?context:context_modifier ~prefix:Emp modifier ns in
     { s with visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, ns) }
 
+  let get_visible () =
+    M.exclusively @@ fun () -> (S.get()).visible
+
   let get_export () =
     M.exclusively @@ fun () -> (S.get()).export
 
