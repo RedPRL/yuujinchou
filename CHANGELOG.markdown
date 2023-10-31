@@ -1,3 +1,13 @@
+# [5.2.0](https://github.com/RedPRL/yuujinchou/compare/5.1.0...5.2.0) (2023-10-31)
+
+### Dependencies
+
+- use algaeff 2.0.0 ([#123](https://github.com/RedPRL/yuujinchou/issues/123)) ([e1f9f19](https://github.com/RedPRL/yuujinchou/commit/e1f9f198b5769e5edf6474880123b3d3fead4d4c))
+
+### Features
+
+- **Scope:** add get_visible ([#119](https://github.com/RedPRL/yuujinchou/issues/119)) ([719dac7](https://github.com/RedPRL/yuujinchou/commit/719dac766c539aa72615ce2a4f932c66ba041821))
+
 # [5.1.0](https://github.com/RedPRL/yuujinchou/compare/5.0.2...5.1.0) (2023-09-23)
 
 ### Features
