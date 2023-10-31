@@ -21,10 +21,10 @@ struct
     module M = Algaeff.Mutex.Make()
 
     type scope = {visible : (data, tag) Trie.t; export : (data, tag) Trie.t}
-    module S = Algaeff.State.Make(struct type state = scope end)
+    module S = Algaeff.State.Make(struct type t = scope end)
 
     type env = {export_prefix : Trie.bwd_path}
-    module R = Algaeff.Reader.Make(struct type nonrec env = env end)
+    module R = Algaeff.Reader.Make(struct type t = env end)
 
     let run ~export_prefix ~init_visible f =
       let env = {export_prefix} in
