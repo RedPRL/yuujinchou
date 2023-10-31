@@ -297,7 +297,7 @@ let filter ?prefix f = filter_map ?prefix @@
 (** {1 Conversion from/to Seq} *)
 
 let to_seq_with_bwd_paths (type data) (type tag) ?prefix (t : (data, tag) t) =
-  let module S = Algaeff.Sequencer.Make (struct type elt = bwd_path * (data * tag) end) in
+  let module S = Algaeff.Sequencer.Make (struct type t = bwd_path * (data * tag) end) in
   S.run @@ fun () -> iter ?prefix (fun p (d, t) -> S.yield (p, (d, t))) t
 
 let to_seq_values t = Seq.map snd @@
