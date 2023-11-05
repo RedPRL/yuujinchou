@@ -13,8 +13,8 @@ let trie (type a) (elem : a Alcotest.testable) : (a, unit) Trie.t Alcotest.testa
 let bwd (type a) (elem : a Alcotest.testable) : a bwd Alcotest.testable =
   (module struct
     type t = a bwd
-    let pp fmt b = Alcotest.(pp @@ list elem) fmt (BwdLabels.to_list b)
-    let equal = BwdLabels.equal ~eq:(Alcotest.equal elem)
+    let pp fmt b = Alcotest.(pp @@ list elem) fmt (Bwd.to_list b)
+    let equal = Bwd.equal (Alcotest.equal elem)
   end)
 
 type data = N of int | U of string bwd * data * data

@@ -1,10 +1,9 @@
-open StdLabels
 open Bwd
 open Yuujinchou
 module LT = ListAsTrie
 module Q = QCheck2
 
-let cmp_path = List.compare ~cmp:String.compare
+let cmp_path = List.compare String.compare
 let cmp (p1, _) (p2, _) = cmp_path p1 p2
 
 let rawlist_to_list l = ListAsTrie.of_seq @@ List.to_seq l
@@ -18,7 +17,7 @@ let print_list = Q.Print.(contramap list_to_rawlist (list @@ pair print_path pri
 let gen_path = Q.Gen.(small_list @@ small_string ~gen:printable)
 let gen_bwd_path = Q.Gen.map Bwd.of_list gen_path
 let gen_tagged = Q.Gen.(pair int small_nat)
-let gen_list = Q.Gen.map (fun l -> rawlist_to_list @@ List.sort_uniq ~cmp l)
+let gen_list = Q.Gen.map (fun l -> rawlist_to_list @@ List.sort_uniq cmp l)
     Q.Gen.(small_list @@ pair gen_path gen_tagged)
 
 let obs_path = Q.Observable.(list string)
@@ -32,7 +31,7 @@ let to_list t = ListAsTrie.of_seq @@ Trie.to_seq t
 (* for iter *)
 let bag_create () = ref []
 let bag_push x l = l := x :: !l
-let bag_eq l1 l2 = List.stable_sort ~cmp:compare l1 = List.stable_sort ~cmp:compare l2
+let bag_eq l1 l2 = List.stable_sort compare l1 = List.stable_sort compare l2
 
 let count = 100
 
