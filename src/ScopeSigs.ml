@@ -152,9 +152,9 @@ sig
       of the parent scope.
 
       A section is similar to a section in Coq or a module in Agda (but not a module in OCaml). This can be used to implement local bindings as well; a local binding is a private definition in a section. For example, in an OCaml-like languages augmented with sections,
-      {v
+      {[
 let y = let x = 1 in x
-      v}
+      ]}
       is equivalent to
       {v
 section {
