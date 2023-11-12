@@ -1,0 +1,4 @@
+# CONTRIBUTORS
+
+- Favonia
+- Jonathan Sterling
