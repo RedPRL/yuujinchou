@@ -5,7 +5,7 @@
 This library was motivated by the name modifiers in the "import" or "include" statements present in all practical programming languages:
 
 {@python[
-import math # Python: the sqrt function is available as `sqrt`.
+from math import * # Python: the sqrt function is available as `sqrt`.
 ]}
 
 The ability to import content from other files helps organize code. However, it also poses a new challenge: how could programmers prevent imported content from shadowing existing content? For example, if we already have a function [test] in the current scope, maybe we do not wish to import another function also named [test]. To address this, many programming languages allow programmers to selectively hide or rename part of the imported content:
