@@ -54,23 +54,23 @@ struct
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     {s with
      export =
-       Trie.union ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export @@
-       Mod.modify ?context:context_modifier ~prefix:Emp m s.visible }
+       Mod.union ?context:context_export ~prefix:(export_prefix()) s.export @@
+       Mod.modify ?context:context_modifier m s.visible }
 
   let include_singleton ?context_visible ?context_export (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, x);
-      export = Trie.union_singleton ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export (path, x) }
+    { visible = Mod.union_singleton ?context:context_visible s.visible (path, x);
+      export = Mod.union_singleton ?context:context_export ~prefix:(export_prefix()) s.export (path, x) }
 
   let import_singleton ?context_visible (path, x) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
-    { s with visible = Trie.union_singleton ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, x) }
+    { s with visible = Mod.union_singleton ?context:context_visible s.visible (path, x) }
 
   let unsafe_include_subtree ~context_modifier ~context_visible ~context_export ~modifier (path, ns) =
     S.modify @@ fun s ->
     let ns = Mod.modify ?context:context_modifier ~prefix:Emp modifier ns in
-    { visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, ns);
-      export = Trie.union_subtree ~prefix:(export_prefix()) (Mod.Perform.shadow context_export) s.export (path, ns) }
+    { visible = Mod.union_subtree ?context:context_visible s.visible (path, ns);
+      export = Mod.union_subtree ?context:context_export ~prefix:(export_prefix()) s.export (path, ns) }
 
   let include_subtree ?context_modifier ?context_visible ?context_export ?(modifier=Language.id) (path, ns) =
     M.exclusively @@ fun () -> unsafe_include_subtree ~context_modifier ~context_visible ~context_export ~modifier (path, ns)
@@ -78,7 +78,7 @@ struct
   let import_subtree ?context_modifier ?context_visible ?(modifier=Language.id) (path, ns) =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     let ns = Mod.modify ?context:context_modifier ~prefix:Emp modifier ns in
-    { s with visible = Trie.union_subtree ~prefix:Emp (Mod.Perform.shadow context_visible) s.visible (path, ns) }
+    { s with visible = Mod.union_subtree ?context:context_visible s.visible (path, ns) }
 
   let get_visible () =
     M.exclusively @@ fun () -> (S.get()).visible

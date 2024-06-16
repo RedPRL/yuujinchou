@@ -37,14 +37,7 @@ sig
   module Param : Param
   open Param
 
-  module type Perform = Perform with module Param := Param
-  (** The signature of a module implementing all effect handlers for a modifier engine. *)
-
-  module Perform : Perform
-  (** The handlers that (re-)perform effects. *)
-
-  module Silence : Perform
-  (** The handlers that silence effects. All the triggers actually do nothing. *)
+  (** {1 Types of Effect Handlers} *)
 
   type not_found_handler = context option -> Trie.bwd_path -> unit
   (** The type of a handler of the {!val:Modifier.S.module-Perform.not_found} effect. *)
@@ -55,11 +48,24 @@ sig
   type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** The type of a handler of the {!val:Modifier.S.module-Perform.hook} effect. *)
 
+  (** {1 The Modifier Engine} *)
+
   val modify : ?context:context -> ?prefix:Trie.bwd_path -> hook Language.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** [modify modifier trie] runs the [modifier] on the [trie] and return the transformed trie.
 
       @param context The context sent to the effect handlers. If unspecified, effects come with {!constructor:None} as their context.
       @param prefix The prefix prepended to any path or prefix sent to the effect handlers. The default is the empty path ([Emp]). *)
+
+  (** {1 Runners} *)
+
+  module type Perform = Perform with module Param := Param
+  (** The signature of a module implementing all effect handlers for a modifier engine. *)
+
+  module Perform : Perform
+  (** The handlers that (re-)perform effects. *)
+
+  module Silence : Perform
+  (** The handlers that silence effects. All the triggers actually do nothing. *)
 
   val run : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
   (** [run f] initializes the engine and runs the thunk [f].
@@ -81,6 +87,36 @@ sig
         (* even more code *)
       ]}
   *)
+
+  (** {1 Re-exposed Union Functions for Tries}
+
+      These [union_*] functions are re-exposed from {!module:Trie} with the [shadow] effect handler being the merger. That is, these re-exposed functions will trigger the [shadow] effect to resolve name conflicts. *)
+
+  val union : ?context:context -> ?prefix:Trie.bwd_path -> (data, tag) Trie.t -> (data, tag) Trie.t -> (data, tag) Trie.t
+  (** Re-exposed {!val:Trie.union} with a merger that uses the [shadow] effect handler to resolve name conflicts. [union t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will trigger the effect [shadow context p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the [path].
+
+      @param context The context sent to the [shadow] effect handler. If unspecified, effects come with {!constructor:None} as their context.
+      @param prefix The prefix prepended to any path or prefix sent to the [shadow] effect handler. The default is the empty path ([Emp]). *)
+
+  val union_subtree : ?context:context -> ?prefix:Trie.bwd_path -> (data, tag) Trie.t -> Trie.path * (data, tag) Trie.t -> (data, tag) Trie.t
+  (** Re-exposed {!val:Trie.union_subtree} with a merger that uses the [shadow] effect handler to resolve name conflicts. [union_subtree t1 (path, t2)] is equivalent to {!val:union}[ t1 (Trie.prefix path t2)], but potentially more efficient.
+
+      @param context The context sent to the [shadow] effect handler. If unspecified, effects come with {!constructor:None} as their context.
+      @param prefix The prefix prepended to any path or prefix sent to the [shadow] effect handler. The default is the empty path ([Emp]). *)
+
+  val union_singleton : ?context:context -> ?prefix:Trie.bwd_path -> (data, tag) Trie.t -> Trie.path * (data * tag) -> (data, tag) Trie.t
+  (** Re-exposed {!val:Trie.union_singleton} with a merger that uses the [shadow] effect handler to resolve name conflicts. [union_singleton t binding] is equivalent to {!val:union}[ t1 (Trie.singleton binding)], but potentially more efficient.
+
+      @param context The context sent to the [shadow] effect handler. If unspecified, effects come with {!constructor:None} as their context.
+      @param prefix The prefix prepended to any path or prefix sent to the [shadow] effect handler. The default is the empty path ([Emp]). *)
+
+  val union_root : ?context:context -> ?prefix:Trie.bwd_path -> (data, tag) Trie.t -> data * tag -> (data, tag) Trie.t
+  (** Re-exposed {!val:Trie.union_root} with a merger that uses the [shadow] effect handler to resolve name conflicts. [union_root t r] is equivalent to {!val:union_singleton}[ t ([], r)], but potentially more efficient.
+
+      @param context The context sent to the [shadow] effect handler. If unspecified, effects come with {!constructor:None} as their context.
+      @param prefix The prefix prepended to any path or prefix sent to the [shadow] effect handler. The default is the empty path ([Emp]). *)
+
+  (** {1 Debugging} *)
 
   val register_printer : ([ `NotFound of context option * Trie.bwd_path | `Shadow of context option * Trie.bwd_path * (data * tag) * (data * tag) | `Hook of context option * Trie.bwd_path * hook * (data, tag) Trie.t ] -> string option) -> unit
   (** [register_printer p] registers a printer [p] via {!val:Printexc.register_printer} to convert unhandled internal effects into strings for the OCaml runtime system to display. Ideally, all internal effects should have been handled by {!val:run} and there is no need to use this function, but when it is not the case, this function can be helpful for debugging. The functor {!module:Modifier.Make} always registers a simple printer to suggest using {!val:run}, but you can register new ones to override it. The return type of the printer [p] should return [Some s] where [s] is the resulting string, or [None] if it chooses not to convert a particular effect. The registered printers are tried in reverse order until one of them returns [Some s] for some [s]; that is, the last registered printer is tried first. Note that this function is a wrapper of {!val:Printexc.register_printer} and all the registered printers (via this function or {!val:Printexc.register_printer}) are put into the same list.
