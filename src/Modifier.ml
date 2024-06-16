@@ -37,6 +37,18 @@ struct
 
   open Perform
 
+  let union ?context ?(prefix=Emp) t1 t2 =
+    Trie.union ~prefix (shadow context) t1 t2
+
+  let union_subtree ?context ?(prefix=Emp) t1 (p, t2) =
+    Trie.union_subtree ~prefix (shadow context) t1 (p, t2)
+
+  let union_singleton ?context ?(prefix=Emp) t b =
+    Trie.union_singleton ~prefix (shadow context) t b
+
+  let union_root ?context ?(prefix=Emp) t v =
+    Trie.union_root ~prefix (shadow context) t v
+
   let modify ?context ?(prefix=Emp) =
     let module L = Language in
     let rec go prefix m t =
@@ -54,7 +66,7 @@ struct
       | L.M_union ms ->
         let f ts m =
           let ti = go prefix m t in
-          Trie.union ~prefix (shadow context) ts ti
+          union ?context ~prefix ts ti
         in
         List.fold_left f Trie.empty ms
       | L.M_hook id -> hook context prefix id t
