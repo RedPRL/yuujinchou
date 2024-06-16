@@ -37,17 +37,17 @@ struct
 
   open Perform
 
-  let union ?context ?(prefix=Emp) t1 t2 =
-    Trie.union ~prefix (shadow context) t1 t2
+  let union ?context ?prefix t1 t2 =
+    Trie.union ?prefix (shadow context) t1 t2
 
-  let union_subtree ?context ?(prefix=Emp) t1 (p, t2) =
-    Trie.union_subtree ~prefix (shadow context) t1 (p, t2)
+  let union_subtree ?context ?prefix t1 (p, t2) =
+    Trie.union_subtree ?prefix (shadow context) t1 (p, t2)
 
-  let union_singleton ?context ?(prefix=Emp) t b =
-    Trie.union_singleton ~prefix (shadow context) t b
+  let union_singleton ?context ?prefix t b =
+    Trie.union_singleton ?prefix (shadow context) t b
 
-  let union_root ?context ?(prefix=Emp) t v =
-    Trie.union_root ~prefix (shadow context) t v
+  let union_root ?context ?prefix t v =
+    Trie.union_root ?prefix (shadow context) t v
 
   let modify ?context ?(prefix=Emp) =
     let module L = Language in
