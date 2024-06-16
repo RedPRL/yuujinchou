@@ -54,25 +54,25 @@ val find_root : ('data, 'tag) t -> ('data * 'tag) option
 
 (** {1 Mapping and Filtering} *)
 
-(** [iter ~prefix f t] applies the function [f] to each data and tag in the trie.
+(** [iter f t] applies the function [f] to each data and tag in the trie.
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
 val iter : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> unit) -> ('data, 'tag) t -> unit
 
-(** [map ~prefix f trie] applies the function [f] to each data and tag in the trie.
+(** [map f trie] applies the function [f] to each data and tag in the trie.
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
 val map : ?prefix:bwd_path -> (bwd_path -> 'data1 * 'tag1 -> 'data2 * 'tag2) -> ('data1, 'tag1) t -> ('data2, 'tag2) t
 
-(** [filter ~prefix f trie] removes all data [d] with tag [t] at path [p] such that [f ~prefix:p (d, t)] returns [false].
+(** [filter f trie] removes all data [d] with tag [t] at path [p] such that [f p (d, t)] returns [false].
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
 val filter : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> bool) -> ('data, 'tag) t -> ('data, 'tag) t
 
-(** [filter_map ~prefix f trie] applies the function [f] to each data [d] with tag [t] at [p] in [trie]. If [f ~prefix:p (d, t)] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some d'], then the data will be replaced by [d'].
+(** [filter_map f trie] applies the function [f] to each data [d] with tag [t] at [p] in [trie]. If [f p (d, t)] returns [None], then the binding will be removed from the trie. Otherwise, if [f v] returns [Some d'], then the data will be replaced by [d'].
 
     @param prefix The prefix prepended to any path sent to [f]. The default is the empty prefix ([Emp]).
 *)
@@ -91,25 +91,25 @@ val update_root : (('data * 'tag) option -> ('data * 'tag) option) -> ('data, 't
 
 (** {1 Union} *)
 
-(** [union ~prefix merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will call [merger p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the [path].
+(** [union merger t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will call [merger p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the [path].
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
 val union : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag) -> ('data, 'tag) t -> ('data, 'tag) t -> ('data, 'tag) t
 
-(** [union_subtree ~prefix merger t1 (path, t2)] is equivalent to {!val:union}[ ~prefix merger t1 (prefix path t2)], but potentially more efficient.
+(** [union_subtree merger t1 (path, t2)] is equivalent to {!val:union}[ merger t1 (prefix path t2)], but potentially more efficient.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
 val union_subtree : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag) -> ('data, 'tag) t -> path * ('data, 'tag) t -> ('data, 'tag) t
 
-(** [union_singleton ~prefix merger t binding] is equivalent to {!val:union}[ ~prefix merger t1 (singleton binding)], but potentially more efficient.
+(** [union_singleton merger t binding] is equivalent to {!val:union}[ merger t1 (singleton binding)], but potentially more efficient.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
 val union_singleton : ?prefix:bwd_path -> (bwd_path -> 'data * 'tag -> 'data * 'tag -> 'data * 'tag) -> ('data, 'tag) t -> path * ('data * 'tag) -> ('data, 'tag) t
 
-(** [union_root ~prefix merger t r] is equivalent to {!val:union_singleton}[ ~prefix merger t ([], r)], but potentially more efficient.
+(** [union_root merger t r] is equivalent to {!val:union_singleton}[ merger t ([], r)], but potentially more efficient.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]).
 *)
@@ -128,7 +128,7 @@ val detach_root : ('data, 'tag) t -> ('data * 'tag) option * ('data, 'tag) t
 
 (** {1 Iterators} *)
 
-(** [to_seq ~prefix t] traverses through the trie [t] in the lexicographical order.
+(** [to_seq t] traverses through the trie [t] in the lexicographical order.
 
     @param prefix The prefix prepended to any path in the output. The default is the empty prefix ([Emp]).
 *)
@@ -144,10 +144,10 @@ val to_seq_with_bwd_paths : ?prefix:bwd_path -> ('data, 'tag) t -> (bwd_path * (
 (** [to_seq_values t] traverses through the trie [t] in the lexicographical order but only returns the associated data and tags. This is potentially more efficient than {!val:to_seq} because the conversion of paths from backward lists to forward lists is skipped. *)
 val to_seq_values : ('data, 'tag) t -> ('data * 'tag) Seq.t
 
-(** [of_seq ~prefix s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Later bindings will shadow previous ones if the paths of bindings are not unique. *)
+(** [of_seq s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Later bindings will shadow previous ones if the paths of bindings are not unique. *)
 val of_seq : (path * ('data * 'tag)) Seq.t -> ('data, 'tag) t
 
-(** [of_seq_with_merger ~prefix merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Bindings with the same path are resolved using [merger] instead of silent shadowing.
+(** [of_seq_with_merger merger s] inserts bindings [(p, d)] into an empty trie, one by one, using {!val:union_singleton}. Bindings with the same path are resolved using [merger] instead of silent shadowing.
 
     @param prefix The prefix prepended to any path sent to [merger]. The default is the empty prefix ([Emp]). Note that [prefix] does not directly affect the output trie, only the argument to [merger].
 *)
