@@ -88,7 +88,9 @@ sig
       ]}
   *)
 
-  (** {1 Re-exposed Union Functions for Tries} *)
+  (** {1 Re-exposed Union Functions for Tries}
+
+      These [union_*] functions are re-exposed from {!module:Trie} with the [shadow] effect handler being the merger. That is, these re-exposed functions will trigger the [shadow] effect to resolve name conflicts. *)
 
   val union : ?context:context -> ?prefix:Trie.bwd_path -> (data, tag) Trie.t -> (data, tag) Trie.t -> (data, tag) Trie.t
   (** Re-exposed {!val:Trie.union} with a merger that uses the [shadow] effect handler to resolve name conflicts. [union t1 t2] merges two tries [t1] and [t2]. If both tries have a binding at the same path [p], it will trigger the effect [shadow context p x y] to reconcile the values [x] from [t1] and [y] from [t2] that are both bound at the [path].
