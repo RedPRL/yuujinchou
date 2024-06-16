@@ -86,7 +86,7 @@ sig
   val import_subtree : ?context_modifier:context -> ?context_visible:context -> ?modifier:hook Language.t -> Trie.path * (data, tag) Trie.t -> unit
   (** [import_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       the visible namespace (while keeping the export namespace intact).
-      Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
+      Conflicting names during the final merge will trigger the effect [shadow].
 
       When implementing an OCaml-like language, one can import content from other compilation units using [import_subtree].
 
@@ -124,7 +124,7 @@ sig
   val export_visible : ?context_modifier:context -> ?context_export:context -> hook Language.t -> unit
   (** [export_visible m] runs the modifier [m] on the visible namespace,
       and then merge the result into the export namespace.
-      Conflicting names during the final merge will trigger the effect [Mod.Shadowing].
+      Conflicting names during the final merge will trigger the effect [shadow].
 
       This feature is useful for implementing a userspace [export] statement. It does not exist in OCaml-like languages.
 
@@ -153,7 +153,7 @@ sig
 
       A section is similar to a section in Coq or a module in Agda (but not a module in OCaml). This can be used to implement local bindings as well; a local binding is a private definition in a section. For example, in an OCaml-like languages augmented with sections,
       {[
-let y = let x = 1 in x
+        let y = let x = 1 in x
       ]}
       is equivalent to
       {v
@@ -196,7 +196,7 @@ section {
 
       [try_with] is intended to be used within {!val:run} to intercept or reperform internal effects,
       while {!val:run} is intended to be at the top-level to set up the environment and handle all
-      effects by itself. For example, the following function silences the [Mod.Shadow] effects, but the
+      effects by itself. For example, the following function silences the [shadow] effects, but the
       silencing function should be used within the dynamic scope of a {!val:run}.
       See also {!val:Yuujinchou.Modifier.S.try_with}.
       {[
