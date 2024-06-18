@@ -231,6 +231,11 @@ let test_of_seq_with_merger =
        to_list (Trie.of_seq_with_merger ?prefix f (List.to_seq l))
        =
        ListAsTrie.of_seq_with_merger ?prefix f (List.to_seq l))
+let test_map_tag =
+  Q.Test.make ~count ~name:"map_tag"
+    Q.Gen.(pair (Q.fun1 Q.Observable.int int) gen_list)
+    ~print:Q.Print.(pair Q.Fn.print print_list)
+    (fun (Fun (_, f), l) -> to_list (Trie.map_tag f (of_list l)) = ListAsTrie.map_tag f l)
 let test_retag =
   Q.Test.make ~count ~name:"retag" Q.Gen.(pair int gen_list) ~print:Q.Print.(pair int print_list)
     (fun (t, l) -> to_list (Trie.retag t (of_list l)) = ListAsTrie.retag t l)
@@ -275,6 +280,7 @@ let () =
     ; test_to_seq_values
     ; test_of_seq
     ; test_of_seq_with_merger
+    ; test_map_tag
     ; test_retag
     ; test_retag_subtree
     ; test_untag
