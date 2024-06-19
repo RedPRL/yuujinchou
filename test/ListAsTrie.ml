@@ -100,6 +100,7 @@ let of_seq s = Seq.fold_left (union_singleton ~prefix:Emp (fun _ _ y -> y)) empt
 let of_seq_with_merger ?(prefix=Emp) m s = Seq.fold_left (union_singleton ~prefix m) empty s
 
 type 'a untagged = (path * ('a * unit)) list
+let map_tag f l = List.map (fun (p, (d, t)) -> p, (d, f t)) l
 let retag t l = List.map (fun (p, (d, _)) -> p, (d, t)) l
 let retag_subtree pre t l =
   List.map (fun ((p, (d, _)) as b) -> if Option.is_some (split_path pre p) then p, (d, t) else b) l
