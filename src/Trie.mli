@@ -164,7 +164,7 @@ val map_tag : ('tag1 -> 'tag2) -> ('data, 'tag1) t -> ('data, 'tag2) t
 (** [retag tag t] changes all tags within [t] to [tag] in O(1) time. It is equivalent to {!val:map_tag}[ (fun _ -> tag) t] but usually more efficient. The data remain intact. *)
 val retag : 'tag -> ('data, _) t -> ('data, 'tag) t
 
-(** [retag_subtree tag path t] changes all tags within the subtrie rooted at [path] to [tag] efficiently. The data remain intact. *)
+(** [retag_subtree path tag t] changes all tags within the subtrie rooted at [path] to [tag] efficiently. The data remain intact. *)
 val retag_subtree : path -> 'tag -> ('data, 'tag) t -> ('data, 'tag) t
 
 (** [untag t] is [retag () t]. *)
