@@ -10,6 +10,11 @@ sig
 
   (** A scope inherently has two namespaces: a {i visible} namespace that dictates what's visible, and an {i export} namespace recording all the names that will be exported. *)
 
+  (** {1 Type of namespaces } *)
+
+  type scope = {visible : (Param.data, Param.tag) Trie.t; export : (Param.data, Param.tag) Trie.t}
+  (** A record type containing both the visible and export namespaces.  Usually the caller won't need to use this explicitly. *)
+
   (** {1 Types of Effect Handlers} *)
 
   type not_found_handler = context option -> Trie.bwd_path -> unit
@@ -191,7 +196,8 @@ section {
       This does not affect paths originating from visible namespaces.
       @param init_visible The initial visible namespace. The default is the empty namespace. *)
 
-  val try_with : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> (unit -> 'a) -> 'a
+  val try_with : ?not_found:not_found_handler -> ?shadow:shadow_handler -> ?hook:hook_handler -> 
+    ?export_prefix:Trie.bwd_path -> ?get:(unit -> scope) -> ?set:(scope -> unit) -> (unit -> 'a) -> 'a
   (** Execute the code and handles the internal modifier effects.
 
       [try_with] is intended to be used within {!val:run} to intercept or reperform internal effects,
@@ -206,6 +212,10 @@ section {
 
       A consequence of the semantic difference between {!val:run} and [try_with] is that
       {!val:run} starts a fresh empty scope while [try_with] stays in the current scope.
+
+      On the other hand, if you are managing the scope state yourself (such as with an outer state
+      module that incorporates an undo buffer), then [try_with] can be used at top-level if
+      both handlers [get] and [set] are supplied.
   *)
 
   (** {1 Debugging} *)

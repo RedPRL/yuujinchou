@@ -14,13 +14,14 @@ struct
   type shadow_handler = context option -> Trie.bwd_path -> data * tag -> data * tag -> data * tag
   type hook_handler = context option -> Trie.bwd_path -> hook -> (data, tag) Trie.t -> (data, tag) Trie.t
 
+  type scope = {visible : (data, tag) Trie.t; export : (data, tag) Trie.t}
+
   module Internal =
   struct
     module Mod = Modifier.Make(Param)
 
     module M = Algaeff.Mutex.Make()
 
-    type scope = {visible : (data, tag) Trie.t; export : (data, tag) Trie.t}
     module S = Algaeff.State.Make(struct type t = scope end)
 
     type env = {export_prefix : Trie.bwd_path}
@@ -30,6 +31,10 @@ struct
       let env = {export_prefix} in
       let init = {visible = init_visible; export = Trie.empty} in
       M.run @@ fun () -> R.run ~env @@ fun () -> S.run ~init f
+
+    let try_with ?(export_prefix = Emp) ?get ?set f =
+      let env = {export_prefix} in
+      M.run @@ fun () -> R.run ~env @@ fun () -> S.try_with ?get ?set f
 
     let export_prefix () = (R.read()).export_prefix
   end
@@ -98,7 +103,8 @@ struct
   let run ?not_found ?shadow ?hook ?(export_prefix=Emp) ?(init_visible=Trie.empty) f =
     Mod.run ?not_found ?shadow ?hook @@ fun () -> Internal.run ~export_prefix ~init_visible f
 
-  let try_with = Mod.try_with
+  let try_with ?not_found ?shadow ?hook ?export_prefix ?get ?set f =
+    Mod.try_with ?not_found ?shadow ?hook @@ fun () -> Internal.try_with ?export_prefix ?get ?set f
 
   let register_printer = Mod.register_printer
 
