@@ -314,6 +314,17 @@ let of_seq s = of_seq_with_merger ~prefix:Emp (fun _ _ y -> y) s
 
 type 'data untagged = ('data, unit) t
 
+let rec map_tag_node f n =
+  { tag_root = Option.map f n.tag_root
+  ; tag_default_child = Option.map f n.tag_default_child
+  ; tag_children = SegMap.map (map_tag_node f) n.tag_children
+  }
+
+let[@inline] map_tag f : _ t -> _ t =
+  function
+  | None -> None
+  | Some (d, t) -> Some (d, map_tag_node f t)
+
 let[@inline] retag t : _ t -> _ t =
   function
   | None -> None
