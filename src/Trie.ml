@@ -344,3 +344,39 @@ let set_of_tags (type tag) (cmp : tag -> tag -> int) (v : ('data, tag) t) : tag 
   let set = ref TagSet.empty in
   Option.iter (fun (_, n) -> iter_tag_node (fun t -> set := TagSet.add t !set) n) v;
   TagSet.to_seq !set
+
+let edit_distance ~cutoff x y =
+  let len_x, len_y = String.length x, String.length y in
+  let grid = Array.make_matrix (len_x + 1) (len_y + 1) 0 in
+  for i = 1 to len_x do
+    grid.(i).(0) <- i;
+  done;
+  for j = 1 to len_y do
+    grid.(0).(j) <- j;
+  done;
+  for j = 1 to len_y do
+    for i = 1 to len_x do
+      let cost = if x.[i-1] = y.[j-1] then 0 else 1 in
+      let k = Int.min (grid.(i-1).(j) + 1) (grid.(i).(j-1) + 1)in
+      grid.(i).(j) <- Int.min k (grid.(i-1).(j-1) + cost)
+    done;
+  done;
+  let result = grid.(len_x).(len_y) in
+  if result > cutoff
+    then None
+  else
+    Some result
+
+let complete ?prefix ~(cutoff : int) (p : bwd_path) : ('data, 'tag) t -> ('data, int) t =
+  let compare p d = 
+    edit_distance ~cutoff (String.concat "" (Bwd.to_list p)) (String.concat "" (Bwd.to_list d))
+  in
+  filter_map ?prefix (fun q (data, _) -> 
+    match compare p q with
+    | Some i -> 
+      if i > cutoff then 
+        None 
+      else 
+        (Some (data, i))
+    | None -> None
+  )
