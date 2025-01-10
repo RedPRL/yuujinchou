@@ -42,7 +42,7 @@ sig
 
       Inclusion affects both visible and export namespaces, just like [include] in OCaml. *)
 
-  val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path -> (data *  tag) -> unit
+  val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path -> (data * tag) -> unit
   (** [include_singleton (p, x)] adds a new binding to both the visible and export namespaces, where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
       [include_singleton (p, x)] is equivalent to [include_subtree Trie.(singleton (p, x))], but potentially more efficient.
