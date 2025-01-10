@@ -80,13 +80,13 @@ end
 let rec interpret_decl : decl -> unit =
   function
   | Decl (p, x) ->
-    S.include_singleton ~context_visible:`Visible ~context_export:`Export (p, (x, `Local))
+    S.include_singleton ~context_visible:`Visible ~context_export:`Export p (x, `Local)
   | ShadowingDecl (p, x) ->
     S.try_with ~shadow:S.Silence.shadow @@ fun () ->
-    S.include_singleton (p, (x, `Local))
+    S.include_singleton p (x, `Local)
   | Import (t, m) ->
     let t = Trie.Untagged.tag `Imported t in
-    S.import_subtree ~modifier:m ([], t)
+    S.import_subtree ~modifier:m [] t
   | PrintVisible ->
     S.modify_visible (Language.hook Print)
   | Export p ->

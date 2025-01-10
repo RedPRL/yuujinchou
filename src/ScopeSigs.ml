@@ -42,7 +42,7 @@ sig
 
       Inclusion affects both visible and export namespaces, just like [include] in OCaml. *)
 
-  val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path * (data * tag) -> unit
+  val include_singleton : ?context_visible:context -> ?context_export:context -> Trie.path -> (data *  tag) -> unit
   (** [include_singleton (p, x)] adds a new binding to both the visible and export namespaces, where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
       [include_singleton (p, x)] is equivalent to [include_subtree Trie.(singleton (p, x))], but potentially more efficient.
@@ -52,7 +52,7 @@ sig
       @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
       @param context_export The context of modifier effects when merging the subtree into the export namespace. *)
 
-  val include_subtree : ?context_modifier:context -> ?context_visible:context -> ?context_export:context -> ?modifier:hook Language.t -> Trie.path * (data, tag) Trie.t -> unit
+  val include_subtree : ?context_modifier:context -> ?context_visible:context -> ?context_export:context -> ?modifier:hook Language.t -> Trie.path -> (data, tag) Trie.t -> unit
   (** [include_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       both the visible and export namespaces. Conflicting names during the final merge
       will trigger the effect [shadow].
@@ -68,7 +68,7 @@ sig
 
       Importing affects only the visible namespace, just like [open] in OCaml. *)
 
-  val import_singleton : ?context_visible:context -> Trie.path * (data * tag) -> unit
+  val import_singleton : ?context_visible:context -> Trie.path -> (data * tag) -> unit
   (** [import_singleton (p, x)] adds a new binding to the visible namespace (while keeping the export namespace intact), where the binding is associating the data [x] to the path [p].
       Conflicting names during the final merge will trigger the effect [shadow].
       [import_singleton (p, x)] is equivalent to [import_subtree Trie.(singleton (p, x))], but potentially more efficient.
@@ -83,7 +83,7 @@ sig
       @param context_visible The context of modifier effects when merging the subtree into the visible namespace.
       @since 5.0.0 *)
 
-  val import_subtree : ?context_modifier:context -> ?context_visible:context -> ?modifier:hook Language.t -> Trie.path * (data, tag) Trie.t -> unit
+  val import_subtree : ?context_modifier:context -> ?context_visible:context -> ?modifier:hook Language.t -> Trie.path -> (data, tag) Trie.t -> unit
   (** [import_subtree (p, ns)] merges the namespace [ns] prefixed with [p] into
       the visible namespace (while keeping the export namespace intact).
       Conflicting names during the final merge will trigger the effect [shadow].

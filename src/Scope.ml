@@ -57,12 +57,12 @@ struct
        Mod.union ?context:context_export ~prefix:(export_prefix()) s.export @@
        Mod.modify ?context:context_modifier m s.visible }
 
-  let include_singleton ?context_visible ?context_export (path, x) =
+  let include_singleton ?context_visible ?context_export path x =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     { visible = Mod.union_singleton ?context:context_visible s.visible (path, x);
       export = Mod.union_singleton ?context:context_export ~prefix:(export_prefix()) s.export (path, x) }
 
-  let import_singleton ?context_visible (path, x) =
+  let import_singleton ?context_visible path x =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     { s with visible = Mod.union_singleton ?context:context_visible s.visible (path, x) }
 
@@ -72,10 +72,10 @@ struct
     { visible = Mod.union_subtree ?context:context_visible s.visible (path, ns);
       export = Mod.union_subtree ?context:context_export ~prefix:(export_prefix()) s.export (path, ns) }
 
-  let include_subtree ?context_modifier ?context_visible ?context_export ?(modifier=Language.id) (path, ns) =
+  let include_subtree ?context_modifier ?context_visible ?context_export ?(modifier=Language.id) path  ns =
     M.exclusively @@ fun () -> unsafe_include_subtree ~context_modifier ~context_visible ~context_export ~modifier (path, ns)
 
-  let import_subtree ?context_modifier ?context_visible ?(modifier=Language.id) (path, ns) =
+  let import_subtree ?context_modifier ?context_visible ?(modifier=Language.id) path ns =
     M.exclusively @@ fun () -> S.modify @@ fun s ->
     let ns = Mod.modify ?context:context_modifier ~prefix:Emp modifier ns in
     { s with visible = Mod.union_subtree ?context:context_visible s.visible (path, ns) }

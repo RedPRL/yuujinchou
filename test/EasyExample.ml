@@ -31,10 +31,10 @@ let pp_path fmt =
 let rec interpret_decl : decl -> unit =
   function
   | Decl (p, x) ->
-    S.include_singleton (p, (x, ()))
+    S.include_singleton p (x, ())
   | Import (t, m) ->
     let t = Trie.retag () t in
-    S.import_subtree ~modifier:m ([], t)
+    S.import_subtree ~modifier:m [] t
   | Export p ->
     S.export_visible (Language.only p)
   | Section (p, sec) ->
