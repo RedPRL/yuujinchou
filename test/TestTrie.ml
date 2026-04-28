@@ -248,6 +248,10 @@ let test_untag =
 let test_set_of_tags =
   Q.Test.make ~count ~name:"set_of_tags" gen_list ~print:print_list
     (fun l -> List.of_seq (Trie.set_of_tags Int.compare (of_list l)) = List.of_seq (ListAsTrie.set_of_tags Int.compare l))
+let test_complete =
+  Q.Test.make ~count ~name:"complete" Q.Gen.(pair gen_bwd_path gen_list) ~print:Q.Print.(pair print_bwd_path print_list)
+    (fun (p, l) -> 
+      (to_list @@ Trie.complete ~cutoff:2 p (of_list l)) = ListAsTrie.complete ~cutoff:2 p l)
 
 let () =
   exit @@
@@ -285,4 +289,5 @@ let () =
     ; test_retag_subtree
     ; test_untag
     ; test_set_of_tags
+    ; test_complete
     ]

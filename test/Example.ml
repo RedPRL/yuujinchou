@@ -2,7 +2,7 @@ open Yuujinchou
 open Bwd
 
 (* A tiny language demonstrating some power of the Scope module. *)
-type modifier_cmd = Print
+type modifier_cmd = Print | Complete
 type decl =
   (* declaration *)
   | Decl of Trie.path * int
@@ -12,6 +12,8 @@ type decl =
   | Import of int Trie.Untagged.t * modifier_cmd Language.t
   (* printing out all visible bindings *)
   | PrintVisible
+  (* Get completion suggestions for a path *)
+  | CompleteVisible
   (* exporting a binding *)
   | Export of Trie.path
   (* section *)
@@ -74,6 +76,19 @@ struct
         input;
       Format.printf "@]@.";
       input
+    | Complete ->
+      let typo = Bwd.of_list ["zoo"] in
+      Format.printf "@[<v 2>[Info] Got the following completion items for path %a%a:@;"
+        pp_path typo pp_context context;
+      List.iter
+        (fun (path, dist) -> Format.printf "%a, distance: %i@;" pp_path path dist)
+        (Trie.complete ~cutoff:2 typo input
+          |> Trie.to_seq
+          |> List.of_seq
+          |> List.map (fun (path, (_, dist)) -> (Bwd.of_list path), dist)
+        );
+      Format.printf "@]@.";
+      input
 end
 
 (* The interpreter *)
@@ -89,6 +104,8 @@ let rec interpret_decl : decl -> unit =
     S.import_subtree ~modifier:m ([], t)
   | PrintVisible ->
     S.modify_visible (Language.hook Print)
+  | CompleteVisible ->
+    S.modify_visible (Language.hook Complete)
   | Export p ->
     S.export_visible (Language.only p)
   | Section (p, sec) ->
@@ -105,6 +122,7 @@ let interpret (prog : program) =
 (* Some code in action *)
 let () = interpret [
     Decl (["x"], 1);
+    Decl (["foo"], 1);
     PrintVisible;
     Decl (["x"], 2);
     PrintVisible;
@@ -120,4 +138,8 @@ let () = interpret [
         Export ["x"];
       ]);
     PrintVisible;
+    Decl (["fooo"], 1);
+    Decl (["goo"], 1);
+    Decl (["ogoo"], 1);
+    CompleteVisible;
   ]
